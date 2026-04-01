@@ -1,0 +1,74 @@
+{
+  "name": "pi-morph",
+  "version": "0.1.0",
+  "description": "Morph Fast Apply extension package for Pi",
+  "license": "MIT",
+  "author": "Victor Software House",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/victor-software-house/pi-morph.git"
+  },
+  "homepage": "https://github.com/victor-software-house/pi-morph#readme",
+  "bugs": {
+    "url": "https://github.com/victor-software-house/pi-morph/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-coding-agent",
+    "morph",
+    "fast-apply",
+    "code-editing"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "image": "https://raw.githubusercontent.com/victor-software-house/pi-morph/main/assets/preview.png"
+  },
+  "type": "module",
+  "files": [
+    "extensions",
+    "assets/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "bun run lint:biome && bun run lint:oxlint",
+    "lint:biome": "biome check .",
+    "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "fix": "bun run fix:oxlint && bun run fix:biome",
+    "fix:biome": "biome check --write .",
+    "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "format": "biome format --write .",
+    "prepare": "lefthook install"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@limegrass/eslint-plugin-import-alias": "^1.6.1",
+    "@mariozechner/pi-coding-agent": "^0.63.0",
+    "@types/node": "^24.3.0",
+    "@mariozechner/pi-tui": "^0.63.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.5",
+    "eslint-plugin-zod": "^3.5.0",
+    "lefthook": "^2.1.4",
+    "oxlint": "^1.56.0",
+    "oxlint-tsgolint": "^0.17.1",
+    "semantic-release": "^25.0.3",
+    "typescript": "^5.9.3"
+  }
+}
