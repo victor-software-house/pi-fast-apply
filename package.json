@@ -41,10 +41,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "bun run lint:biome && bun run lint:oxlint",
     "lint:biome": "biome check .",
-    "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "lint:oxlint": "./node_modules/.bin/oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "fix": "bun run fix:oxlint && bun run fix:biome",
     "fix:biome": "biome check --write .",
-    "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "fix:oxlint": "./node_modules/.bin/oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "format": "biome format --write .",
     "prepare": "lefthook install"
   },
@@ -71,7 +71,7 @@
     "eslint-plugin-zod": "^3.5.0",
     "lefthook": "^2.1.4",
     "oxlint": "^1.56.0",
-    "oxlint-tsgolint": "^0.17.1",
+    "oxlint-tsgolint": "^0.19.0",
     "semantic-release": "^25.0.3",
     "typescript": "^5.9.3"
   }
