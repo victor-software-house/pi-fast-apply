@@ -4,6 +4,8 @@ This roadmap defines the first implementation slices for `pi-morph`.
 
 ## PIM-001: Package scaffold and release baseline
 
+Status: completed.
+
 Establish the package metadata, extension entrypoint, lint gates, hooks, and release flow.
 
 Acceptance criteria:
@@ -15,6 +17,8 @@ Acceptance criteria:
 - the repo can install dependencies and pass `bun run typecheck` and `bun run lint`
 
 ## PIM-002: Pi-native Morph edit tool
+
+Status: completed.
 
 Implement a native Pi extension surface for Fast Apply editing.
 
@@ -28,6 +32,8 @@ Acceptance criteria:
 
 ## PIM-003: Manual validation against real Morph credentials
 
+Status: completed.
+
 Validate the edit flow against a real Morph environment.
 
 Acceptance criteria:
@@ -39,6 +45,8 @@ Acceptance criteria:
 
 ## PIM-004: WarpGrep native search family
 
+Status: next major slice.
+
 Add Morph search capabilities as Pi-native tools.
 
 Acceptance criteria:
@@ -49,6 +57,8 @@ Acceptance criteria:
 - docs clearly distinguish when to use WarpGrep versus native `grep`/`find`
 
 ## PIM-005: Compact integration design
+
+Status: pending.
 
 Decide how Morph Compact should integrate with Pi.
 
