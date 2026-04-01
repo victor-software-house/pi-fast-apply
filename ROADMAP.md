@@ -62,6 +62,15 @@ Acceptance criteria:
 - the package preserves the separate `morph_edit` tool shape instead of overriding native `edit`, and it includes clear fallback guidance back to native tools when Morph is not the right choice or is unavailable
 - the final prompt/tool-contract wording is checked against official Morph guidance and the `opencode-morph-plugin` routing policy so the Pi package follows the same core decision model without copying unnecessary verbosity
 
+Suggested starting point for the tool prompt contract:
+
+- `description`: "Edit an existing file using Morph Fast Apply semantics. Prefer this for large files, multiple scattered changes, whitespace-sensitive edits, or complex refactors inside an existing file. Use native `edit` for small exact replacements and `write` for new files."
+- `promptSnippet`: "Use morph_edit for large or scattered edits in existing files; use edit for small exact replacements and write for new files."
+- `promptGuidelines`:
+  1. "Use morph_edit when exact oldText matching would be fragile or when several disjoint edits belong in one existing file."
+  2. "Write the instruction in first person and describe the intended change concretely."
+  3. "Provide only the changed regions in codeEdit and use '// ... existing code ...' markers for unchanged sections."
+
 ## PIM-005: Morph auth configuration in Pi
 
 Status: after PIM-004.
