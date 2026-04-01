@@ -43,21 +43,24 @@ Acceptance criteria:
 - the verified behavior is documented in the repo
 - any limitations discovered during validation are turned into explicit follow-up items
 
-## PIM-004: Morph edit Pi-native UX and SDK surface
+## PIM-004: Morph edit prompt contract and context-efficient tool metadata
 
 Status: immediate next priority.
 
-Bring `morph_edit` closer to Pi-native tool quality by using Pi's built-in tool rendering and streaming primitives more fully, and by exposing the most important remaining Morph SDK controls.
+Refine `morph_edit` so its `registerTool()` metadata is context-efficient, Pi-native, and aligned with Morph's own guidance for high-quality partial-edit prompting.
 
 Acceptance criteria:
 
-- `morph_edit` defines a custom `renderCall()` so the operator sees a concise Pi-native summary of the target path and dry-run state
-- `morph_edit` defines a custom `renderResult()` with a compact collapsed summary and an expanded diff-oriented view
-- the expanded result view uses Pi's built-in diff rendering utilities instead of plain text-only output when `udiff` is available
-- partial progress updates are surfaced through `onUpdate()` and rendered clearly while the tool is still running
-- the tool's `content` / `details` / `renderResult()` split is deliberate and preserves useful model-facing data without forcing raw transport-shaped output on the operator
-- the package exposes the most important remaining Fast Apply SDK controls, at minimum the large/fast apply mode choice and retry configuration
-- any lower-priority SDK options kept internal or deferred are documented explicitly so the public surface stays intentional rather than accidental
+- `morph_edit` keeps a small, disciplined model-facing schema and does not grow a kitchen-sink parameter surface without strong evidence
+- the tool `description` is short and decision-oriented, explaining when to use `morph_edit` and how it differs from native `edit` and `write`
+- the tool `promptSnippet` stays a single concise line suitable for Pi's `Available tools` section
+- the tool `promptGuidelines` stay intentionally short and encode the most important Morph-native editing rules rather than restating a long manual
+- the tool metadata explicitly teaches the model to use first-person `instruction` text
+- the tool metadata explicitly teaches the model to provide only changed regions plus `// ... existing code ...` markers in `codeEdit`
+- the tool metadata and docs teach partial semantic editing rather than exact-string replacement thinking
+- the package docs and examples reinforce the same routing guidance used by the tool metadata so the operator-visible contract stays consistent
+- the package preserves the separate `morph_edit` tool shape instead of overriding native `edit`, and it includes clear fallback guidance back to native tools when Morph is not the right choice or is unavailable
+- the final prompt/tool-contract wording is checked against official Morph guidance and the `opencode-morph-plugin` routing policy so the Pi package follows the same core decision model without copying unnecessary verbosity
 
 ## PIM-005: Morph auth configuration in Pi
 
