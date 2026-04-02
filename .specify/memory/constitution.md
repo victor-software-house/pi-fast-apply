@@ -1,50 +1,138 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  Sync Impact Report
+  ===================
+  Version change: N/A → 1.0.0 (initial ratification)
+
+  Added principles:
+    I.   Pi-Native First
+    II.  Morph as Semantic Engine
+    III. Minimal Tool Surface
+    IV.  Operator Safety
+    V.   Incremental Delivery
+
+  Added sections:
+    - Technology Stack & Constraints
+    - Development Workflow
+
+  Removed sections: none (initial version)
+
+  Templates requiring updates:
+    ✅ plan-template.md — Constitution Check section aligns with principles
+    ✅ spec-template.md — no changes needed; requirements and success criteria are generic
+    ✅ tasks-template.md — no changes needed; task phases are generic
+    ✅ checklist-template.md — no changes needed
+    ✅ agent-file-template.md — no changes needed
+
+  Follow-up TODOs: none
+-->
+
+# pi-morph Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Pi-Native First
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every capability MUST start as a Pi-native extension surface using
+Pi's runtime primitives (tool registration, path resolution, file
+mutation queueing, TUI rendering). MCP MUST NOT be the default
+integration path when a Pi-native tool achieves the same outcome.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Rationale: Pi ownership of the tool lifecycle ensures consistent
+operator UX, correct queueing semantics, and access to Pi context
+that MCP proxying cannot provide.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Morph as Semantic Engine
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+The Morph SDK is used exclusively for the semantic merge step.
+Pi MUST own all file I/O (reads, writes, directory creation),
+input validation, output validation, and operator-visible messaging.
+Morph receives original code and a partial edit; Pi decides what
+happens with the result.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: Keeping file I/O inside Pi preserves `withFileMutationQueue`
+safety, enables dry-run previews without SDK changes, and ensures
+Morph service outages degrade gracefully with actionable errors.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Minimal Tool Surface
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Tool schemas MUST remain small and disciplined. New parameters
+require demonstrated evidence of model or operator need. Tool
+descriptions MUST be decision-oriented (when to use this tool vs
+alternatives) rather than exhaustive reference documentation.
+Prompt guidelines MUST encode the fewest rules that produce
+high-quality edits.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Rationale: Context-efficient tool metadata reduces model confusion,
+keeps token budgets focused on the actual task, and prevents
+kitchen-sink parameter drift.
+
+### IV. Operator Safety
+
+All tool inputs and outputs MUST be validated defensively:
+- Empty or marker-leaked merge results MUST be rejected before write.
+- New file creation via `morph_edit` MUST be refused; use `write`.
+- Non-trivial files MUST require `// ... existing code ...` markers.
+- Errors MUST produce actionable operator-visible messages that name
+  the failed constraint and suggest a corrective action.
+
+Rationale: The model can produce malformed edits. Defensive validation
+at the Pi layer catches these before they corrupt user files.
+
+### V. Incremental Delivery
+
+Features MUST ship in small, verified slices. Each roadmap item MUST
+have explicit acceptance criteria. Manual validation against real
+credentials MUST precede any claim of "working" status. Discovered
+limitations MUST be captured as explicit follow-up items rather than
+silently deferred.
+
+Rationale: Small slices reduce blast radius, keep the repo in a
+shippable state, and ensure documentation matches actual capability.
+
+## Technology Stack & Constraints
+
+- **Runtime**: Bun (TypeScript, ESM, strict mode)
+- **Extension host**: `@mariozechner/pi-coding-agent` extension API
+- **Morph SDK**: `@morphllm/morphsdk` (official Fast Apply client)
+- **Schema**: `@sinclair/typebox` for tool parameter definitions
+- **Lint**: Biome + oxlint (strict, no suppressions without justification)
+- **Type checking**: `tsc --noEmit` (strict TypeScript config)
+- **Hooks**: lefthook (pre-commit lint + typecheck gates)
+- **Release**: semantic-release from `main` via Conventional Commits
+- **Credentials**: `MORPH_API_KEY` via environment; Pi auth storage
+  path planned (see ROADMAP PIM-005)
+
+## Development Workflow
+
+1. **Verify before committing**: `bun run typecheck && bun run lint`
+   MUST pass. No commits with known type or lint failures.
+2. **Auto-fix first**: Run `bun run fix && bun run format` before
+   making manual style-only edits.
+3. **Conventional Commits**: All commits MUST follow the Conventional
+   Commits specification. Commit messages drive semantic-release.
+4. **Small slices**: Each commit MUST be a reviewable, self-contained
+   change. Avoid bundling unrelated work.
+5. **Import discipline**: Use single quotes, omit file extensions in
+   import paths, use `import type` for type-only imports. Do not
+   import hidden Pi internals from non-public paths.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution is the authoritative source for non-negotiable
+project rules. All code changes, tool designs, and documentation
+updates MUST comply with the principles above.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment procedure**:
+1. Propose the change with rationale in a PR or conversation.
+2. Document the old and new text.
+3. Increment the version per semantic versioning:
+   - MAJOR: principle removal or backward-incompatible redefinition.
+   - MINOR: new principle or materially expanded guidance.
+   - PATCH: clarification, wording, or typo fix.
+4. Update `LAST_AMENDED_DATE` to the amendment date.
+
+**Compliance review**: The Constitution Check gate in plan templates
+MUST be evaluated before Phase 0 research and re-checked after
+Phase 1 design for every feature specification.
+
+**Version**: 1.0.0 | **Ratified**: 2026-04-02 | **Last Amended**: 2026-04-02
