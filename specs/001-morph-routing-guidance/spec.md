@@ -1,8 +1,8 @@
 # Feature Specification: Improve morph_edit Routing Guidance
 
-**Feature Branch**: `001-morph-routing-guidance`  
-**Created**: 2026-04-02  
-**Status**: Draft  
+**Feature Branch**: `001-morph-routing-guidance`
+**Created**: 2026-04-02
+**Status**: Draft
 **Input**: User description: "improve morph_edit routing guidance so the model reliably chooses morph_edit for scattered or fragile edits, uses first-person instructions, and falls back to edit/write appropriately"
 
 ## User Scenarios & Testing *(mandatory)*
@@ -72,8 +72,9 @@ As a Pi operator, I want the model to fall back to `edit` or `write` when `morph
 - **FR-005**: The system MUST instruct the model that `morph_edit` instructions are written in first person and describe the intended change specifically.
 - **FR-006**: The system MUST instruct the model that `morph_edit` code edits should contain only changed regions plus unchanged-code markers where surrounding content is omitted.
 - **FR-007**: The system MUST explain that `morph_edit` is for existing files and must not be presented as the preferred path for creating new files.
-- **FR-008**: The system MUST keep routing guidance concise enough that the primary decision rules remain easy for the model to apply consistently.
-- **FR-009**: The system MUST keep operator-visible guidance consistent across the main tool description and supporting package documentation so the same routing rules are reinforced in more than one place.
+- **FR-008**: The system MUST keep routing guidance concise enough that the combined token overhead of tool description, prompt snippet, and prompt guidelines stays within a defined ceiling, measured by computing token usage from the final metadata.
+- **FR-009**: The system MUST keep operator-visible guidance consistent across the main tool description, supporting package documentation, and repo agent guidance so the same routing rules are reinforced in every operator-facing surface.
+- **FR-011**: The system MUST be verifiable through programmatic scenario testing where Pi runs in detached or programmatic mode against representative routing scenarios across multiple models, and the observed tool choice matches the expected tool in each case.
 - **FR-010**: The system MUST describe fallback behavior in a way that distinguishes partial semantic editing from exact replacement and full-file writing.
 
 ### Key Entities *(include if feature involves data)*
@@ -88,8 +89,9 @@ As a Pi operator, I want the model to fall back to `edit` or `write` when `morph
 
 - **SC-001**: In representative routing examples for scattered, fragile, exact-replacement, and new-file tasks, the documented expected tool choice is unambiguous in 100% of cases.
 - **SC-002**: In review of the final guidance, every `morph_edit` example instruction uses first-person phrasing and a specific change statement.
-- **SC-003**: The final guidance expresses the primary routing rules for `morph_edit`, `edit`, and `write` in a form that can be read and understood in under 30 seconds by a maintainer reviewing the tool contract.
-- **SC-004**: The package’s operator-visible guidance contains no conflicting statements about when to use `morph_edit` versus native editing tools.
+- **SC-003**: The combined token count of the `morph_edit` tool description, prompt snippet, and prompt guidelines does not exceed a defined ceiling, confirming that guidance stays context-efficient.
+- **SC-004**: The package's operator-visible guidance contains no conflicting statements about when to use `morph_edit` versus native editing tools across tool metadata, package documentation, and repo agent guidance.
+- **SC-005**: Programmatic scenario tests run in Pi detached or programmatic mode across representative routing scenarios and multiple models, and the model selects the expected tool in each case.
 
 ## Assumptions
 

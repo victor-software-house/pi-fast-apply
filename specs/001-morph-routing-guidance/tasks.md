@@ -86,9 +86,11 @@
 
 **Purpose**: Validate consistency, quality gates, and final review artifacts across all user stories
 
-- [ ] T013 Run the quickstart validation checklist in `/Users/victor/workspace/victor/pi-morph/specs/001-morph-routing-guidance/quickstart.md` against `/Users/victor/workspace/victor/pi-morph/extensions/index.ts`, `/Users/victor/workspace/victor/pi-morph/README.md`, and `/Users/victor/workspace/victor/pi-morph/ROADMAP.md`
+- [ ] T013 Run the quickstart validation checklist in `/Users/victor/workspace/victor/pi-morph/specs/001-morph-routing-guidance/quickstart.md` against `/Users/victor/workspace/victor/pi-morph/extensions/index.ts`, `/Users/victor/workspace/victor/pi-morph/README.md`, `/Users/victor/workspace/victor/pi-morph/ROADMAP.md`, and `/Users/victor/workspace/victor/pi-morph/AGENTS.md`
 - [ ] T014 Run repository verification with `bun run typecheck` and `bun run lint` from `/Users/victor/workspace/victor/pi-morph`
-- [ ] T015 Review `/Users/victor/workspace/victor/pi-morph/AGENTS.md` and keep only the agent-context additions that remain accurate after implementation
+- [ ] T015 Update `/Users/victor/workspace/victor/pi-morph/AGENTS.md` so repo agent guidance is consistent with the final routing contract in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and `/Users/victor/workspace/victor/pi-morph/README.md`
+- [ ] T016 Compute token count of the final `morph_edit` tool description, prompt snippet, and prompt guidelines in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and verify it stays within the defined ceiling per SC-003
+- [ ] T017 Run programmatic scenario tests in Pi detached or programmatic mode against representative routing scenarios (scattered, fragile, exact-replacement, new-file, full-rewrite) across multiple models and verify tool selection matches expectations per SC-005
 
 ---
 
@@ -118,7 +120,7 @@
 ### Parallel Opportunities
 
 - T011 and T012 can run in parallel after T010 because they touch different files
-- Polish review of `AGENTS.md` in T015 can run in parallel with T013 or T014 once implementation is complete
+- T015, T016, and T017 can run in parallel after all user story phases are complete
 
 ---
 
@@ -158,7 +160,7 @@ With multiple contributors:
 2. Contributor A implements runtime guidance in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts`
 3. Contributor B mirrors approved wording into `/Users/victor/workspace/victor/pi-morph/README.md`
 4. Contributor C aligns roadmap-facing acceptance language in `/Users/victor/workspace/victor/pi-morph/ROADMAP.md`
-5. Finish with shared validation and repo gates
+5. Finish with shared validation, token measurement, programmatic scenario testing, and repo gates
 
 ---
 

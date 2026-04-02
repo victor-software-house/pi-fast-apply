@@ -19,7 +19,7 @@ Refine the `morph_edit` tool contract and supporting package documentation so th
 **Project Type**: Pi extension/library package  
 **Performance Goals**: Routing rules remain readable in under 30 seconds and small enough to avoid unnecessary model-context bloat  
 **Constraints**: Pi-native first, existing-file-only `morph_edit`, concise decision-oriented metadata, first-person instruction rule, marker-based partial-edit rule, consistent fallback guidance to `edit`/`write`  
-**Scale/Scope**: One extension entrypoint (`extensions/index.ts`), root package docs, and feature docs for a single tool contract refinement
+**Scale/Scope**: One extension entrypoint (`extensions/index.ts`), root package docs (`README.md`, `ROADMAP.md`), repo agent guidance (`AGENTS.md`), and feature docs for a single tool contract refinement
 
 ## Constitution Check
 
@@ -27,7 +27,7 @@ Refine the `morph_edit` tool contract and supporting package documentation so th
 
 - **I. Pi-Native First**: Pass. The plan changes only Pi-native tool metadata and package documentation; it does not shift behavior to MCP.
 - **II. Morph as Semantic Engine**: Pass. The plan does not alter file I/O ownership or validation boundaries; it only clarifies when and how to invoke the semantic merge path.
-- **III. Minimal Tool Surface**: Pass. The intended change is to improve decision-oriented wording without adding parameters or expanding the tool schema.
+- **III. Minimal Tool Surface**: Pass. The intended change is to improve decision-oriented wording without adding parameters or expanding the tool schema. Conciseness will be validated by measuring token overhead of the final metadata.
 - **IV. Operator Safety**: Pass. The routing guidance will more clearly steer new files and full rewrites away from `morph_edit`, reinforcing existing safety boundaries.
 - **V. Incremental Delivery**: Pass. This is a small, documented refinement to the current tool contract and supporting docs.
 
@@ -65,7 +65,7 @@ specs/001-morph-routing-guidance/
     └── templates/
 ```
 
-**Structure Decision**: Use the existing single-package layout. Implementation changes are expected in `extensions/index.ts` and root docs such as `README.md` and `ROADMAP.md`, with feature planning artifacts stored under `specs/001-morph-routing-guidance/`.
+**Structure Decision**: Use the existing single-package layout. Implementation changes are expected in `extensions/index.ts`, root docs (`README.md`, `ROADMAP.md`), and repo agent guidance (`AGENTS.md`), with feature planning artifacts stored under `specs/001-morph-routing-guidance/`.
 
 ## Phase 0: Research Plan
 
@@ -86,7 +86,7 @@ specs/001-morph-routing-guidance/
 
 - **I. Pi-Native First**: Pass. Design artifacts keep the change scoped to Pi-native extension metadata and repo docs.
 - **II. Morph as Semantic Engine**: Pass. The design leaves file reads, writes, queueing, and validation in Pi.
-- **III. Minimal Tool Surface**: Pass. The contract emphasizes concise routing text and explicitly avoids parameter growth.
+- **III. Minimal Tool Surface**: Pass. The contract emphasizes concise routing text, explicitly avoids parameter growth, and adds token-count and programmatic scenario verification to confirm the guidance stays effective.
 - **IV. Operator Safety**: Pass. The design sharpens routing away from unsafe use cases such as new-file creation.
 - **V. Incremental Delivery**: Pass. The design remains a narrow documentation-and-contract refinement over an existing working tool.
 
