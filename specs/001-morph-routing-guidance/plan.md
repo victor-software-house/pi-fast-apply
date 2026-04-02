@@ -20,7 +20,7 @@ Refine the `morph_edit` tool contract and supporting package documentation so th
 **Performance Goals**: Routing rules remain readable in under 30 seconds and small enough to avoid unnecessary model-context bloat  
 **Constraints**: Pi-native first, existing-file-only `morph_edit`, concise decision-oriented metadata, first-person instruction rule, marker-based partial-edit rule, consistent fallback guidance to `edit`/`write`, model-facing metadata ceiling of 1400 chars (~350 tokens) per research Decision 6  
 **Scale/Scope**: One extension entrypoint (`extensions/index.ts`), root package docs (`README.md`, `ROADMAP.md`), repo agent guidance (`AGENTS.md`), and feature docs for a single tool contract refinement  
-**Verification**: pi-test-harness playbook tests for tool contract enforcement (Phase 1), RPC-based live model tests as documented stretch path (Phase 2) per research Decision 7
+**Verification**: Pi RPC client live model tests across 4 models (claude-opus-4-6, claude-sonnet-4-6, gpt-5.4, gpt-5.3-codex) for tool-choice verification (SC-005), plus pi-test-harness playbook tests for deterministic contract enforcement, per research Decision 7
 
 ## Constitution Check
 
@@ -103,9 +103,17 @@ Current measurement: **883 chars** (~221 tokens). PIM-004 proposed wording: **12
 
 ## Programmatic Testing Strategy (SC-005)
 
-Phase 1 (this feature): pi-test-harness playbook tests verifying tool contract enforcement — correct behavior when each tool is chosen, correct rejection when misused. Deterministic, cost-free, CI-safe.
+Two complementary test suites, both in scope for this feature:
 
-Phase 2 (follow-up item): RPC-based live model tests using `RpcClient` to send routing scenario prompts, observe `tool_execution_start.toolName` in `AgentEvent` stream, and assert expected tool choice across models. Non-deterministic, requires API keys, suited for periodic validation.
+**RPC live model tests** (satisfies SC-005): Use `RpcClient` to spawn Pi headless with pi-morph loaded, send routing scenario prompts, observe `tool_execution_start.toolName` in the `AgentEvent` stream, and assert expected tool choice. Run across four models:
+- claude-opus-4-6 (Anthropic)
+- claude-sonnet-4-6 (Anthropic)
+- gpt-5.4 (OpenAI)
+- gpt-5.3-codex (OpenAI)
+
+Five scenarios per model: scattered edit, fragile edit, small exact replacement, new file, full-file replacement. Run via `bun run test:routing` (not gated CI). Mock tool execution to avoid real file mutations.
+
+**Playbook contract tests** (complements SC-005, satisfies FR-007/FR-010): Use `@marcfargas/pi-test-harness` with scripted playbooks to verify tool contract enforcement — morph_edit succeeds for valid cases, rejects new-file creation, requires markers. Deterministic, cost-free, CI-safe.
 
 See research Decision 7 for full rationale.
 

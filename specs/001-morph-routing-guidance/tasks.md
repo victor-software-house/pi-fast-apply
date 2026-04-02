@@ -90,8 +90,8 @@
 - [ ] T014 Run repository verification with `bun run typecheck` and `bun run lint` from `/Users/victor/workspace/victor/pi-morph`
 - [ ] T015 Update `/Users/victor/workspace/victor/pi-morph/AGENTS.md` so repo agent guidance is consistent with the final routing contract in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and `/Users/victor/workspace/victor/pi-morph/README.md`
 - [ ] T016 Compute the character count of the final `morph_edit` tool description, prompt snippet, prompt guidelines, and parameter descriptions in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and verify the total stays at or below the 1400-character ceiling defined in research Decision 6
-- [ ] T017 Implement pi-test-harness playbook tests in `/Users/victor/workspace/victor/pi-morph/test/routing-contract.test.ts` that verify: (a) `morph_edit` succeeds for scattered/fragile edits with markers, (b) `morph_edit` rejects new-file creation, (c) `morph_edit` requires markers for non-trivial files, using `createTestSession` with mock tools and playbook-driven tool calls per research Decision 7
-- [ ] T018 [FOLLOW-UP] Document RPC-based live model testing approach in `/Users/victor/workspace/victor/pi-morph/specs/001-morph-routing-guidance/` for future cross-model tool-choice verification using `RpcClient.promptAndWait()` and `AgentEvent` tool_execution_start assertions per research Decision 7 Phase 2
+- [ ] T017 Implement RPC-based live model routing tests in `/Users/victor/workspace/victor/pi-morph/test/routing-live.test.ts` that verify tool-choice across four models (claude-opus-4-6, claude-sonnet-4-6, gpt-5.4, gpt-5.3-codex) using `RpcClient.promptAndWait()` and asserting `tool_execution_start.toolName` for five scenarios (scattered, fragile, exact-replacement, new-file, full-rewrite) per SC-005 and research Decision 7
+- [ ] T018 Implement pi-test-harness playbook contract tests in `/Users/victor/workspace/victor/pi-morph/test/routing-contract.test.ts` that verify: (a) `morph_edit` succeeds for scattered/fragile edits with markers, (b) `morph_edit` rejects new-file creation, (c) `morph_edit` requires markers for non-trivial files, using `createTestSession` with mock tools and playbook-driven tool calls per research Decision 7
 
 ---
 
@@ -121,7 +121,7 @@
 ### Parallel Opportunities
 
 - T011 and T012 can run in parallel after T010 because they touch different files
-- T015, T016, and T017 can run in parallel after all user story phases are complete
+- T015, T016, T017, and T018 can run in parallel after all user story phases are complete
 
 ---
 

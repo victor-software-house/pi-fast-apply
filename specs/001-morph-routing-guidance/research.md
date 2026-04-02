@@ -87,57 +87,63 @@ The tool `description` and parameter `description` fields are sent via function-
 - Ceiling equal to current (883 chars) — rejected because the proposed routing improvements require a richer description and cannot fit in the current footprint.
 - No ceiling, rely on review judgment — rejected because FR-008 and SC-003 explicitly require a measurable constraint.
 
-## Decision 7: Use pi-test-harness playbook tests for programmatic scenario verification, with RPC as a documented stretch path
+## Decision 7: Use Pi RPC client for live model tool-choice testing, with pi-test-harness for contract enforcement
 
-**Decision**: Implement SC-005 programmatic scenario tests using `@marcfargas/pi-test-harness` playbook-driven integration tests as the primary verification method. Document Pi's RPC client as a viable but heavier alternative for future cross-model live testing.
+**Decision**: Implement SC-005 programmatic scenario tests using Pi's `RpcClient` for live model tool-choice verification across four models (claude-opus-4-6, claude-sonnet-4-6, gpt-5.4, gpt-5.3-codex). Complement with `@marcfargas/pi-test-harness` playbook tests for deterministic tool contract enforcement.
 
-**Rationale**: Pi provides two programmatic paths for tool-choice verification:
+**Rationale**: FR-011 and SC-005 require that a live model, given the routing guidance, selects the expected tool. This is a model-decision test, not a tool-behavior test. Pi provides two complementary paths:
 
-### Path A: pi-test-harness playbooks (recommended)
-
-The `@marcfargas/pi-test-harness` package creates a real Pi session with a substituted `streamFn`. A playbook scripts what the model "decides" — the test author specifies exactly which tool calls the model makes. The harness then:
-- Runs the tool through Pi's real extension registry
-- Fires all hooks and events
-- Collects events via `t.events.toolCallsFor()`, `t.events.toolSequence()`, etc.
-
-For routing guidance verification, this means:
-- Write scenarios where the playbook calls `morph_edit` for scattered/fragile edits and verify it succeeds
-- Write scenarios where the playbook calls `edit` for small exact replacements and verify it succeeds
-- Write scenarios where the playbook calls `write` for new files and verify it succeeds
-- Verify that `morph_edit` rejects new-file creation attempts (the tool throws)
-- Verify that `morph_edit` requires `// ... existing code ...` markers for non-trivial files
-
-This tests the **tool contract enforcement** side of routing — confirming that the tools behave correctly when chosen — but does not test **model decision-making** (whether a live model reads the guidance and picks the right tool).
-
-### Path B: Pi RPC client (stretch goal for live model testing)
+### Path A: Pi RPC client (primary — satisfies SC-005)
 
 Pi ships an `RpcClient` class (`@mariozechner/pi-coding-agent/dist/modes/rpc/rpc-client`) that:
 - Spawns Pi in headless RPC mode
 - Accepts `prompt()` commands
 - Emits `AgentEvent` objects including `tool_execution_start` with `toolName` and `args`
 - Supports `promptAndWait()` and `collectEvents()` for scripted verification
-- Allows `setModel()` to switch providers/models between runs
+- Allows `setModel(provider, modelId)` to switch providers/models between runs
 
-This could drive true cross-model tool-choice tests:
-1. Start `RpcClient` with the pi-morph extension loaded
-2. Send a routing scenario prompt ("Edit this file to add imports at the top and change the return type at the bottom")
+Test flow:
+1. Start `RpcClient` with the pi-morph extension loaded and all editing tools active
+2. Send a routing scenario prompt (e.g., "Edit this file to add imports at the top and change the return type at the bottom")
 3. Collect events and assert `tool_execution_start.toolName === 'morph_edit'`
-4. Repeat with different models via `setModel()`
+4. Switch model via `setModel()` and repeat for all four models
+5. Run five representative scenarios per model: scattered edit, fragile edit, small exact replacement, new file, full-file replacement
 
-However, this path:
+Target models:
+- `claude-opus-4-6` (Anthropic)
+- `claude-sonnet-4-6` (Anthropic)
+- `gpt-5.4` (OpenAI)
+- `gpt-5.3-codex` (OpenAI)
+
+Characteristics:
 - Requires real LLM API keys and incurs cost per run
-- Is non-deterministic (model may choose differently across runs)
+- Non-deterministic — models may choose differently across runs
 - Needs careful prompt design to isolate tool choice from task complexity
-- Is better suited for periodic validation than gated CI
+- Should run as an explicit validation step (e.g., `bun run test:routing`), not as a gated CI check
+- Each scenario should use mock tool execution to avoid real file mutations during test
 
-### Recommendation for SC-005
+### Path B: pi-test-harness playbook tests (complementary — contract enforcement)
 
-Phase 1 (this feature): Implement pi-test-harness playbook tests that verify the **tool contract** — correct behavior when each tool is chosen, and correct rejection when misused. This satisfies the "programmatic scenario testing" requirement with deterministic, cost-free tests.
+The `@marcfargas/pi-test-harness` package creates a real Pi session with a substituted `streamFn`. A playbook scripts what the model "decides" — the test author specifies exactly which tool calls the model makes. The harness then:
+- Runs the tool through Pi's real extension registry
+- Fires all hooks and events
+- Collects events via `t.events.toolCallsFor()`, `t.events.toolSequence()`, etc.
 
-Phase 2 (follow-up): Add RPC-based live model tests as an optional validation suite. Document the test harness, scenarios, and expected results so they can be run manually or in CI with appropriate cost controls.
+For contract enforcement:
+- Verify `morph_edit` succeeds for valid scattered/fragile edits with markers
+- Verify `morph_edit` rejects new-file creation attempts (the tool throws)
+- Verify `morph_edit` requires `// ... existing code ...` markers for non-trivial files
+
+This tests the **tool contract** — confirming that the tools behave correctly when chosen — but does not test model decision-making. It is deterministic, cost-free, and CI-safe.
+
+### Both paths are in scope for this feature
+
+- RPC live model tests satisfy FR-011 / SC-005 (model selects expected tool)
+- Playbook contract tests satisfy FR-007 / FR-010 (tool enforces boundaries)
+- Both use Pi's own testing infrastructure
 
 **Alternatives considered**:
-- Only manual review per quickstart.md — rejected because SC-005 explicitly requires programmatic testing.
-- Only RPC live model tests — rejected for Phase 1 because they are non-deterministic, costly, and the RPC testing path is not yet proven for this use case.
-- External test framework (e.g., pytest, custom scripts) — rejected because Pi already provides purpose-built testing infrastructure.
-- Defer all programmatic testing — rejected because it would leave SC-005 unmet.
+- Only playbook tests — rejected because SC-005 explicitly requires live model tool-choice verification across multiple models.
+- Only manual review per quickstart.md — rejected because FR-011 requires programmatic testing.
+- External test framework (e.g., pytest, custom scripts) — rejected because Pi already provides purpose-built testing infrastructure (RpcClient, pi-test-harness).
+- Defer live model testing to a follow-up — rejected because the operator confirmed SC-005 is a must-have for this feature.
