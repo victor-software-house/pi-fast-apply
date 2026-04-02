@@ -54,3 +54,90 @@
 - Update only the runtime tool metadata — rejected because the README is part of the operator-visible contract for this package.
 - Put all nuance only in the README and keep tool metadata generic — rejected because the runtime metadata is the primary model-facing source.
 - Copy long-form guidance verbatim into every file — rejected because consistency should come from shared decision rules, not duplicated verbosity.
+
+## Decision 6: Set the token ceiling at 1400 characters (~350 tokens) for morph_edit model-facing metadata
+
+**Decision**: Define SC-003 ceiling as **1400 characters** (~350 tokens) for the combined morph_edit tool description, promptSnippet, promptGuidelines, and parameter descriptions.
+
+**Rationale**: Measurement of the three editing tools in the current Pi session:
+
+| Tool | Description | Snippet | Guidelines | Params | Total |
+|------|------------|---------|------------|--------|-------|
+| `morph_edit` (current) | 136 chars | 125 chars | 289 chars (3 bullets) | 333 chars (4 params) | **883 chars (~221 tok)** |
+| `morph_edit` (PIM-004 proposed) | 296 chars | 127 chars | 445 chars (3 bullets) | 333 chars (4 params) | **1201 chars (~301 tok)** |
+| `edit` (Pi built-in) | 326 chars | 98 chars | 493 chars (4 bullets) | 468 chars (4 params) | **1385 chars (~347 tok)** |
+| `write` (Pi built-in) | 127 chars | 25 chars | 50 chars (1 bullet) | 76 chars (2 params) | **278 chars (~70 tok)** |
+| opencode-morph-plugin desc+routing | 1358 + 183 chars | — | — | — | **1541 chars (~386 tok)** |
+
+The ceiling of 1400 chars:
+- Comfortably fits the PIM-004 proposed wording (1201 chars, 86% of ceiling)
+- Stays at or below Pi's built-in `edit` tool footprint (1385 chars)
+- Leaves ~200 chars of headroom for future refinement without a ceiling revision
+- Is significantly leaner than opencode-morph-plugin's 1541-char approach
+- Is measured by summing `description.length + promptSnippet.length + sum(promptGuidelines[].length) + sum(parameterDescriptions[].length)` in the registered tool metadata
+
+Pi injects tool metadata into two system prompt sections:
+- **Available tools**: `"- morph_edit: {promptSnippet}"` (one line per tool)
+- **Guidelines**: each `promptGuidelines[]` entry becomes a `"- {guideline}"` bullet (deduplicated)
+
+The tool `description` and parameter `description` fields are sent via function-calling tool schema, not the system prompt text.
+
+**Alternatives considered**:
+- Token-based ceiling instead of character-based — rejected because token counting depends on the tokenizer (cl100k_base, o200k, etc.) and varies by model. Character count is deterministic, measurable in code, and the ~4 chars/token approximation is close enough for budget enforcement.
+- Ceiling equal to current (883 chars) — rejected because the proposed routing improvements require a richer description and cannot fit in the current footprint.
+- No ceiling, rely on review judgment — rejected because FR-008 and SC-003 explicitly require a measurable constraint.
+
+## Decision 7: Use pi-test-harness playbook tests for programmatic scenario verification, with RPC as a documented stretch path
+
+**Decision**: Implement SC-005 programmatic scenario tests using `@marcfargas/pi-test-harness` playbook-driven integration tests as the primary verification method. Document Pi's RPC client as a viable but heavier alternative for future cross-model live testing.
+
+**Rationale**: Pi provides two programmatic paths for tool-choice verification:
+
+### Path A: pi-test-harness playbooks (recommended)
+
+The `@marcfargas/pi-test-harness` package creates a real Pi session with a substituted `streamFn`. A playbook scripts what the model "decides" — the test author specifies exactly which tool calls the model makes. The harness then:
+- Runs the tool through Pi's real extension registry
+- Fires all hooks and events
+- Collects events via `t.events.toolCallsFor()`, `t.events.toolSequence()`, etc.
+
+For routing guidance verification, this means:
+- Write scenarios where the playbook calls `morph_edit` for scattered/fragile edits and verify it succeeds
+- Write scenarios where the playbook calls `edit` for small exact replacements and verify it succeeds
+- Write scenarios where the playbook calls `write` for new files and verify it succeeds
+- Verify that `morph_edit` rejects new-file creation attempts (the tool throws)
+- Verify that `morph_edit` requires `// ... existing code ...` markers for non-trivial files
+
+This tests the **tool contract enforcement** side of routing — confirming that the tools behave correctly when chosen — but does not test **model decision-making** (whether a live model reads the guidance and picks the right tool).
+
+### Path B: Pi RPC client (stretch goal for live model testing)
+
+Pi ships an `RpcClient` class (`@mariozechner/pi-coding-agent/dist/modes/rpc/rpc-client`) that:
+- Spawns Pi in headless RPC mode
+- Accepts `prompt()` commands
+- Emits `AgentEvent` objects including `tool_execution_start` with `toolName` and `args`
+- Supports `promptAndWait()` and `collectEvents()` for scripted verification
+- Allows `setModel()` to switch providers/models between runs
+
+This could drive true cross-model tool-choice tests:
+1. Start `RpcClient` with the pi-morph extension loaded
+2. Send a routing scenario prompt ("Edit this file to add imports at the top and change the return type at the bottom")
+3. Collect events and assert `tool_execution_start.toolName === 'morph_edit'`
+4. Repeat with different models via `setModel()`
+
+However, this path:
+- Requires real LLM API keys and incurs cost per run
+- Is non-deterministic (model may choose differently across runs)
+- Needs careful prompt design to isolate tool choice from task complexity
+- Is better suited for periodic validation than gated CI
+
+### Recommendation for SC-005
+
+Phase 1 (this feature): Implement pi-test-harness playbook tests that verify the **tool contract** — correct behavior when each tool is chosen, and correct rejection when misused. This satisfies the "programmatic scenario testing" requirement with deterministic, cost-free tests.
+
+Phase 2 (follow-up): Add RPC-based live model tests as an optional validation suite. Document the test harness, scenarios, and expected results so they can be run manually or in CI with appropriate cost controls.
+
+**Alternatives considered**:
+- Only manual review per quickstart.md — rejected because SC-005 explicitly requires programmatic testing.
+- Only RPC live model tests — rejected for Phase 1 because they are non-deterministic, costly, and the RPC testing path is not yet proven for this use case.
+- External test framework (e.g., pytest, custom scripts) — rejected because Pi already provides purpose-built testing infrastructure.
+- Defer all programmatic testing — rejected because it would leave SC-005 unmet.

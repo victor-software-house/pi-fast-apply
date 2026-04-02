@@ -18,8 +18,9 @@ Refine the `morph_edit` tool contract and supporting package documentation so th
 **Target Platform**: Pi extension package running in Bun on operator machines  
 **Project Type**: Pi extension/library package  
 **Performance Goals**: Routing rules remain readable in under 30 seconds and small enough to avoid unnecessary model-context bloat  
-**Constraints**: Pi-native first, existing-file-only `morph_edit`, concise decision-oriented metadata, first-person instruction rule, marker-based partial-edit rule, consistent fallback guidance to `edit`/`write`  
-**Scale/Scope**: One extension entrypoint (`extensions/index.ts`), root package docs (`README.md`, `ROADMAP.md`), repo agent guidance (`AGENTS.md`), and feature docs for a single tool contract refinement
+**Constraints**: Pi-native first, existing-file-only `morph_edit`, concise decision-oriented metadata, first-person instruction rule, marker-based partial-edit rule, consistent fallback guidance to `edit`/`write`, model-facing metadata ceiling of 1400 chars (~350 tokens) per research Decision 6  
+**Scale/Scope**: One extension entrypoint (`extensions/index.ts`), root package docs (`README.md`, `ROADMAP.md`), repo agent guidance (`AGENTS.md`), and feature docs for a single tool contract refinement  
+**Verification**: pi-test-harness playbook tests for tool contract enforcement (Phase 1), RPC-based live model tests as documented stretch path (Phase 2) per research Decision 7
 
 ## Constitution Check
 
@@ -89,6 +90,24 @@ specs/001-morph-routing-guidance/
 - **III. Minimal Tool Surface**: Pass. The contract emphasizes concise routing text, explicitly avoids parameter growth, and adds token-count and programmatic scenario verification to confirm the guidance stays effective.
 - **IV. Operator Safety**: Pass. The design sharpens routing away from unsafe use cases such as new-file creation.
 - **V. Incremental Delivery**: Pass. The design remains a narrow documentation-and-contract refinement over an existing working tool.
+
+## Token Ceiling (SC-003)
+
+The token ceiling for `morph_edit` model-facing metadata is **1400 characters** (~350 tokens), defined by research Decision 6. This is measured as:
+
+```
+description.length + promptSnippet.length + sum(promptGuidelines[].length) + sum(parameterDescriptions[].length)
+```
+
+Current measurement: **883 chars** (~221 tokens). PIM-004 proposed wording: **1201 chars** (~301 tokens, 86% of ceiling). Pi built-in `edit` tool: **1385 chars** (~347 tokens). Ceiling provides ~200 chars headroom.
+
+## Programmatic Testing Strategy (SC-005)
+
+Phase 1 (this feature): pi-test-harness playbook tests verifying tool contract enforcement — correct behavior when each tool is chosen, correct rejection when misused. Deterministic, cost-free, CI-safe.
+
+Phase 2 (follow-up item): RPC-based live model tests using `RpcClient` to send routing scenario prompts, observe `tool_execution_start.toolName` in `AgentEvent` stream, and assert expected tool choice across models. Non-deterministic, requires API keys, suited for periodic validation.
+
+See research Decision 7 for full rationale.
 
 ## Complexity Tracking
 

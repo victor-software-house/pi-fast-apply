@@ -89,8 +89,9 @@
 - [ ] T013 Run the quickstart validation checklist in `/Users/victor/workspace/victor/pi-morph/specs/001-morph-routing-guidance/quickstart.md` against `/Users/victor/workspace/victor/pi-morph/extensions/index.ts`, `/Users/victor/workspace/victor/pi-morph/README.md`, `/Users/victor/workspace/victor/pi-morph/ROADMAP.md`, and `/Users/victor/workspace/victor/pi-morph/AGENTS.md`
 - [ ] T014 Run repository verification with `bun run typecheck` and `bun run lint` from `/Users/victor/workspace/victor/pi-morph`
 - [ ] T015 Update `/Users/victor/workspace/victor/pi-morph/AGENTS.md` so repo agent guidance is consistent with the final routing contract in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and `/Users/victor/workspace/victor/pi-morph/README.md`
-- [ ] T016 Compute token count of the final `morph_edit` tool description, prompt snippet, and prompt guidelines in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and verify it stays within the defined ceiling per SC-003
-- [ ] T017 Run programmatic scenario tests in Pi detached or programmatic mode against representative routing scenarios (scattered, fragile, exact-replacement, new-file, full-rewrite) across multiple models and verify tool selection matches expectations per SC-005
+- [ ] T016 Compute the character count of the final `morph_edit` tool description, prompt snippet, prompt guidelines, and parameter descriptions in `/Users/victor/workspace/victor/pi-morph/extensions/index.ts` and verify the total stays at or below the 1400-character ceiling defined in research Decision 6
+- [ ] T017 Implement pi-test-harness playbook tests in `/Users/victor/workspace/victor/pi-morph/test/routing-contract.test.ts` that verify: (a) `morph_edit` succeeds for scattered/fragile edits with markers, (b) `morph_edit` rejects new-file creation, (c) `morph_edit` requires markers for non-trivial files, using `createTestSession` with mock tools and playbook-driven tool calls per research Decision 7
+- [ ] T018 [FOLLOW-UP] Document RPC-based live model testing approach in `/Users/victor/workspace/victor/pi-morph/specs/001-morph-routing-guidance/` for future cross-model tool-choice verification using `RpcClient.promptAndWait()` and `AgentEvent` tool_execution_start assertions per research Decision 7 Phase 2
 
 ---
 
