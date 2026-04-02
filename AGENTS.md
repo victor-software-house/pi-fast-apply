@@ -69,3 +69,10 @@ when dependencies, hooks, or release tooling change.
 - Keep commits small and reviewable.
 - Keep `lefthook` protections working unless the user explicitly requests otherwise.
 - This repo is expected to publish from `main` through semantic-release once it is ready.
+
+## Active Technologies
+- TypeScript (strict), targeting ES2023 via Bun ESM tooling + `@mariozechner/pi-coding-agent`, `@morphllm/morphsdk`, `@sinclair/typebox` (001-morph-routing-guidance)
+- Files in the repo; no database storage (001-morph-routing-guidance)
+
+## Recent Changes
+- 001-morph-routing-guidance: Added TypeScript (strict), targeting ES2023 via Bun ESM tooling + `@mariozechner/pi-coding-agent`, `@morphllm/morphsdk`, `@sinclair/typebox`
