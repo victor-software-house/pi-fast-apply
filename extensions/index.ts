@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
-import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
+import type { AuthStorage, ExtensionAPI } from '@mariozechner/pi-coding-agent';
 import { getLanguageFromPath, highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
 import { Text } from '@mariozechner/pi-tui';
 import type { ApplyEditConfig, ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
@@ -22,6 +22,14 @@ const EXISTING_CODE_MARKER = '// ... existing code ...';
 const DEFAULT_MORPH_API_URL = 'https://api.morphllm.com';
 const DEFAULT_TIMEOUT_MS = parsePositiveInt(process.env['MORPH_EDIT_TIMEOUT_MS'], 60_000);
 const NON_TRIVIAL_FILE_LINE_COUNT = 10;
+
+/**
+ * Provider identifier used as the auth.json key for Morph credentials.
+ * Pi's built-in env var mapping does not include Morph, so we resolve
+ * MORPH_API_KEY explicitly as a fallback after checking authStorage.
+ */
+const MORPH_PROVIDER_ID = 'morph';
+const MORPH_ENV_VAR = 'MORPH_API_KEY';
 
 const MorphEditParams = Type.Object({
 	path: Type.String({ description: 'Path to the existing file to modify (relative or absolute)' }),
@@ -71,13 +79,48 @@ function buildApplyConfig(apiKey: string): ApplyEditConfig {
 	};
 }
 
-function ensureMorphConfigured(): string {
-	const apiKey = process.env['MORPH_API_KEY']?.trim();
-	if (apiKey == null || apiKey === '') {
-		throw new Error('MORPH_API_KEY is not configured. Set it in the environment before using morph_edit.');
+/**
+ * Auth source for operator-visible diagnostics.
+ */
+type MorphAuthSource = 'auth.json' | 'env' | 'none';
+
+/**
+ * Resolve the Morph API key using Pi's auth priority chain:
+ *   1. authStorage (runtime override or auth.json via /morph-login)
+ *   2. MORPH_API_KEY environment variable
+ *
+ * Pi's built-in getEnvApiKey() hardcodes known providers and does not
+ * include 'morph', so step 2 is an explicit env-var check rather than
+ * relying on authStorage's env fallback.
+ */
+async function resolveMorphApiKey(authStorage: AuthStorage): Promise<{ key: string; source: MorphAuthSource }> {
+	// 1. authStorage: runtime override or persisted api_key in auth.json
+	const storedKey = await authStorage.getApiKey(MORPH_PROVIDER_ID, { includeFallback: false });
+	if (storedKey != null && storedKey !== '') {
+		return { key: storedKey, source: 'auth.json' };
 	}
 
-	return apiKey;
+	// 2. Explicit env var fallback
+	const envKey = process.env[MORPH_ENV_VAR]?.trim();
+	if (envKey != null && envKey !== '') {
+		return { key: envKey, source: 'env' };
+	}
+
+	return { key: '', source: 'none' };
+}
+
+/**
+ * Resolve and require a Morph API key, throwing a descriptive error when missing.
+ */
+async function ensureMorphApiKey(authStorage: AuthStorage): Promise<string> {
+	const { key, source } = await resolveMorphApiKey(authStorage);
+	if (source === 'none') {
+		throw new Error(
+			'Morph API key is not configured.\n' +
+				'Use /morph-login to store a key in Pi, or set MORPH_API_KEY in the environment.',
+		);
+	}
+	return key;
 }
 
 async function ensureReadableFile(absolutePath: string): Promise<void> {
@@ -286,7 +329,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 		},
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
-			const apiKey = ensureMorphConfigured();
+			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
 			const targetPath = expandPath(params.path);
 			const absolutePath = resolve(ctx.cwd, targetPath);
 			const dryRun = Boolean(params.dryRun);
@@ -354,18 +397,61 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 		},
 	});
 
+	pi.registerCommand('morph-login', {
+		description: 'Store a Morph API key in Pi auth storage',
+		handler: async (_args, ctx) => {
+			const key = _args.trim();
+			if (key === '') {
+				ctx.ui.notify(
+					'Usage: /morph-login <api-key>\n' +
+						'Store a Morph API key in Pi auth storage (~/.pi/agent/auth.json).\n' +
+						'The key takes priority over the MORPH_API_KEY environment variable.',
+					'warning',
+				);
+				return;
+			}
+
+			ctx.modelRegistry.authStorage.set(MORPH_PROVIDER_ID, { type: 'api_key', key });
+			ctx.ui.notify('Morph API key stored in Pi auth storage.', 'info');
+		},
+	});
+
+	pi.registerCommand('morph-logout', {
+		description: 'Remove stored Morph API key from Pi auth storage',
+		handler: async (_args, ctx) => {
+			const had = ctx.modelRegistry.authStorage.has(MORPH_PROVIDER_ID);
+			if (!had) {
+				ctx.ui.notify('No Morph credentials found in Pi auth storage.', 'info');
+				return;
+			}
+
+			ctx.modelRegistry.authStorage.remove(MORPH_PROVIDER_ID);
+			ctx.ui.notify('Morph API key removed from Pi auth storage.', 'info');
+		},
+	});
+
 	pi.registerCommand('morph-status', {
 		description: 'Show Morph extension status and configuration hints',
 		handler: async (_args, ctx) => {
-			const apiKeyConfigured = Boolean(process.env['MORPH_API_KEY']?.trim());
+			const { source } = await resolveMorphApiKey(ctx.modelRegistry.authStorage);
+			const authLabel =
+				source === 'auth.json'
+					? 'auth.json (via /morph-login)'
+					: source === 'env'
+						? 'MORPH_API_KEY environment variable'
+						: 'not configured';
 			const lines = [
 				'Morph extension status',
-				`- MORPH_API_KEY: ${apiKeyConfigured ? 'configured' : 'missing'}`,
+				`- API key: ${authLabel}`,
 				'- Fast Apply provider: official Morph SDK',
 				`- API base URL: ${getMorphApiBaseUrl()}`,
 				`- Timeout: ${DEFAULT_TIMEOUT_MS}ms`,
+				'',
+				'Auth resolution priority:',
+				'  1. Pi auth storage (~/.pi/agent/auth.json) — set via /morph-login',
+				'  2. MORPH_API_KEY environment variable (e.g. fnox, .env, shell export)',
 			];
-			ctx.ui.notify(lines.join('\n'), apiKeyConfigured ? 'info' : 'warning');
+			ctx.ui.notify(lines.join('\n'), source !== 'none' ? 'info' : 'warning');
 		},
 	});
 }

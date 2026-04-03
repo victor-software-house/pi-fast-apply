@@ -77,7 +77,7 @@ Suggested starting point for the tool prompt contract, adapted from Morph's own 
 
 ## PIM-005: Morph auth configuration in Pi
 
-Status: after PIM-004.
+Status: completed.
 
 Add a first-class Pi-native auth path for Morph that fits Pi's existing credential storage model while preserving the current environment-variable workflow.
 
@@ -89,6 +89,14 @@ Acceptance criteria:
 - key resolution priority and fallback behavior are documented and verified
 - the package provides a way to remove stored Morph credentials cleanly
 - the implementation documents why it follows Pi's auth storage conventions, and if a stronger-at-rest option such as age/keychain/fnox remains preferable, that trade-off is stated explicitly
+
+Implementation notes:
+
+- Provider key: `morph` in auth.json
+- Resolution chain: authStorage (runtime override + auth.json) -> MORPH_API_KEY env var
+- Pi's built-in `getEnvApiKey()` uses a hardcoded provider map that does not include `morph`, so the env var fallback is an explicit `process.env` check
+- Commands: `/morph-login <key>`, `/morph-logout`, `/morph-status` (updated to show active auth source)
+- Security trade-off documented in README: auth.json uses 0600 permissions; fnox/keychain remains preferable for at-rest encryption
 
 ## PIM-006: WarpGrep native search family
 

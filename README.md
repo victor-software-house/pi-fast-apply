@@ -11,7 +11,8 @@ Implemented and verified in this repo:
 - native `morph_edit` tool registration in [`extensions/index.ts`](extensions/index.ts)
 - Pi-owned path resolution, file reads/writes, and `withFileMutationQueue()` protection
 - dry-run support with preview details (`udiff`, `mergedCode`, change counts)
-- real SDK-backed write path using `MORPH_API_KEY`
+- real SDK-backed write path using Morph API key
+- Pi-native auth management with `/morph-login`, `/morph-logout`, and `/morph-status` commands
 - manual validation against a temporary real file with both dry-run and real-write success
 
 Not implemented yet:
@@ -43,9 +44,29 @@ The package should keep Pi in control of tool registration, path resolution, que
 
 ## Requirements
 
-- `MORPH_API_KEY` must be available in the environment when using `morph_edit`
-- optional: `MORPH_API_URL` to target a non-default Morph base URL
-- optional: `MORPH_EDIT_TIMEOUT_MS` to override the default 60s timeout
+A Morph API key is required to use `morph_edit`. Two configuration paths are supported:
+
+1. **Pi auth storage** (recommended) — run `/morph-login <api-key>` inside Pi to store the key in `~/.pi/agent/auth.json`
+2. **Environment variable** — set `MORPH_API_KEY` in the shell, `.env`, or via a secret manager like fnox
+
+Resolution priority: Pi auth storage is checked first. If no key is found there, the `MORPH_API_KEY` environment variable is used as a fallback.
+
+### Auth commands
+
+| Command | Description |
+|:--------|:------------|
+| `/morph-login <key>` | Store a Morph API key in Pi auth storage |
+| `/morph-logout` | Remove stored Morph credentials from Pi auth storage |
+| `/morph-status` | Show current auth source, API base URL, and timeout |
+
+### Additional environment variables
+
+- `MORPH_API_URL` — override the default Morph base URL (`https://api.morphllm.com`)
+- `MORPH_EDIT_TIMEOUT_MS` — override the default 60s timeout
+
+### Auth security trade-offs
+
+Pi's `auth.json` is stored with `0600` file permissions and uses file locking for safe concurrent access. This is consistent with how Pi stores credentials for all providers (Anthropic, OpenAI, etc.). For stronger at-rest encryption, environment-variable injection through fnox, age-encrypted secrets, or a system keychain remains a valid alternative — use `MORPH_API_KEY` via your preferred secret manager instead of `/morph-login`.
 
 ## Tool contract
 
