@@ -3,7 +3,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import type { AuthStorage, ExtensionAPI } from '@mariozechner/pi-coding-agent';
-import { getLanguageFromPath, highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
+import { highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
 import { Text } from '@mariozechner/pi-tui';
 import type { ApplyEditConfig, ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
 import { applyEdit } from '@morphllm/morphsdk';
@@ -12,9 +12,11 @@ import {
 	cfg,
 	type DiffColors,
 	lang as diffLang,
+	hlBlock,
 	parseDiff,
 	renderSplit,
 	resolveDiffColors,
+	shortPath,
 	termW,
 } from 'pi-diff/render';
 
@@ -203,29 +205,76 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 
 		renderCall(args, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
-			const label = theme.fg('toolTitle', theme.bold('morph_edit'));
 			const filePath = args.path ?? '';
-			const pathStyled = theme.fg('accent', filePath);
 			const instruction = args.instruction ?? '';
-			const instructionStyled = theme.fg('muted', instruction);
-
 			const codeEdit = args.codeEdit ?? '';
-			const lang = getLanguageFromPath(filePath);
-			const maxLines = context.expanded ? undefined : 15;
-			const highlighted = highlightCode(codeEdit, lang).join('\n');
-			const codeBlock = maxLines
-				? (() => {
-						const allLines = highlighted.split('\n');
-						if (allLines.length <= maxLines) return highlighted;
-						return (
-							allLines.slice(0, maxLines).join('\n') +
-							'\n' +
-							theme.fg('dim', `... +${allLines.length - maxLines} more lines`)
-						);
-					})()
-				: highlighted;
+			const language = diffLang(filePath);
+			const home = process.env['HOME'] ?? '';
 
-			text.setText(`${label} ${pathStyled}\n${instructionStyled}\n${codeBlock}`);
+			const hdr =
+				`${theme.fg('toolTitle', theme.bold('morph_edit'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
+				(instruction ? `\n${theme.fg('muted', instruction)}` : '');
+			const maxShow = cfg.maxPreviewLines;
+
+			// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- context.state is any by design
+			const st = context.state as {
+				_msk?: string | null;
+				_mst?: string | null;
+				_mpk?: string | null;
+				_mpt?: string | null;
+			};
+
+			// Streaming — show live preview as codeEdit arrives
+			if (codeEdit && !context.argsComplete) {
+				const lines = codeEdit.split('\n');
+				const n = lines.length;
+				const ex = context.expanded ? 1 : 0;
+				const streamKey = `morphstream:${filePath}:${codeEdit.length}:${ex}`;
+				if (st._msk !== streamKey) {
+					st._msk = streamKey;
+					const preview = lines.slice(0, context.expanded ? n : maxShow);
+					hlBlock(preview.join('\n'), language)
+						.then((hlLines: string[]) => {
+							if (st._msk !== streamKey) return;
+							const rem = n - (context.expanded ? n : maxShow);
+							let out = `${hdr}\n\n${hlLines.join('\n')}`;
+							if (rem > 0) out += `\n${theme.fg('muted', `\u2026 ${rem} more lines`)}`;
+							st._mst = out;
+							context.invalidate();
+						})
+						.catch(() => {});
+				}
+				text.setText(st._mst ?? `${hdr}  ${theme.fg('muted', `(${n} lines\u2026)`)}`);
+				return text;
+			}
+
+			// Final render — full syntax-highlighted codeEdit, truncated to maxShow unless expanded
+			if (codeEdit && context.argsComplete) {
+				st._msk = null;
+				st._mst = null;
+				const ex = context.expanded ? 1 : 0;
+				const previewKey = `morphfinal:${filePath}:${codeEdit.length}:${ex}`;
+				if (st._mpk !== previewKey) {
+					st._mpk = previewKey;
+					st._mpt = hdr;
+					hlBlock(codeEdit, language)
+						.then((hlLines: string[]) => {
+							if (st._mpk !== previewKey) return;
+							const show = context.expanded ? hlLines.length : maxShow;
+							const preview = hlLines.slice(0, show).join('\n');
+							const rem = hlLines.length - show;
+							let out = `${hdr}\n\n${preview}`;
+							if (rem > 0) out += `\n${theme.fg('muted', `\u2026 (${rem} more lines, ${hlLines.length} total)`)}`;
+							st._mpt = out;
+							context.invalidate();
+						})
+						.catch(() => {});
+				}
+				text.setText(st._mpt ?? hdr);
+				return text;
+			}
+
+			text.setText(hdr);
 			return text;
 		},
 
