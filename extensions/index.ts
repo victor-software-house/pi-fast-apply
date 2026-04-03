@@ -182,6 +182,20 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				return text;
 			}
 
+			// Error state — show the error message clearly
+			if (context.isError) {
+				const first = result.content[0];
+				const errorMsg = first != null && first.type === 'text' ? first.text : 'Unknown error';
+				const header =
+					theme.fg('error', '✘') +
+					' ' +
+					theme.fg('toolTitle', theme.bold('morph_edit')) +
+					' ' +
+					theme.fg('error', 'failed');
+				text.setText([header, theme.fg('error', errorMsg)].join('\n'));
+				return text;
+			}
+
 			const details = result.details;
 
 			const changes = details.changes;
@@ -231,8 +245,13 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				try {
 					await ensureReadableFile(absolutePath);
 				} catch {
+					if (targetPath.startsWith('~')) {
+						throw new Error(
+							`Path starts with '~' which is not expanded to the home directory. Use an absolute path instead.\nGiven: ${targetPath}\nResolved to: ${absolutePath}`,
+						);
+					}
 					throw new Error(
-						`Target file does not exist or is not readable: ${targetPath}. Use write to create new files.`,
+						`File not found: ${targetPath}\nResolved to: ${absolutePath}\nUse the write tool to create new files.`,
 					);
 				}
 
