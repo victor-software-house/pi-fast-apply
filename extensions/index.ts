@@ -1,5 +1,6 @@
 import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
 import { getLanguageFromPath, highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
@@ -41,8 +42,11 @@ function getMorphApiBaseUrl(): string {
 	return raw.replace(/\/+$/, '').replace(/\/v1$/, '');
 }
 
-function stripLeadingAt(path: string): string {
-	return path.startsWith('@') ? path.slice(1) : path;
+function expandPath(filePath: string): string {
+	const normalized = filePath.startsWith('@') ? filePath.slice(1) : filePath;
+	if (normalized === '~') return homedir();
+	if (normalized.startsWith('~/')) return homedir() + normalized.slice(1);
+	return normalized;
 }
 
 function countLines(text: string): number {
@@ -235,7 +239,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
 			const apiKey = ensureMorphConfigured();
-			const targetPath = stripLeadingAt(params.path);
+			const targetPath = expandPath(params.path);
 			const absolutePath = resolve(ctx.cwd, targetPath);
 			const dryRun = Boolean(params.dryRun);
 
@@ -245,13 +249,8 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				try {
 					await ensureReadableFile(absolutePath);
 				} catch {
-					if (targetPath.startsWith('~')) {
-						throw new Error(
-							`Path starts with '~' which is not expanded to the home directory. Use an absolute path instead.\nGiven: ${targetPath}\nResolved to: ${absolutePath}`,
-						);
-					}
 					throw new Error(
-						`File not found: ${targetPath}\nResolved to: ${absolutePath}\nUse the write tool to create new files.`,
+						`File not found: ${params.path}\nResolved to: ${absolutePath}\nUse the write tool to create new files.`,
 					);
 				}
 
