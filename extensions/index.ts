@@ -8,6 +8,15 @@ import { Text } from '@mariozechner/pi-tui';
 import type { ApplyEditConfig, ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
 import { applyEdit } from '@morphllm/morphsdk';
 import { Type } from '@sinclair/typebox';
+import {
+	cfg,
+	type DiffColors,
+	lang as diffLang,
+	parseDiff,
+	renderSplit,
+	resolveDiffColors,
+	termW,
+} from 'pi-diff/render';
 
 const EXISTING_CODE_MARKER = '// ... existing code ...';
 const DEFAULT_MORPH_API_URL = 'https://api.morphllm.com';
@@ -107,6 +116,7 @@ interface MorphEditDetails {
 	changes: EditChanges;
 	udiff: string | undefined;
 	mergedCode: string;
+	originalCode: string;
 	completionId: string | undefined;
 	originalLineCount: number;
 	mergedLineCount: number;
@@ -191,7 +201,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				const first = result.content[0];
 				const errorMsg = first != null && first.type === 'text' ? first.text : 'Unknown error';
 				const header =
-					theme.fg('error', '✘') +
+					theme.fg('error', '\u2718') +
 					' ' +
 					theme.fg('toolTitle', theme.bold('morph_edit')) +
 					' ' +
@@ -208,7 +218,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 
 			const modeLabel = dryRun ? 'dry run' : 'applied';
 			const header =
-				theme.fg('success', '✔') +
+				theme.fg('success', '\u2714') +
 				' ' +
 				theme.fg('toolTitle', theme.bold('morph_edit')) +
 				' ' +
@@ -229,10 +239,48 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				return text;
 			}
 
-			// Expanded: show full udiff
+			// Expanded: full split/unified diff via pi-diff rendering engine
+			const originalCode: string | undefined = details.originalCode;
+			const mergedCode: string | undefined = details.mergedCode;
+
+			if (originalCode != null && mergedCode != null && originalCode !== mergedCode) {
+				// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Pi context.state is typed as any by design
+				const st = context.state as { _morphDiffKey?: string; _morphDiffText?: string };
+				const w = termW();
+				const ex = context.expanded ? 1 : 0;
+				const language = diffLang(details.absolutePath ?? filePath);
+				const diff = parseDiff(originalCode, mergedCode);
+				const key = `morph:${w}:${diff.added}:${diff.removed}:${diff.lines.length}:${language ?? ''}:${ex}`;
+
+				if (st._morphDiffKey !== key) {
+					st._morphDiffKey = key;
+					st._morphDiffText = [header, changeLine, '', theme.fg('muted', '  rendering diff...')]
+						.filter(Boolean)
+						.join('\n');
+
+					const dc: DiffColors = resolveDiffColors(theme);
+					const maxLines = context.expanded ? diff.lines.length : cfg.maxDiffLines;
+					const wr = context.expanded ? (cfg.maxWrapRows ?? 10) : undefined;
+					renderSplit(diff, language, maxLines, dc, wr)
+						.then((rendered: string) => {
+							if (st._morphDiffKey !== key) return;
+							st._morphDiffText = [header, changeLine, '', rendered].filter(Boolean).join('\n');
+							context.invalidate();
+						})
+						.catch(() => {
+							if (st._morphDiffKey !== key) return;
+							st._morphDiffText = [header, changeLine].filter(Boolean).join('  ');
+							context.invalidate();
+						});
+				}
+
+				text.setText(st._morphDiffText ?? [header, changeLine].filter(Boolean).join('  '));
+				return text;
+			}
+
+			// Fallback: no original code available (e.g. dry run without file read)
 			const udiff = details.udiff ?? '';
 			const diffLines = udiff ? highlightCode(udiff, 'diff').join('\n') : theme.fg('dim', '(no diff available)');
-
 			text.setText([header, changeLine, '', diffLines].filter((l) => l !== undefined).join('\n'));
 			return text;
 		},
@@ -296,6 +344,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 						changes: result.changes,
 						udiff: result.udiff,
 						mergedCode: result.mergedCode,
+						originalCode,
 						completionId: result.completionId,
 						originalLineCount: countLines(originalCode),
 						mergedLineCount: countLines(result.mergedCode),

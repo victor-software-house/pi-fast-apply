@@ -19,7 +19,11 @@
     "noEmit": true,
     "lib": ["ES2023"],
     "types": ["node"],
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "pi-diff/render": ["./extensions/pi-diff-render.d.ts"]
+    }
   },
-  "include": ["extensions/**/*.ts"]
+  "include": ["extensions/**/*.ts"],
+  "exclude": ["node_modules"]
 }
