@@ -215,6 +215,9 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				`${theme.fg('toolTitle', theme.bold('morph_edit'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
 				(instruction ? `\n${theme.fg('muted', instruction)}` : '');
 			const maxShow = cfg.maxPreviewLines;
+			// Pi never calls setArgsComplete() for historical tool calls on session resume.
+			// Use !context.isPartial (result present) as a fallback signal that args are done.
+			const isFinal = context.argsComplete || !context.isPartial;
 
 			// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- context.state is any by design
 			const st = context.state as {
@@ -225,7 +228,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 			};
 
 			// Streaming — show live preview as codeEdit arrives
-			if (codeEdit && !context.argsComplete) {
+			if (codeEdit && !isFinal) {
 				const lines = codeEdit.split('\n');
 				const n = lines.length;
 				const ex = context.expanded ? 1 : 0;
@@ -249,7 +252,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 			}
 
 			// Final render — full syntax-highlighted codeEdit, truncated to maxShow unless expanded
-			if (codeEdit && context.argsComplete) {
+			if (codeEdit && isFinal) {
 				st._msk = null;
 				st._mst = null;
 				const ex = context.expanded ? 1 : 0;
