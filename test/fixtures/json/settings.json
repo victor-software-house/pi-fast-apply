@@ -1,0 +1,92 @@
+{
+  "$schema": "./settings.schema.json",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 3000,
+    "bodySizeLimit": 1048576,
+    "trustProxy": false,
+    "shutdownTimeoutMs": 10000,
+    "cors": {
+      "allowedOrigins": ["http://localhost:5173"],
+      "allowCredentials": true,
+      "maxAge": 600
+    }
+  },
+  "database": {
+    "url": "postgres://localhost:5432/platform",
+    "schema": "public",
+    "pool": {
+      "min": 2,
+      "max": 10,
+      "acquireTimeoutMs": 5000
+    },
+    "ssl": "prefer",
+    "debugLog": false,
+    "migrations": {
+      "dir": "db/migrations",
+      "table": "schema_migrations",
+      "runOnStartup": false
+    }
+  },
+  "cache": {
+    "url": "redis://localhost:6379",
+    "keyPrefix": "platform:",
+    "cluster": false,
+    "ttl": {
+      "default": 60,
+      "session": 900,
+      "rateLimit": 60,
+      "featureFlags": 300
+    },
+    "maxRetries": 3
+  },
+  "auth": {
+    "hmacSecret": "change-me-in-production",
+    "accessTokenTtlMs": 900000,
+    "refreshTokenTtlMs": 604800000,
+    "maxSessionsPerUser": 5,
+    "bcryptRounds": 12
+  },
+  "observability": {
+    "logLevel": "info",
+    "jsonLogs": false,
+    "serviceName": "platform-api",
+    "tracing": {
+      "enabled": false,
+      "endpoint": "http://localhost:4318",
+      "sampleRate": 0.1
+    },
+    "metrics": {
+      "enabled": false,
+      "port": 9090,
+      "path": "/metrics"
+    }
+  },
+  "storage": {
+    "provider": "local",
+    "local": {
+      "root": "/var/platform/uploads",
+      "maxFileSize": 10485760
+    },
+    "s3": {
+      "bucket": "",
+      "region": "us-east-1",
+      "endpoint": "",
+      "forcePathStyle": false
+    }
+  },
+  "flags": {
+    "enableRegistration": true,
+    "enableOAuth": false,
+    "maintenanceMode": false
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "routes": {
+      "/v1/auth/login": { "max": 10, "windowMs": 60000 },
+      "/v1/auth/refresh": { "max": 20, "windowMs": 60000 },
+      "/v1/uploads": { "max": 30, "windowMs": 60000 },
+      "default": { "max": 100, "windowMs": 60000 }
+    }
+  }
+}
