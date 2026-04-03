@@ -43,16 +43,9 @@ Acceptance criteria:
 - the verified behavior is documented in the repo
 - any limitations discovered during validation are turned into explicit follow-up items
 
-Re-verification notes (2026-04-03):
-
-- 12 test scenarios run against a 10-file fixture corpus in `/tmp/morph-test/`
-- test corpus lives in `test/fixtures/` (reset via `mise run test:reset`)
-- all edit accuracy tests passed: scattered edits, JSX, Python, markdown, JSON
-- dry-run mode verified (diff shown, file untouched)
-- two bugs found and fixed:
-  - BUG-001: error results rendered as success (green ✔ instead of red ✘)
-  - BUG-002: `~` paths silently failed with a misleading "file not found" error
-- full results documented in [`test/fixtures/README.md`](test/fixtures/README.md)
+Re-verification (2026-04-03): 12 scenarios passed against a 10-file fixture corpus.
+Two bugs found and fixed (BUG-001, BUG-002). Full report:
+[`test/reports/2026-04-03-manual-validation.md`](test/reports/2026-04-03-manual-validation.md)
 
 ## PIM-004: Morph edit prompt contract and context-efficient tool metadata
 
