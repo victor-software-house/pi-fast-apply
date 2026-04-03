@@ -2,7 +2,8 @@ import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
-import { withFileMutationQueue } from '@mariozechner/pi-coding-agent';
+import { getLanguageFromPath, highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
+import { Text } from '@mariozechner/pi-tui';
 import type { ApplyEditConfig, ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
 import { applyEdit } from '@morphllm/morphsdk';
 import { Type } from '@sinclair/typebox';
@@ -93,16 +94,35 @@ function validateMergedOutput(originalCode: string, codeEdit: string, mergedCode
 	}
 }
 
-function summarizeResult(relativePath: string, dryRun: boolean, changes: EditChanges): string {
+interface MorphEditDetails {
+	provider: string;
+	path: string;
+	absolutePath: string;
+	dryRun: boolean;
+	instruction: string;
+	changes: EditChanges;
+	udiff: string | undefined;
+	mergedCode: string;
+	completionId: string | undefined;
+	originalLineCount: number;
+	mergedLineCount: number;
+}
+
+function summarizeResult(
+	relativePath: string,
+	dryRun: boolean,
+	changes: EditChanges,
+	udiff: string | undefined,
+): string {
 	const mode = dryRun ? 'Morph dry run' : 'Morph edit applied';
-	return [
+	const lines = [
 		`${mode}: ${relativePath}`,
-		`Provider: sdk`,
 		`Changes: +${changes.linesAdded} -${changes.linesRemoved} ~${changes.linesModified}`,
-		dryRun
-			? 'No file was written. Inspect details.udiff or details.mergedCode for the preview.'
-			: 'File updated. Use the read tool if you need to inspect the resulting file contents.',
-	].join('\n');
+	];
+	if (udiff != null && udiff !== '') {
+		lines.push('', udiff);
+	}
+	return lines.join('\n');
 }
 
 async function runMorphApply(input: ApplyEditInput, apiKey: string): Promise<ApplyEditResult> {
@@ -110,7 +130,7 @@ async function runMorphApply(input: ApplyEditInput, apiKey: string): Promise<App
 }
 
 export default function morphEditExtension(pi: ExtensionAPI): void {
-	pi.registerTool({
+	pi.registerTool<typeof MorphEditParams, Partial<MorphEditDetails>>({
 		name: 'morph_edit',
 		label: 'Morph Edit',
 		description:
@@ -123,6 +143,82 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 			'Use write instead of morph_edit for new files or full-file replacement.',
 		],
 		parameters: MorphEditParams,
+
+		renderCall(args, theme, context) {
+			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
+			const label = theme.fg('toolTitle', theme.bold('morph_edit'));
+			const filePath = args.path ?? '';
+			const pathStyled = theme.fg('accent', filePath);
+			const instruction = args.instruction ?? '';
+			const instructionStyled = theme.fg('muted', instruction);
+
+			const codeEdit = args.codeEdit ?? '';
+			const lang = getLanguageFromPath(filePath);
+			const maxLines = context.expanded ? undefined : 15;
+			const highlighted = highlightCode(codeEdit, lang).join('\n');
+			const codeBlock = maxLines
+				? (() => {
+						const allLines = highlighted.split('\n');
+						if (allLines.length <= maxLines) return highlighted;
+						return (
+							allLines.slice(0, maxLines).join('\n') +
+							'\n' +
+							theme.fg('dim', `... +${allLines.length - maxLines} more lines`)
+						);
+					})()
+				: highlighted;
+
+			text.setText(`${label} ${pathStyled}\n${instructionStyled}\n${codeBlock}`);
+			return text;
+		},
+
+		renderResult(result, { expanded, isPartial }, theme, context) {
+			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
+
+			if (isPartial) {
+				const first = result.content[0];
+				const raw = first != null && first.type === 'text' ? first.text : '';
+				text.setText(theme.fg('warning', raw !== '' ? raw : 'Running Morph merge...'));
+				return text;
+			}
+
+			const details = result.details;
+
+			const changes = details.changes;
+			const filePath = details.path ?? '';
+			const dryRun = details.dryRun ?? false;
+
+			const modeLabel = dryRun ? 'dry run' : 'applied';
+			const header =
+				theme.fg('success', '✔') +
+				' ' +
+				theme.fg('toolTitle', theme.bold('morph_edit')) +
+				' ' +
+				theme.fg('accent', filePath) +
+				' ' +
+				theme.fg('dim', modeLabel);
+
+			const changeLine = changes
+				? theme.fg('success', `+${changes.linesAdded}`) +
+					' ' +
+					theme.fg('error', `-${changes.linesRemoved}`) +
+					' ' +
+					theme.fg('muted', `~${changes.linesModified}`)
+				: '';
+
+			if (!expanded) {
+				text.setText([header, changeLine].filter(Boolean).join('  '));
+				return text;
+			}
+
+			// Expanded: show full udiff
+			const udiff = details.udiff ?? '';
+			const diffLines = udiff ? highlightCode(udiff, 'diff').join('\n') : theme.fg('dim', '(no diff available)');
+
+			text.setText([header, changeLine, '', diffLines].filter((l) => l !== undefined).join('\n'));
+			return text;
+		},
+
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
 			const apiKey = ensureMorphConfigured();
 			const targetPath = stripLeadingAt(params.path);
@@ -170,7 +266,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 					content: [
 						{
 							type: 'text',
-							text: summarizeResult(targetPath, dryRun, result.changes),
+							text: summarizeResult(targetPath, dryRun, result.changes, result.udiff),
 						},
 					],
 					details: {
