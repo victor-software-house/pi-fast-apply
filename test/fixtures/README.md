@@ -8,10 +8,10 @@ scenario. They are **never part of the build** — `tsconfig.json` only includes
 
 ```bash
 # Copy all fixtures to /tmp/morph-test/ (wiping any in-place edits)
-bash test/fixtures/reset.sh
+mise run test:reset
 
 # Reset a single file
-bash test/fixtures/reset.sh ts/tiny.ts
+mise run test:reset ts/tiny.ts
 ```
 
 ## Fixtures
