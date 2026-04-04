@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@morphllm/morphsdk": "^0.2.163",
+    "ai": ">=5.0.0",
     "@sinclair/typebox": "^0.34.49",
     "pi-diff": "git+ssh://git@github.com/victor-software-house/pi-diff.git"
   },
