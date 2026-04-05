@@ -4,3 +4,4 @@ node_modules/
 .vscode/
 .pi/tasks/
 .DS_Store
+.firecrawl/
