@@ -26,7 +26,7 @@
   Follow-up TODOs: none
 -->
 
-# pi-morph Constitution
+# pi-fast-apply Constitution
 
 ## Core Principles
 

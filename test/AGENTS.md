@@ -1,6 +1,6 @@
 # test/
 
-Testing subtree for `pi-morph`. Contains fixture files, test reports, and
+Testing subtree for `pi-fast-apply`. Contains fixture files, test reports, and
 (eventually) automated test infrastructure.
 
 ## Subtree layout
