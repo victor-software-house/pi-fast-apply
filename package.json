@@ -1,7 +1,7 @@
 {
   "name": "pi-fast-apply",
   "version": "0.1.0",
-  "description": "Morph Fast Apply extension package for Pi",
+  "description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
   "license": "MIT",
   "author": "Victor Software House",
   "repository": {

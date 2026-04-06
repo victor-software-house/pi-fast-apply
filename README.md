@@ -1,110 +1,105 @@
 # pi-fast-apply
 
-Morph integration package for [Pi](https://github.com/badlogic/pi-mono), starting with a Pi-native Fast Apply extension surface.
+Morph Fast Apply for [Pi](https://github.com/badlogic/pi-mono). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
 
-## Status
+## Why
 
-`pi-fast-apply` now ships a Pi-native `fast_apply` tool backed by the official `@morphllm/morphsdk` Fast Apply API.
+- **Handles scattered changes** — multiple disjoint edits in one file, one call, no fragile string anchors
+- **Semantic merging** — Morph resolves partial snippets against the real file; the model provides only what changed
+- **Pi-native** — path resolution, mutation queueing, and UX stay inside Pi; Morph handles the merge step only
+- **Dry-run support** — preview the unified diff and change stats before writing
+- **Auth built in** — store your Morph key once with `/morph-login`; falls back to `MORPH_API_KEY` automatically
 
-Implemented and verified in this repo:
+## Prerequisites
 
-- native `fast_apply` tool registration in [`extensions/index.ts`](extensions/index.ts)
-- Pi-owned path resolution, file reads/writes, and `withFileMutationQueue()` protection
-- dry-run support with preview details (`udiff`, `mergedCode`, change counts)
-- real SDK-backed write path using Morph API key
-- Pi-native auth management with `/morph-login`, `/morph-logout`, and `/morph-status` commands
-- manual validation against a temporary real file with both dry-run and real-write success
+1. [Pi](https://github.com/badlogic/pi-mono) must be installed
+2. A [Morph API key](https://morphllm.com)
 
-Not implemented yet:
+## Installation
 
-- WarpGrep Pi-native tools
-- Compact lifecycle integration
-- richer custom TUI rendering beyond the default text result
-
-## Intended package scope
-
-`pi-fast-apply` is intended to become the Pi-native home for Morph-backed capabilities such as:
-
-- Fast Apply editing via a native `fast_apply` tool
-- future WarpGrep local and GitHub search tools
-- future Morph Compact lifecycle integration when Pi hook strategy is ready
-
-The package should keep Pi in control of tool registration, path resolution, queueing, and user-facing UX instead of treating MCP as the primary native path.
-
-## Package shape
-
-```json
-{
-  "pi": {
-    "extensions": ["./extensions"],
-    "image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
-  }
-}
+```bash
+pi install npm:pi-fast-apply
 ```
 
-## Requirements
+## Quickstart
 
-A Morph API key is required to use `fast_apply`. Two configuration paths are supported:
+Store your Morph API key inside Pi:
 
-1. **Pi auth storage** (recommended) — run `/morph-login <api-key>` inside Pi to store the key in `~/.pi/agent/auth.json`
-2. **Environment variable** — set `MORPH_API_KEY` in the shell, `.env`, or via a secret manager like fnox
+```
+/morph-login <your-api-key>
+```
 
-Resolution priority: Pi auth storage is checked first. If no key is found there, the `MORPH_API_KEY` environment variable is used as a fallback.
+Then use `fast_apply` in any Pi session to edit an existing file:
 
-### Auth commands
+```
+path: src/utils/math.ts
+instruction: I am adding input validation to the add function.
+codeEdit:
+  function add(a: number, b: number): number {
+    if (typeof a !== 'number' || typeof b !== 'number') {
+      throw new TypeError('Both arguments must be numbers.');
+    }
+    // ... existing code ...
+  }
+```
+
+Morph merges the partial snippet into the real file. Pi writes the result with mutation-queue protection.
+
+## Auth
+
+Two configuration paths are supported:
+
+| Method | How |
+|:-------|:----|
+| Pi auth storage (recommended) | `/morph-login <api-key>` — stored in `~/.pi/agent/auth.json` |
+| Environment variable | `MORPH_API_KEY=<key>` — in your shell, `.env`, or a secret manager like fnox |
+
+Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
+
+`~/.pi/agent/auth.json` uses `0600` file permissions, consistent with how Pi stores keys for all providers. For stronger at-rest encryption, inject `MORPH_API_KEY` through fnox, age-encrypted secrets, or a system keychain instead.
+
+### Commands
 
 | Command | Description |
 |:--------|:------------|
 | `/morph-login <key>` | Store a Morph API key in Pi auth storage |
-| `/morph-logout` | Remove stored Morph credentials from Pi auth storage |
-| `/morph-status` | Show current auth source, API base URL, and timeout |
+| `/morph-logout` | Remove stored Morph credentials |
+| `/morph-status` | Show active auth source, API base URL, and timeout |
 
-### Additional environment variables
+## Tool Contract
 
-- `MORPH_API_URL` — override the default Morph base URL (`https://api.morphllm.com`)
-- `MORPH_EDIT_TIMEOUT_MS` — override the default 60s timeout
+`fast_apply` uses Morph's semantic merge to apply partial edits to existing files.
 
-### Auth security trade-offs
+**When to use `fast_apply`:**
+- multiple scattered changes in one file
+- complex refactors where `oldText` would be fragile or ambiguous
+- whitespace-sensitive edits that exact replacement handles poorly
 
-Pi's `auth.json` is stored with `0600` file permissions and uses file locking for safe concurrent access. This is consistent with how Pi stores credentials for all providers (Anthropic, OpenAI, etc.). For stronger at-rest encryption, environment-variable injection through fnox, age-encrypted secrets, or a system keychain remains a valid alternative — use `MORPH_API_KEY` via your preferred secret manager instead of `/morph-login`.
+**When to use native tools instead:**
+- small exact replacement → use `edit`
+- creating a new file → use `write`
+- `fast_apply` unavailable (no API key) → fall back to `edit`
 
-## Tool contract
+### Parameters
 
-`fast_apply` uses Morph's semantic merge to edit existing files using partial code snippets. It is designed for multiple scattered changes in one file, complex refactors, or edits where exact `oldText` matching would be fragile.
+| Parameter | Description |
+|:----------|:------------|
+| `path` | Relative or absolute path to an existing file |
+| `instruction` | First-person change description — e.g. `I am adding input validation to the add function.` |
+| `codeEdit` | Partial edit containing only the changed sections, wrapped with `// ... existing code ...` markers. Include enough unique surrounding context to anchor each change precisely and preserve exact indentation. |
+| `dryRun` | Preview the merge and diff without writing the file |
 
-**Routing Guidance:**
-- Use `fast_apply` for scattered or fragile edits in existing files.
-- Use native `edit` for small exact replacements.
-- Use native `write` for new files.
+### Output
 
-Parameters:
+Each call returns a unified diff, the merged source, and a change summary (`+added -removed ~modified`).
 
-- `path` — relative or absolute path to an existing file
-- `instruction` — first-person change description (e.g. "I am adding input validation to the add function.")
-- `codeEdit` — partial edit containing only the changed sections, wrapped with `// ... existing code ...` markers instead of rewriting the whole file. Include enough unique surrounding context to anchor each change precisely.
-- `dryRun` — preview without writing the file
+## Configuration
 
-Behavior:
-
-- refuses to create new files; use Pi's `write` tool for that
-- requires marker-based partial edits for non-trivial existing files
-- keeps file I/O inside Pi and uses Morph only for the semantic merge step
-- returns `udiff`, merged output, and change stats in tool details
-
-## Validation snapshot
-
-Manual package-level validation was run against the real Morph service on a temporary `math.ts` file.
-
-Verified outcomes:
-
-- dry run succeeded without changing the file
-- real write succeeded and updated the file
-- SDK returned change stats and unified diff output
-- registered command surface includes `morph-status`
-
-Observed sample change summary from validation:
-
-- `+3 -0 ~0`
+| Variable | Default | Description |
+|:---------|:--------|:------------|
+| `MORPH_API_KEY` | — | Morph API key (fallback when Pi auth storage has no key) |
+| `MORPH_API_URL` | `https://api.morphllm.com` | Override the Morph base URL |
+| `MORPH_EDIT_TIMEOUT_MS` | `60000` | Request timeout in milliseconds |
 
 ## Development
 
@@ -118,12 +113,6 @@ Autofix:
 
 ```bash
 bun run fix
-```
-
-Formatting only:
-
-```bash
-bun run format
 ```
 
 ## License
