@@ -1,4 +1,4 @@
-# pi-morph
+# pi-fast-apply
 
 Pi package repo for Morph-native integration work.
 
@@ -68,4 +68,27 @@ when dependencies, hooks, or release tooling change.
 - Use Conventional Commits.
 - Keep commits small and reviewable.
 - Keep `lefthook` protections working unless the user explicitly requests otherwise.
-- This repo is expected to publish from `main` through semantic-release once it is ready.
+- Releases publish from `main` through semantic-release. Every push to `main` is evaluated. Only commits that map to a releasable type produce a version bump.
+
+## Version bump discipline
+
+**npm versions are permanent. Under-bump is recoverable; over-bump is not.**
+
+Semantic-release maps commit types to version bumps:
+
+| Commit type | Bump | When to use |
+|:------------|:-----|:------------|
+| `feat:` | minor | New tool, new command, new auth path — a capability Pi users did not have before |
+| `fix:` | patch | Bug fix or behavioral correction in an existing tool |
+| `refactor:` | none | Internal restructure with no user-visible change |
+| `docs:` | none | README, ROADMAP, AGENTS.md, comments |
+| `chore:` | none | Config, CI, deps, lint, tooling |
+| `test:` | none | Tests only |
+| `feat!:` / `BREAKING CHANGE:` footer | **major** | Removing a tool, renaming a parameter, breaking an existing Pi user's workflow |
+
+Rules:
+
+- **Never use `feat:` for metadata, description, or prompt wording changes.** Refining `description`, `promptSnippet`, `promptGuidelines`, or parameter descriptions is `refactor:` or `fix:` — not a new feature.
+- **Never use `feat!:` or `BREAKING CHANGE:` for internal refactors.** Breaking changes mean a Pi user who installed this package will have their workflow break. Internal renames and config restructures are not breaking.
+- **Default to `fix:` when in doubt** between `fix:` and `feat:`. It is always safer to under-bump.
+- **Default to `refactor:` or `docs:`** for any change that does not alter runtime behavior visible to a Pi user.
