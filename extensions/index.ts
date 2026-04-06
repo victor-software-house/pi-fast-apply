@@ -33,7 +33,7 @@ const NON_TRIVIAL_FILE_LINE_COUNT = 10;
 const MORPH_PROVIDER_ID = 'morph';
 const MORPH_ENV_VAR = 'MORPH_API_KEY';
 
-const MorphEditParams = Type.Object({
+const FastApplyParams = Type.Object({
 	path: Type.String({ description: 'Path to the existing file to modify (relative or absolute)' }),
 	instruction: Type.String({
 		description:
@@ -133,7 +133,7 @@ function validateInputForExistingFile(codeEdit: string, originalCode: string): v
 	const originalLines = countLines(originalCode);
 	if (originalLines > NON_TRIVIAL_FILE_LINE_COUNT && !codeEdit.includes(EXISTING_CODE_MARKER)) {
 		throw new Error(
-			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${originalLines}-line file. Use morph_edit for partial edits with markers, or use write for full replacement.`,
+			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${originalLines}-line file. Use fast_apply for partial edits with markers, or use write for full replacement.`,
 		);
 	}
 }
@@ -152,7 +152,7 @@ function validateMergedOutput(originalCode: string, codeEdit: string, mergedCode
 	}
 }
 
-interface MorphEditDetails {
+interface FastApplyDetails {
 	provider: string;
 	path: string;
 	absolutePath: string;
@@ -188,20 +188,20 @@ async function runMorphApply(input: ApplyEditInput, apiKey: string): Promise<App
 	return applyEdit(input, buildApplyConfig(apiKey));
 }
 
-export default function morphEditExtension(pi: ExtensionAPI): void {
-	pi.registerTool<typeof MorphEditParams, Partial<MorphEditDetails>>({
-		name: 'morph_edit',
-		label: 'Morph Edit',
+export default function fastApplyExtension(pi: ExtensionAPI): void {
+	pi.registerTool<typeof FastApplyParams, Partial<FastApplyDetails>>({
+		name: 'fast_apply',
+		label: 'Fast Apply',
 		description:
 			'Edit an existing file using Morph Fast Apply semantics. Best for large files, multiple scattered edits, or whitespace-sensitive changes.',
 		promptSnippet:
-			'Use morph_edit for large or scattered edits in existing files. Use edit for small exact replacements and write for new files.',
+			'Use fast_apply for large or scattered edits in existing files. Use edit for small exact replacements and write for new files.',
 		promptGuidelines: [
-			'Use morph_edit when exact oldText matching would be fragile or when several disjoint edits belong in one file.',
-			"Always provide a first-person instruction and use '// ... existing code ...' markers for unchanged sections.",
-			'Use write instead of morph_edit for new files or full-file replacement.',
+			'Use `fast_apply` when exact `oldText` matching would be fragile or when several disjoint edits belong in one file.',
+			'When using `fast_apply`, always provide a first-person `instruction` and use `// ... existing code ...` markers for unchanged sections in `codeEdit`.',
+			'Use `write` instead of `fast_apply` for new files or full-file replacement.',
 		],
-		parameters: MorphEditParams,
+		parameters: FastApplyParams,
 
 		renderCall(args, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
@@ -212,7 +212,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 			const home = process.env['HOME'] ?? '';
 
 			const hdr =
-				`${theme.fg('toolTitle', theme.bold('morph_edit'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
+				`${theme.fg('toolTitle', theme.bold('fast_apply'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
 				(instruction ? `\n${theme.fg('muted', instruction)}` : '');
 			const maxShow = cfg.maxPreviewLines;
 			// Pi never calls setArgsComplete() for historical tool calls on session resume.
@@ -298,7 +298,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 				const header =
 					theme.fg('error', '\u2718') +
 					' ' +
-					theme.fg('toolTitle', theme.bold('morph_edit')) +
+					theme.fg('toolTitle', theme.bold('fast_apply')) +
 					' ' +
 					theme.fg('error', 'failed');
 				text.setText([header, theme.fg('error', errorMsg)].join('\n'));
@@ -315,7 +315,7 @@ export default function morphEditExtension(pi: ExtensionAPI): void {
 			const header =
 				theme.fg('success', '\u2714') +
 				' ' +
-				theme.fg('toolTitle', theme.bold('morph_edit')) +
+				theme.fg('toolTitle', theme.bold('fast_apply')) +
 				' ' +
 				theme.fg('accent', filePath) +
 				' ' +

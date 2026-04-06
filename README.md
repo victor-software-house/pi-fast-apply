@@ -1,14 +1,14 @@
-# pi-morph
+# pi-fast-apply
 
 Morph integration package for [Pi](https://github.com/badlogic/pi-mono), starting with a Pi-native Fast Apply extension surface.
 
 ## Status
 
-`pi-morph` now ships a Pi-native `morph_edit` tool backed by the official `@morphllm/morphsdk` Fast Apply API.
+`pi-fast-apply` now ships a Pi-native `fast_apply` tool backed by the official `@morphllm/morphsdk` Fast Apply API.
 
 Implemented and verified in this repo:
 
-- native `morph_edit` tool registration in [`extensions/index.ts`](extensions/index.ts)
+- native `fast_apply` tool registration in [`extensions/index.ts`](extensions/index.ts)
 - Pi-owned path resolution, file reads/writes, and `withFileMutationQueue()` protection
 - dry-run support with preview details (`udiff`, `mergedCode`, change counts)
 - real SDK-backed write path using Morph API key
@@ -23,9 +23,9 @@ Not implemented yet:
 
 ## Intended package scope
 
-`pi-morph` is intended to become the Pi-native home for Morph-backed capabilities such as:
+`pi-fast-apply` is intended to become the Pi-native home for Morph-backed capabilities such as:
 
-- Fast Apply editing via a native `morph_edit` tool
+- Fast Apply editing via a native `fast_apply` tool
 - future WarpGrep local and GitHub search tools
 - future Morph Compact lifecycle integration when Pi hook strategy is ready
 
@@ -37,14 +37,14 @@ The package should keep Pi in control of tool registration, path resolution, que
 {
   "pi": {
     "extensions": ["./extensions"],
-    "image": "https://raw.githubusercontent.com/victor-software-house/pi-morph/main/assets/preview.png"
+    "image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
   }
 }
 ```
 
 ## Requirements
 
-A Morph API key is required to use `morph_edit`. Two configuration paths are supported:
+A Morph API key is required to use `fast_apply`. Two configuration paths are supported:
 
 1. **Pi auth storage** (recommended) — run `/morph-login <api-key>` inside Pi to store the key in `~/.pi/agent/auth.json`
 2. **Environment variable** — set `MORPH_API_KEY` in the shell, `.env`, or via a secret manager like fnox
@@ -70,7 +70,7 @@ Pi's `auth.json` is stored with `0600` file permissions and uses file locking fo
 
 ## Tool contract
 
-`morph_edit` is meant for **existing files** where exact string replacement would be brittle.
+`fast_apply` is meant for **existing files** where exact string replacement would be brittle.
 
 Parameters:
 

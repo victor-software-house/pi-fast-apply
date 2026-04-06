@@ -1,16 +1,16 @@
 {
-  "name": "pi-morph",
+  "name": "pi-fast-apply",
   "version": "0.1.0",
   "description": "Morph Fast Apply extension package for Pi",
   "license": "MIT",
   "author": "Victor Software House",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/victor-software-house/pi-morph.git"
+    "url": "git+https://github.com/victor-software-house/pi-fast-apply.git"
   },
-  "homepage": "https://github.com/victor-software-house/pi-morph#readme",
+  "homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
   "bugs": {
-    "url": "https://github.com/victor-software-house/pi-morph/issues"
+    "url": "https://github.com/victor-software-house/pi-fast-apply/issues"
   },
   "publishConfig": {
     "access": "public",
@@ -28,7 +28,7 @@
     "extensions": [
       "./extensions"
     ],
-    "image": "https://raw.githubusercontent.com/victor-software-house/pi-morph/main/assets/preview.png"
+    "image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
   },
   "type": "module",
   "files": [

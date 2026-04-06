@@ -1,6 +1,6 @@
 # ROADMAP
 
-This roadmap defines the first implementation slices for `pi-morph`.
+This roadmap defines the first implementation slices for `pi-fast-apply`.
 
 ## PIM-001: Package scaffold and release baseline
 
@@ -10,7 +10,7 @@ Establish the package metadata, extension entrypoint, lint gates, hooks, and rel
 
 Acceptance criteria:
 
-- root package metadata matches the intended `pi-morph` package identity
+- root package metadata matches the intended `pi-fast-apply` package identity
 - `pi.extensions` points at `./extensions`
 - lint, typecheck, hook, and release files are present and working
 - `assets/` exists for pi.dev preview imagery
@@ -24,7 +24,7 @@ Implement a native Pi extension surface for Fast Apply editing.
 
 Acceptance criteria:
 
-- `extensions/index.ts` registers a native `morph_edit` tool
+- `extensions/index.ts` registers a native `fast_apply` tool
 - the tool keeps path resolution and file mutation queueing inside Pi
 - the implementation uses the official Morph SDK directly rather than treating MCP as the primary native path
 - dry-run behavior is supported
@@ -38,7 +38,7 @@ Validate the edit flow against a real Morph environment.
 
 Acceptance criteria:
 
-- `morph_edit` is exercised with a real `MORPH_API_KEY`
+- `fast_apply` is exercised with a real `MORPH_API_KEY`
 - a dry run and a real write both succeed on a temporary file
 - the verified behavior is documented in the repo
 - any limitations discovered during validation are turned into explicit follow-up items
@@ -51,25 +51,25 @@ Two bugs found and fixed (BUG-001, BUG-002). Full report:
 
 Status: immediate next priority.
 
-Refine `morph_edit` so its `registerTool()` metadata is context-efficient, Pi-native, and aligned with Morph's own guidance for high-quality partial-edit prompting.
+Refine `fast_apply` so its `registerTool()` metadata is context-efficient, Pi-native, and aligned with Morph's own guidance for high-quality partial-edit prompting.
 
 Acceptance criteria:
 
-- `morph_edit` keeps a small, disciplined model-facing schema and does not grow a kitchen-sink parameter surface without strong evidence
-- the tool `description` is short and decision-oriented, explaining when to use `morph_edit` and how it differs from native `edit` and `write`
+- `fast_apply` keeps a small, disciplined model-facing schema and does not grow a kitchen-sink parameter surface without strong evidence
+- the tool `description` is short and decision-oriented, explaining when to use `fast_apply` and how it differs from native `edit` and `write`
 - the tool `promptSnippet` stays a single concise line suitable for Pi's `Available tools` section
 - the tool `promptGuidelines` stay intentionally short and encode the most important Morph-native editing rules rather than restating a long manual
 - the tool metadata explicitly teaches the model to use first-person `instruction` text
 - the tool metadata explicitly teaches the model to provide only changed regions plus `// ... existing code ...` markers in `codeEdit`
 - the tool metadata and docs teach partial semantic editing rather than exact-string replacement thinking
 - the package docs and examples reinforce the same routing guidance used by the tool metadata so the operator-visible contract stays consistent
-- the package preserves the separate `morph_edit` tool shape instead of overriding native `edit`, and it includes clear fallback guidance back to native tools when Morph is not the right choice or is unavailable
+- the package preserves the separate `fast_apply` tool shape instead of overriding native `edit`, and it includes clear fallback guidance back to native tools when Morph is not the right choice or is unavailable
 - the final prompt/tool-contract wording is checked against official Morph guidance and the `opencode-morph-plugin` routing policy so the Pi package follows the same core decision model without copying unnecessary verbosity
 
 Suggested starting point for the tool prompt contract, adapted from Morph's own Fast Apply guidance and the `morphllm/opencode-morph-plugin` routing policy:
 
-- `description`: "Edit an existing file using partial code snippets with '// ... existing code ...' markers. Use morph_edit for multiple scattered changes in one existing file, complex refactors, or edits where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files."
-- `promptSnippet`: "Use morph_edit for scattered or fragile edits in existing files; use edit for small exact replacements and write for new files."
+- `description`: "Edit an existing file using partial code snippets with '// ... existing code ...' markers. Use fast_apply for multiple scattered changes in one existing file, complex refactors, or edits where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files."
+- `promptSnippet`: "Use fast_apply for scattered or fragile edits in existing files; use edit for small exact replacements and write for new files."
 - `promptGuidelines`:
   1. "Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'"
   2. "In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file."
