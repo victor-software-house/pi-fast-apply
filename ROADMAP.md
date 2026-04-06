@@ -100,7 +100,7 @@ Implementation notes:
 
 ## PIM-006: WarpGrep native search tool
 
-Status: next.
+Status: next — no blockers.
 
 Add Morph's WarpGrep semantic-search subagent as a Pi-native tool (`warp_grep`).
 
