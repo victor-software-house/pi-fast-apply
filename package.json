@@ -41,10 +41,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "bun run lint:biome && bun run lint:oxlint",
     "lint:biome": "biome check .",
-    "lint:oxlint": "./node_modules/.bin/oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "fix": "bun run fix:oxlint && bun run fix:biome",
     "fix:biome": "biome check --write .",
-    "fix:oxlint": "./node_modules/.bin/oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "format": "biome format --write .",
     "prepare": "lefthook install"
   },
