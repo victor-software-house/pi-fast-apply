@@ -49,7 +49,7 @@ Two bugs found and fixed (BUG-001, BUG-002). Full report:
 
 ## PIM-004: Morph edit prompt contract and context-efficient tool metadata
 
-Status: immediate next priority.
+Status: completed.
 
 Refine `fast_apply` so its `registerTool()` metadata is context-efficient, Pi-native, and aligned with Morph's own guidance for high-quality partial-edit prompting.
 

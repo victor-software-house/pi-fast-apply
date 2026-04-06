@@ -70,13 +70,18 @@ Pi's `auth.json` is stored with `0600` file permissions and uses file locking fo
 
 ## Tool contract
 
-`fast_apply` is meant for **existing files** where exact string replacement would be brittle.
+`fast_apply` uses Morph's semantic merge to edit existing files using partial code snippets. It is designed for multiple scattered changes in one file, complex refactors, or edits where exact `oldText` matching would be fragile.
+
+**Routing Guidance:**
+- Use `fast_apply` for scattered or fragile edits in existing files.
+- Use native `edit` for small exact replacements.
+- Use native `write` for new files.
 
 Parameters:
 
 - `path` — relative or absolute path to an existing file
-- `instruction` — first-person change description
-- `codeEdit` — partial edit using `// ... existing code ...` markers
+- `instruction` — first-person change description (e.g. "I am adding input validation to the add function.")
+- `codeEdit` — partial edit containing only the changed sections, wrapped with `// ... existing code ...` markers instead of rewriting the whole file. Include enough unique surrounding context to anchor each change precisely.
 - `dryRun` — preview without writing the file
 
 Behavior:

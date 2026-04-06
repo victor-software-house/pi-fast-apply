@@ -36,12 +36,11 @@ const MORPH_ENV_VAR = 'MORPH_API_KEY';
 const FastApplyParams = Type.Object({
 	path: Type.String({ description: 'Path to the existing file to modify (relative or absolute)' }),
 	instruction: Type.String({
-		description:
-			"A single first-person sentence describing what you are changing. Example: 'I am adding error handling to the login flow.'",
+		description: "A first-person change description. Example: 'I am adding input validation to the add function.'",
 	}),
 	codeEdit: Type.String({
 		description:
-			"Partial edit using '// ... existing code ...' markers for unchanged sections. Preserve exact indentation.",
+			"Partial edit containing only the changed sections, wrapped with '// ... existing code ...' markers. Include enough unique surrounding context to anchor each change precisely and preserve exact indentation.",
 	}),
 	dryRun: Type.Optional(Type.Boolean({ description: 'Preview the Morph merge without writing the file.' })),
 });
@@ -193,13 +192,13 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			'Edit an existing file using Morph Fast Apply semantics. Best for large files, multiple scattered edits, or whitespace-sensitive changes.',
+			"Edit an existing file using partial code snippets with '// ... existing code ...' markers. Use fast_apply for multiple scattered changes in one existing file, complex refactors, or edits where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files.",
 		promptSnippet:
-			'Use fast_apply for large or scattered edits in existing files. Use edit for small exact replacements and write for new files.',
+			'Use fast_apply for scattered or fragile edits in existing files; use edit for small exact replacements and write for new files.',
 		promptGuidelines: [
-			'Use `fast_apply` when exact `oldText` matching would be fragile or when several disjoint edits belong in one file.',
-			'When using `fast_apply`, always provide a first-person `instruction` and use `// ... existing code ...` markers for unchanged sections in `codeEdit`.',
-			'Use `write` instead of `fast_apply` for new files or full-file replacement.',
+			"Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'",
+			"In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file.",
+			'Include enough unique surrounding context to anchor each change precisely, preserve exact indentation, and use edit instead when the change is just a small exact replacement.',
 		],
 		parameters: FastApplyParams,
 
