@@ -19,7 +19,7 @@ importers:
         version: 6.0.146(zod@4.3.6)
       pi-diff:
         specifier: github:victor-software-house/pi-diff
-        version: git+https://git@github.com:victor-software-house/pi-diff.git#1f160578b7977c091f41f3e1e390c63c50b88ae3(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
+        version: git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.8
@@ -2752,15 +2752,15 @@ packages:
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
 
-  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#1f160578b7977c091f41f3e1e390c63c50b88ae3:
-    resolution: {commit: 1f160578b7977c091f41f3e1e390c63c50b88ae3, repo: git@github.com:victor-software-house/pi-diff.git, type: git}
+  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e:
+    resolution: {commit: 3e73f41ea0ae2a32768d65145256191e11960e7e, repo: git@github.com:victor-software-house/pi-diff.git, type: git}
     version: 0.4.0
     peerDependencies:
       '@mariozechner/pi-coding-agent': '*'
       '@mariozechner/pi-tui': '*'
 
-  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#c64846dbdbedefaa76ed9d22bd2f4f9e0d809b6a:
-    resolution: {commit: c64846dbdbedefaa76ed9d22bd2f4f9e0d809b6a, repo: git@github.com:victor-software-house/pi-render-core.git, type: git}
+  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d:
+    resolution: {commit: 0adc09f58344060c9292b7ccbf4eadddd3807f9d, repo: git@github.com:victor-software-house/pi-render-core.git, type: git}
     version: 0.1.0
     peerDependencies:
       '@mariozechner/pi-coding-agent': '*'
@@ -3195,6 +3195,10 @@ packages:
   uint8array-extras@1.5.0:
     resolution: {integrity: sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A==}
     engines: {node: '>=18'}
+
+  unbash@2.2.0:
+    resolution: {integrity: sha512-X2wH19RAPZE3+ldGicOkoj/SIA83OIxcJ6Cuaw23hf8Xc6fQpvZXY0SftE2JgS0QhYLUG4uwodSI3R53keyh7w==}
+    engines: {node: '>=14'}
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
@@ -6425,19 +6429,20 @@ snapshots:
 
   pend@1.2.0: {}
 
-  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#1f160578b7977c091f41f3e1e390c63c50b88ae3(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
+  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
     dependencies:
       '@mariozechner/pi-coding-agent': 0.63.2(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-tui': 0.63.2
       diff: 7.0.0
-      pi-render-core: git+https://git@github.com:victor-software-house/pi-render-core.git#c64846dbdbedefaa76ed9d22bd2f4f9e0d809b6a(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
+      pi-render-core: git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
     transitivePeerDependencies:
       - shiki
 
-  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#c64846dbdbedefaa76ed9d22bd2f4f9e0d809b6a(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
+  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
     dependencies:
       '@shikijs/cli': 4.0.2
       shiki: 4.0.2
+      unbash: 2.2.0
     optionalDependencies:
       '@mariozechner/pi-coding-agent': 0.63.2(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-tui': 0.63.2
@@ -6906,6 +6911,8 @@ snapshots:
     optional: true
 
   uint8array-extras@1.5.0: {}
+
+  unbash@2.2.0: {}
 
   undici-types@5.26.5: {}
 
