@@ -1,6 +1,6 @@
 # pi-fast-apply
 
-Morph Fast Apply for [Pi](https://github.com/badlogic/pi-mono). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
+[Morph](https://www.morphllm.com/) Fast Apply for [Pi](https://github.com/badlogic/pi-mono). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
 
 ## Why
 
