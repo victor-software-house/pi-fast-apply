@@ -98,27 +98,77 @@ Implementation notes:
 - Commands: `/morph-login <key>`, `/morph-logout`, `/morph-status` (updated to show active auth source)
 - Security trade-off documented in README: auth.json uses 0600 permissions; fnox/keychain remains preferable for at-rest encryption
 
-## PIM-006: WarpGrep native search family
+## PIM-006: WarpGrep native search tool
 
-Status: next major slice after Morph edit UX/auth.
+Status: next.
 
-Add Morph search capabilities as Pi-native tools.
+Add Morph's WarpGrep semantic-search subagent as a Pi-native tool (`warp_grep`).
 
-Acceptance criteria:
+Background from official docs:
 
-- local codebase search is exposed through a Pi-native tool
-- public GitHub search is exposed through a Pi-native tool
-- streaming/progress behavior is surfaced in a Pi-appropriate way
-- docs clearly distinguish when to use WarpGrep versus native `grep`/`find`
-
-## PIM-007: Compact integration design
-
-Status: pending.
-
-Decide how Morph Compact should integrate with Pi.
+- Model: `morph-warp-grep-v2.1`
+- Built-in tools: `grep_search`, `read`, `list_directory`, `glob`, `finish` — NOT passed in the request; model calls them, operator executes locally
+- Multi-turn loop up to 6 turns; turn counter injected as a `{role: "user"}` message before each loop iteration
+- Input format: `<repo_structure>` flat absolute paths to depth 2, then `<search_string>` natural language query
+- Agent returns file:line-range spans via the `finish` tool call at the end
+- Pricing: $0.80 / 1M input + $0.80 / 1M output tokens
+- Searching in an isolated context window is the core value: the main agent context stays clean
 
 Acceptance criteria:
 
-- the package documents the lifecycle-hook strategy for Compact
-- Compact is not shipped as a normal editing tool by default
-- the implementation plan explains how Pi context ownership and Morph compression should split responsibilities
+- `warp_grep` is registered as a Pi-native model-facing tool
+- the tool accepts `searchTerm` (required) and optionally `repoRoot` (defaults to CWD)
+- the implementation runs the full multi-turn agent loop locally: send initial message with `<repo_structure>` + `<search_string>`, execute each tool call (grep_search → rg, read → fs, list_directory → find/ls, glob → rg --files), inject turn counter, repeat until `finish` or max 6 turns
+- `finish` call result is parsed and the relevant file:line spans are read and surfaced to the model as tool output
+- streaming step output is shown in Pi TUI during the search (turn number, tool calls being executed)
+- tool metadata teaches the model the official routing policy:
+  - use `warp_grep` at the beginning of codebase explorations, for broad semantic queries: "Find the XYZ flow", "How does XYZ work", "Where is XYZ handled?", "Where is <error message> coming from?"
+  - do NOT use `warp_grep` to pin-point exact keywords or regex patterns — use native `grep` for that
+  - `warp_grep` adds ~6 seconds of latency; skip it when a direct grep would suffice
+- GitHub public repo search mode is deferred to a follow-up item
+- docs clearly distinguish `warp_grep` from native `grep`/`find`
+- the AGENTS.md in this repo and the package README teach the same routing guidance so operators can copy it into their own project AGENTS.md
+
+## PIM-007: Compact lifecycle-hook integration
+
+Status: pending. Blocked on PIM-006 completion to establish WarpGrep patterns.
+
+Integrate Morph Compact into Pi's context-compaction lifecycle as a `PreCompact` hook rather than a normal model-facing tool.
+
+Background from official docs:
+
+- Model: `morph-compactor` via `POST /v1/compact` or OpenAI-compat `POST /v1/chat/completions`
+- 33,000 tok/s; 50-70% token reduction; every surviving line byte-for-byte identical to input (no summarization, no paraphrasing)
+- Key parameters: `input` (string or message array), `query` (what matters for the next call), `compression_ratio` (default 0.5; try 0.3 for 100+ turn loops), `preserve_recent` (min 3 recommended)
+- `<keepContext>` / `</keepContext>` tags force-preserve wrapped sections regardless of compression ratio
+- Response includes `compacted_line_ranges` (lines removed) and `kept_line_ranges` (force-preserved)
+- Compact before the LLM call — the value is reducing what is sent, not post-processing responses
+- Official guidance for agent integrations: read existing compaction logic first, choose right client (TypeScript SDK `@morphllm/morphsdk`, OpenAI-compat, or raw HTTP), always pass `query`, set `preserve_recent: 3`
+
+Acceptance criteria:
+
+- Compact is wired to Pi's `PreCompact` lifecycle hook, not registered as a `registerTool()` call
+- the hook reads the current session messages, calls `POST /v1/compact` with `query` set to the last user message's text
+- `compression_ratio` and `preserve_recent` are configurable via env vars with documented defaults (`MORPH_COMPACT_RATIO`, `MORPH_COMPACT_PRESERVE_RECENT`)
+- `<keepContext>` tag injection is documented so operators can force-preserve critical sections
+- the hook reports operator-visible output: token reduction, compression ratio achieved, lines removed
+- system messages are not compressed by default (`compress_system_messages: false`)
+- the package documents exactly when Compact runs (Pi `PreCompact` event), what it preserves, and why it is not a normal tool
+- fallback: if `MORPH_API_KEY` is not set, the hook skips silently and Pi's default compaction runs instead
+
+## PIM-008: WarpGrep routing guidance in AGENTS.md and promptGuidelines
+
+Status: pending. Can be done alongside or shortly after PIM-006.
+
+The official Morph docs (and all major integrations: Claude Code, Cursor, Codex) add routing guidance to the agent's memory so the LLM knows when to call WarpGrep vs native tools. Pi-morph should ship this guidance in a form operators can adopt without manual copy-paste.
+
+Acceptance criteria:
+
+- `warp_grep` tool metadata includes `promptSnippet` and `promptGuidelines` matching Morph's official routing policy (see PIM-006 criteria)
+- the package README includes a ready-to-paste AGENTS.md block that operators can drop into their own projects:
+  ```
+  Fast Apply: Use fast_apply for scattered or fragile edits in existing files; use edit for small exact replacements and write for new files.
+  Warp Grep: warp_grep is a subagent. Use it at the start of codebase explorations for broad semantic queries — "Find the XYZ flow", "How does XYZ work", "Where is XYZ handled?". Do not use it for exact keyword searches; use native grep instead.
+  ```
+- the repo's own AGENTS.md is updated to carry this guidance once warp_grep ships
+- the guidance is verified: a test session confirms the model reaches for `warp_grep` on broad queries and `grep`/`find` on exact patterns
