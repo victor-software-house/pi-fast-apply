@@ -231,7 +231,7 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 				const lines = codeEdit.split('\n');
 				const n = lines.length;
 				const ex = context.expanded ? 1 : 0;
-				const streamKey = `morphstream:${filePath}:${codeEdit.length}:${ex}`;
+				const streamKey = `morphstream:${filePath}:${codeEdit.length}:${ex}:${theme.name}`;
 				if (st._msk !== streamKey) {
 					st._msk = streamKey;
 					const preview = lines.slice(0, context.expanded ? n : maxShow);
@@ -255,7 +255,7 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 				st._msk = null;
 				st._mst = null;
 				const ex = context.expanded ? 1 : 0;
-				const previewKey = `morphfinal:${filePath}:${codeEdit.length}:${ex}`;
+				const previewKey = `morphfinal:${filePath}:${codeEdit.length}:${ex}:${theme.name}`;
 				if (st._mpk !== previewKey) {
 					st._mpk = previewKey;
 					st._mpt = hdr;
@@ -344,7 +344,7 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 				const ex = context.expanded ? 1 : 0;
 				const language = diffLang(details.absolutePath ?? filePath);
 				const diff = parseDiff(originalCode, mergedCode);
-				const key = `morph:${w}:${diff.added}:${diff.removed}:${diff.lines.length}:${language ?? ''}:${ex}`;
+				const key = `morph:${w}:${diff.added}:${diff.removed}:${diff.lines.length}:${language ?? ''}:${ex}:${theme.name}`;
 
 				if (st._morphDiffKey !== key) {
 					st._morphDiffKey = key;
