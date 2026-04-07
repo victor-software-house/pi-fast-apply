@@ -56,7 +56,7 @@
     "@morphllm/morphsdk": "^0.2.163",
     "@sinclair/typebox": "^0.34.49",
     "ai": ">=5.0.0",
-    "pi-diff": "github:victor-software-house/pi-diff"
+    "pi-diff": "git+ssh://git@github.com/victor-software-house/pi-diff.git"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
