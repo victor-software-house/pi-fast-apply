@@ -1,7 +1,7 @@
 {
   "name": "pi-fast-apply",
   "version": "0.1.0",
-  "description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
+  "description": "Morph tools for Pi — semantic file editing (fast_apply) and AI-powered codebase search (codebase_search).",
   "license": "MIT",
   "author": "Victor Software House",
   "repository": {
@@ -22,7 +22,9 @@
     "pi-coding-agent",
     "morph",
     "fast-apply",
-    "code-editing"
+    "code-editing",
+    "codebase-search",
+    "warpgrep"
   ],
   "pi": {
     "extensions": [

@@ -1,12 +1,13 @@
 # pi-fast-apply
 
-[Morph](https://www.morphllm.com/) Fast Apply for [Pi](https://github.com/badlogic/pi-mono). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
+[Morph](https://www.morphllm.com/) tools for [Pi](https://github.com/badlogic/pi-mono). Semantic file editing with `fast_apply` and AI-powered codebase search with `codebase_search` — both running as Pi-native tools backed by Morph's specialized models.
 
 ## Why
 
 - **Handles scattered changes** — multiple disjoint edits in one file, one call, no fragile string anchors
 - **Semantic merging** — Morph resolves partial snippets against the real file; the model provides only what changed
-- **Pi-native** — path resolution, mutation queueing, and UX stay inside Pi; Morph handles the merge step only
+- **Codebase search** — AI search subagent finds relevant code in ~6 seconds without polluting the main conversation context
+- **Pi-native** — path resolution, mutation queueing, and UX stay inside Pi; Morph handles the merge and search steps only
 - **Dry-run support** — preview the unified diff and change stats before writing
 - **Auth built in** — store your Morph key once with `/morph-login`; falls back to `MORPH_API_KEY` automatically
 
@@ -66,7 +67,19 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 | `/morph-logout` | Remove stored Morph credentials |
 | `/morph-status` | Show active auth source, API base URL, and timeout |
 
-## Tool Contract
+## Tool Routing
+
+This package registers two tools. The model picks the right one based on the task:
+
+| Tool | Use when | Input |
+|:-----|:---------|:------|
+| `fast_apply` | Scattered or fragile edits in existing files | First-person instruction + partial code with `// ... existing code ...` markers |
+| `codebase_search` | Broad semantic code exploration at the start of a task | Plain English description of what to find |
+| native `edit` | Small exact text replacements | Exact `oldText` / `newText` |
+| native `write` | Creating new files | Full file content |
+| native `grep` | Exact keyword or regex matches | Regex pattern |
+
+## Tool Contract: `fast_apply`
 
 `fast_apply` uses Morph's semantic merge to apply partial edits to existing files.
 
@@ -92,6 +105,31 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 ### Output
 
 Each call returns a unified diff, the merged source, and a change summary (`+added -removed ~modified`).
+
+## Tool Contract: `codebase_search`
+
+`codebase_search` runs Morph's WarpGrep search subagent in an isolated context window. The model describes what to find in plain English; WarpGrep issues parallel tool calls (ripgrep, file reads, directory listings) and returns relevant code snippets.
+
+**When to use `codebase_search`:**
+- broad semantic queries — "Find where user authentication tokens are validated", "How does payment processing work"
+- codebase exploration at the start of a task
+- finding code by behavior or intent, not exact symbol names
+
+**When to use native tools instead:**
+- exact keyword search → use `grep`
+- known file path → use `read`
+- known symbol name → use `grep` or LSP
+
+### Parameters
+
+| Parameter | Description |
+|:----------|:------------|
+| `searchTerm` | Natural language description of what to find — e.g. `Find where user authentication tokens are validated` |
+| `repoRoot` | Root directory to search (defaults to current working directory) |
+
+### Output
+
+Returns relevant code snippets grouped by file path with line-numbered content.
 
 ## Configuration
 

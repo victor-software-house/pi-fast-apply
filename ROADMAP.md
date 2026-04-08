@@ -47,7 +47,7 @@ Priority order reflects the 2026-04-07 analysis of the full Morph API surface. E
 
 ### PIM-006: WarpGrep native search tool
 
-Status: next — no blockers.
+Status: completed.
 
 Morph's WarpGrep (`morph-warp-grep-v2.1`) is a code search subagent that runs in an **isolated context window**. The main agent's context stays clean — no grep dumps polluting the conversation.
 
@@ -80,7 +80,7 @@ Morph's WarpGrep (`morph-warp-grep-v2.1`) is a code search subagent that runs in
 
 ### PIM-008: WarpGrep routing guidance
 
-Status: pending — ships with or right after PIM-006.
+Status: completed — shipped with PIM-006.
 
 All major Morph integrations (Claude Code, Cursor, Codex) inject routing guidance into the agent's memory so the LLM knows when to call WarpGrep vs native tools.
 
@@ -96,7 +96,7 @@ All major Morph integrations (Claude Code, Cursor, Codex) inject routing guidanc
 
 ### PIM-009: Real-time Compact interception
 
-Status: pending — blocked on PIM-006.
+Status: next — no blockers.
 
 **The highest-value new feature identified in the API analysis.** Intercept large tool results (file reads, grep output, search context) *before* they reach the main LLM, and run them through Morph Compact to strip irrelevant lines.
 
