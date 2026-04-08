@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
-import type { AuthStorage, ExtensionAPI } from '@mariozechner/pi-coding-agent';
+import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
 import { highlightCode, withFileMutationQueue } from '@mariozechner/pi-coding-agent';
 import { Text } from '@mariozechner/pi-tui';
 import type { ApplyEditConfig, ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
@@ -19,19 +19,12 @@ import {
 	shortPath,
 	termW,
 } from 'pi-diff/render';
+import { ensureMorphApiKey, getMorphApiBaseUrl, MORPH_PROVIDER_ID, resolveMorphApiKey } from './auth';
+import { registerWarpGrep } from './warp-grep';
 
 const EXISTING_CODE_MARKER = '// ... existing code ...';
-const DEFAULT_MORPH_API_URL = 'https://api.morphllm.com';
 const DEFAULT_TIMEOUT_MS = parsePositiveInt(process.env['MORPH_EDIT_TIMEOUT_MS'], 60_000);
 const NON_TRIVIAL_FILE_LINE_COUNT = 10;
-
-/**
- * Provider identifier used as the auth.json key for Morph credentials.
- * Pi's built-in env var mapping does not include Morph, so we resolve
- * MORPH_API_KEY explicitly as a fallback after checking authStorage.
- */
-const MORPH_PROVIDER_ID = 'morph';
-const MORPH_ENV_VAR = 'MORPH_API_KEY';
 
 const FastApplyParams = Type.Object({
 	path: Type.String({ description: 'Path to the existing file to modify (relative or absolute)' }),
@@ -54,12 +47,6 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function getMorphApiBaseUrl(): string {
-	const configuredBaseUrl = process.env['MORPH_API_URL']?.trim();
-	const raw = configuredBaseUrl == null || configuredBaseUrl === '' ? DEFAULT_MORPH_API_URL : configuredBaseUrl;
-	return raw.replace(/\/+$/, '').replace(/\/v1$/, '');
-}
-
 function expandPath(filePath: string): string {
 	const normalized = filePath.startsWith('@') ? filePath.slice(1) : filePath;
 	if (normalized === '~') return homedir();
@@ -78,50 +65,6 @@ function buildApplyConfig(apiKey: string): ApplyEditConfig {
 		timeout: DEFAULT_TIMEOUT_MS,
 		generateUdiff: true,
 	};
-}
-
-/**
- * Auth source for operator-visible diagnostics.
- */
-type MorphAuthSource = 'auth.json' | 'env' | 'none';
-
-/**
- * Resolve the Morph API key using Pi's auth priority chain:
- *   1. authStorage (runtime override or auth.json via /morph-login)
- *   2. MORPH_API_KEY environment variable
- *
- * Pi's built-in getEnvApiKey() hardcodes known providers and does not
- * include 'morph', so step 2 is an explicit env-var check rather than
- * relying on authStorage's env fallback.
- */
-async function resolveMorphApiKey(authStorage: AuthStorage): Promise<{ key: string; source: MorphAuthSource }> {
-	// 1. authStorage: runtime override or persisted api_key in auth.json
-	const storedKey = await authStorage.getApiKey(MORPH_PROVIDER_ID, { includeFallback: false });
-	if (storedKey != null && storedKey !== '') {
-		return { key: storedKey, source: 'auth.json' };
-	}
-
-	// 2. Explicit env var fallback
-	const envKey = process.env[MORPH_ENV_VAR]?.trim();
-	if (envKey != null && envKey !== '') {
-		return { key: envKey, source: 'env' };
-	}
-
-	return { key: '', source: 'none' };
-}
-
-/**
- * Resolve and require a Morph API key, throwing a descriptive error when missing.
- */
-async function ensureMorphApiKey(authStorage: AuthStorage): Promise<string> {
-	const { key, source } = await resolveMorphApiKey(authStorage);
-	if (source === 'none') {
-		throw new Error(
-			'Morph API key is not configured.\n' +
-				'Use /morph-login to store a key in Pi, or set MORPH_API_KEY in the environment.',
-		);
-	}
-	return key;
 }
 
 async function ensureReadableFile(absolutePath: string): Promise<void> {
@@ -505,4 +448,6 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 			ctx.ui.notify(lines.join('\n'), source !== 'none' ? 'info' : 'warning');
 		},
 	});
+
+	registerWarpGrep(pi);
 }
