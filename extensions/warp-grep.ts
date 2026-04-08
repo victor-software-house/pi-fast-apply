@@ -1,12 +1,15 @@
 import { resolve } from 'node:path';
 import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
+import { getLanguageFromPath, highlightCode } from '@mariozechner/pi-coding-agent';
 import { Text } from '@mariozechner/pi-tui';
-import type { WarpGrepResult, WarpGrepStep } from '@morphllm/morphsdk/tools/warp-grep';
+import type { WarpGrepContext, WarpGrepResult } from '@morphllm/morphsdk/tools/warp-grep';
 import { WarpGrepClient } from '@morphllm/morphsdk/tools/warp-grep';
 import { Type } from '@sinclair/typebox';
+import { shortPath } from 'pi-diff/render';
 import { ensureMorphApiKey, getMorphApiBaseUrl } from './auth';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const COLLAPSED_MAX_LINES = 15;
 
 const CodebaseSearchParams = Type.Object({
 	searchTerm: Type.String({
@@ -20,6 +23,17 @@ const CodebaseSearchParams = Type.Object({
 	),
 });
 
+interface FileContext {
+	file: string;
+	content: string;
+	lineCount: number;
+}
+
+interface StepInfo {
+	turn: number;
+	tools: string[];
+}
+
 interface CodebaseSearchDetails {
 	searchTerm: string;
 	repoRoot: string;
@@ -27,14 +41,8 @@ interface CodebaseSearchDetails {
 	turns: number;
 	success: boolean;
 	error?: string | undefined;
-}
-
-/**
- * Format a single step for TUI progress display.
- */
-function formatStep(step: WarpGrepStep): string {
-	const tools = step.toolCalls.map((tc) => tc.name).join(', ');
-	return `Turn ${step.turn}: ${tools}`;
+	contexts: FileContext[];
+	steps: StepInfo[];
 }
 
 /**
@@ -55,6 +63,79 @@ function buildResultText(result: WarpGrepResult): string {
 		sections.push(`--- ${ctx.file} ---\n${ctx.content}`);
 	}
 	return sections.join('\n\n');
+}
+
+/**
+ * Map SDK contexts to serializable details.
+ */
+function mapContexts(contexts: WarpGrepContext[] | undefined): FileContext[] {
+	if (contexts == null || contexts.length === 0) return [];
+	return contexts.map((ctx) => ({
+		file: ctx.file,
+		content: ctx.content,
+		lineCount: ctx.content.split('\n').length,
+	}));
+}
+
+/**
+ * Syntax-highlight a file's content lines, falling back to toolOutput color.
+ */
+function highlightFileContent(
+	content: string,
+	filePath: string,
+	theme: Parameters<NonNullable<Parameters<ExtensionAPI['registerTool']>[0]['renderResult']>>[2],
+): string[] {
+	const lang = getLanguageFromPath(filePath);
+	if (lang != null) {
+		return highlightCode(content, lang);
+	}
+	return content.split('\n').map((line) => theme.fg('toolOutput', line));
+}
+
+/**
+ * Render file sections with syntax highlighting.
+ * When maxLines is set, truncates and returns remaining count.
+ */
+function renderFileBlocks(
+	contexts: FileContext[],
+	repoRoot: string,
+	home: string,
+	theme: Parameters<NonNullable<Parameters<ExtensionAPI['registerTool']>[0]['renderResult']>>[2],
+	maxLines?: number,
+): { lines: string[]; remaining: number } {
+	const out: string[] = [];
+	let totalShown = 0;
+	let totalRemaining = 0;
+
+	for (const ctx of contexts) {
+		const filePath = shortPath(repoRoot, home, ctx.file);
+		out.push(theme.fg('accent', `--- ${filePath} ---`));
+
+		const highlighted = highlightFileContent(ctx.content, ctx.file, theme);
+
+		if (maxLines != null) {
+			const budget = maxLines - totalShown;
+			if (budget <= 0) {
+				out.push(theme.fg('muted', `  \u2026 ${ctx.lineCount} lines`));
+				totalRemaining += ctx.lineCount;
+				continue;
+			}
+			const show = highlighted.slice(0, budget);
+			out.push(...show);
+			totalShown += show.length;
+			const rem = highlighted.length - show.length;
+			if (rem > 0) {
+				out.push(theme.fg('muted', `  \u2026 ${rem} more lines`));
+				totalRemaining += rem;
+			}
+		} else {
+			out.push(...highlighted);
+			totalShown += highlighted.length;
+		}
+		out.push('');
+	}
+
+	return { lines: out, remaining: totalRemaining };
 }
 
 export function registerWarpGrep(pi: ExtensionAPI): void {
@@ -89,6 +170,7 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 
 		renderResult(result, { expanded }, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
+			const home = process.env['HOME'] ?? '';
 
 			if (context.isError) {
 				const first = result.content[0];
@@ -107,6 +189,9 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 			const fileCount = details.fileCount ?? 0;
 			const turns = details.turns ?? 0;
 			const success = details.success ?? false;
+			const contexts = details.contexts ?? [];
+			const steps = details.steps ?? [];
+			const repoRoot = details.repoRoot ?? '';
 
 			if (!success) {
 				const header =
@@ -119,6 +204,7 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 				return text;
 			}
 
+			// Header
 			const header =
 				theme.fg('success', '\u2714') +
 				' ' +
@@ -128,22 +214,31 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 				' ' +
 				theme.fg('muted', `(${turns} turn${turns !== 1 ? 's' : ''})`);
 
-			if (!expanded) {
-				const searchTerm = details.searchTerm ?? '';
-				text.setText([header, searchTerm ? theme.fg('muted', searchTerm) : ''].filter(Boolean).join('\n'));
-				return text;
+			// Steps
+			const stepsText =
+				steps.length > 0
+					? theme.fg('muted', steps.map((s) => `${s.turn}: ${s.tools.join(', ')}`).join(' \u2502 '))
+					: '';
+
+			const out: string[] = [header];
+			if (stepsText !== '') out.push(stepsText);
+
+			if (contexts.length > 0) {
+				out.push('');
+				const { lines, remaining } = renderFileBlocks(
+					contexts,
+					repoRoot,
+					home,
+					theme,
+					expanded ? undefined : COLLAPSED_MAX_LINES,
+				);
+				out.push(...lines);
+				if (!expanded && remaining > 0) {
+					out.push(theme.fg('muted', `\u2026 (${remaining} more lines, press e to expand)`));
+				}
 			}
 
-			// Expanded: show full result text
-			const first = result.content[0];
-			const fullText = first != null && first.type === 'text' ? first.text : '';
-			const maxLines = 60;
-			const lines = fullText.split('\n');
-			const preview = lines.slice(0, maxLines).join('\n');
-			const rem = lines.length - maxLines;
-			let out = `${header}\n\n${preview}`;
-			if (rem > 0) out += `\n${theme.fg('muted', `\u2026 ${rem} more lines`)}`;
-			text.setText(out);
+			text.setText(out.join('\n'));
 			return text;
 		},
 
@@ -163,6 +258,7 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 			});
 
 			let turnCount = 0;
+			const steps: StepInfo[] = [];
 			let result: WarpGrepResult;
 
 			try {
@@ -172,14 +268,18 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 					streamSteps: true,
 				});
 
-				// Consume the async generator — steps are yielded, final result is the return value
 				let iterResult = await stream.next();
 				while (iterResult.done !== true) {
 					const step = iterResult.value;
 					turnCount = step.turn;
+					steps.push({
+						turn: step.turn,
+						tools: step.toolCalls.map((tc) => tc.name),
+					});
+					const tools = step.toolCalls.map((tc) => tc.name).join(', ');
 					onUpdate?.({
-						content: [{ type: 'text', text: formatStep(step) }],
-						details: { searchTerm: params.searchTerm, repoRoot, turns: turnCount },
+						content: [{ type: 'text', text: `Turn ${step.turn}: ${tools}` }],
+						details: { searchTerm: params.searchTerm, repoRoot, turns: turnCount, steps },
 					});
 					iterResult = await stream.next();
 				}
@@ -190,7 +290,8 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 				throw new Error(`Codebase search failed: ${message}`);
 			}
 
-			const fileCount = result.contexts?.length ?? 0;
+			const contexts = mapContexts(result.contexts);
+			const fileCount = contexts.length;
 			const resultText = buildResultText(result);
 
 			return {
@@ -202,6 +303,8 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 					turns: turnCount,
 					success: result.success,
 					error: result.error,
+					contexts,
+					steps,
 				},
 			};
 		},
