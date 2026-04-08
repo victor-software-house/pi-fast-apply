@@ -27,6 +27,7 @@ interface FileContext {
 	file: string;
 	content: string;
 	lineCount: number;
+	startLine: number;
 }
 
 interface StepInfo {
@@ -67,33 +68,56 @@ function buildResultText(result: WarpGrepResult): string {
 
 /**
  * Map SDK contexts to serializable details.
+ * SDK returns: clean content (no line-number prefixes), structured lines
+ * array ([[start, end], ...]), and absolute file paths.
  */
-function mapContexts(contexts: WarpGrepContext[] | undefined): FileContext[] {
+function mapContexts(contexts: WarpGrepContext[] | undefined, repoRoot: string): FileContext[] {
 	if (contexts == null || contexts.length === 0) return [];
-	return contexts.map((ctx) => ({
-		file: ctx.file,
-		content: ctx.content,
-		lineCount: ctx.content.split('\n').length,
-	}));
+	const prefix = repoRoot.endsWith('/') ? repoRoot : `${repoRoot}/`;
+	return contexts.map((ctx) => {
+		// Relativize absolute paths returned by the SDK
+		const file = ctx.file.startsWith(prefix) ? ctx.file.slice(prefix.length) : ctx.file;
+
+		// Extract start line from structured ranges
+		let startLine = 1;
+		if (ctx.lines != null && ctx.lines !== '*' && ctx.lines.length > 0) {
+			const firstRange = ctx.lines[0];
+			if (firstRange != null) startLine = firstRange[0];
+		}
+
+		return {
+			file,
+			content: ctx.content,
+			lineCount: ctx.content.split('\n').length,
+			startLine,
+		};
+	});
 }
 
 /**
- * Syntax-highlight a file's content lines, falling back to toolOutput color.
+ * Syntax-highlight file content and add line number gutters.
  */
-function highlightFileContent(
+function highlightWithGutter(
 	content: string,
 	filePath: string,
+	startLine: number,
 	theme: Parameters<NonNullable<Parameters<ExtensionAPI['registerTool']>[0]['renderResult']>>[2],
 ): string[] {
+	const rawLines = content.split('\n');
 	const lang = getLanguageFromPath(filePath);
-	if (lang != null) {
-		return highlightCode(content, lang);
-	}
-	return content.split('\n').map((line) => theme.fg('toolOutput', line));
+	const highlighted = lang != null ? highlightCode(content, lang) : rawLines.map((l) => theme.fg('toolOutput', l));
+
+	const endLine = startLine + highlighted.length - 1;
+	const nw = Math.max(3, String(endLine).length);
+
+	return highlighted.map((hl, i) => {
+		const ln = String(startLine + i).padStart(nw);
+		return `${theme.fg('muted', ln)} ${theme.fg('muted', '\u2502')} ${hl}`;
+	});
 }
 
 /**
- * Render file sections with syntax highlighting.
+ * Render file sections with syntax highlighting and gutters.
  * When maxLines is set, truncates and returns remaining count.
  */
 function renderFileBlocks(
@@ -111,7 +135,7 @@ function renderFileBlocks(
 		const filePath = shortPath(repoRoot, home, ctx.file);
 		out.push(theme.fg('accent', `--- ${filePath} ---`));
 
-		const highlighted = highlightFileContent(ctx.content, ctx.file, theme);
+		const guttered = highlightWithGutter(ctx.content, ctx.file, ctx.startLine, theme);
 
 		if (maxLines != null) {
 			const budget = maxLines - totalShown;
@@ -120,17 +144,17 @@ function renderFileBlocks(
 				totalRemaining += ctx.lineCount;
 				continue;
 			}
-			const show = highlighted.slice(0, budget);
+			const show = guttered.slice(0, budget);
 			out.push(...show);
 			totalShown += show.length;
-			const rem = highlighted.length - show.length;
+			const rem = guttered.length - show.length;
 			if (rem > 0) {
 				out.push(theme.fg('muted', `  \u2026 ${rem} more lines`));
 				totalRemaining += rem;
 			}
 		} else {
-			out.push(...highlighted);
-			totalShown += highlighted.length;
+			out.push(...guttered);
+			totalShown += guttered.length;
 		}
 		out.push('');
 	}
@@ -290,7 +314,7 @@ export function registerWarpGrep(pi: ExtensionAPI): void {
 				throw new Error(`Codebase search failed: ${message}`);
 			}
 
-			const contexts = mapContexts(result.contexts);
+			const contexts = mapContexts(result.contexts, repoRoot);
 			const fileCount = contexts.length;
 			const resultText = buildResultText(result);
 
