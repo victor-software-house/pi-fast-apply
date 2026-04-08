@@ -27,7 +27,7 @@ interface FileContext {
 	file: string;
 	content: string;
 	lineCount: number;
-	startLine: number;
+	ranges: '*' | [number, number][];
 }
 
 interface StepInfo {
@@ -78,42 +78,77 @@ function mapContexts(contexts: WarpGrepContext[] | undefined, repoRoot: string):
 		// Relativize absolute paths returned by the SDK
 		const file = ctx.file.startsWith(prefix) ? ctx.file.slice(prefix.length) : ctx.file;
 
-		// Extract start line from structured ranges
-		let startLine = 1;
-		if (ctx.lines != null && ctx.lines !== '*' && ctx.lines.length > 0) {
-			const firstRange = ctx.lines[0];
-			if (firstRange != null) startLine = firstRange[0];
-		}
-
 		return {
 			file,
 			content: ctx.content,
 			lineCount: ctx.content.split('\n').length,
-			startLine,
+			ranges: ctx.lines ?? '*',
 		};
 	});
 }
 
+const BLOCK_MARKER_RE = /^\/\/ \.\.\. existing code, block starting at line (\d+) \.\.\.$/;
+
 /**
  * Syntax-highlight file content and add line number gutters.
+ *
+ * Handles multi-range content from the SDK where blocks are separated
+ * by `// ... existing code, block starting at line N ...` markers.
+ * Line numbers restart at each range boundary. Gap markers render as
+ * pi-diff style `──── N lines ────` separators.
  */
 function highlightWithGutter(
 	content: string,
 	filePath: string,
-	startLine: number,
+	ranges: '*' | [number, number][],
 	theme: Parameters<NonNullable<Parameters<ExtensionAPI['registerTool']>[0]['renderResult']>>[2],
 ): string[] {
 	const rawLines = content.split('\n');
 	const lang = getLanguageFromPath(filePath);
 	const highlighted = lang != null ? highlightCode(content, lang) : rawLines.map((l) => theme.fg('toolOutput', l));
 
-	const endLine = startLine + highlighted.length - 1;
-	const nw = Math.max(3, String(endLine).length);
+	// Determine the widest line number for consistent gutter width
+	let maxLineNum = 1;
+	if (ranges === '*') {
+		maxLineNum = rawLines.length;
+	} else {
+		for (const [, end] of ranges) {
+			if (end > maxLineNum) maxLineNum = end;
+		}
+	}
+	const nw = Math.max(3, String(maxLineNum).length);
+	const gutterW = nw + 3; // "nnn │ "
 
-	return highlighted.map((hl, i) => {
-		const ln = String(startLine + i).padStart(nw);
-		return `${theme.fg('muted', ln)} ${theme.fg('muted', '\u2502')} ${hl}`;
-	});
+	// Walk through lines, tracking current line number.
+	// When we hit a block marker, render it as a dim gap separator and reset line counter.
+	let currentLine = ranges === '*' || ranges.length === 0 ? 1 : (ranges[0]?.[0] ?? 1);
+	let prevEndLine = 0;
+	const out: string[] = [];
+
+	for (let i = 0; i < highlighted.length; i++) {
+		const raw = rawLines[i] ?? '';
+		const markerMatch = BLOCK_MARKER_RE.exec(raw);
+
+		if (markerMatch != null) {
+			// Calculate gap size from ranges
+			const nextStart = Number.parseInt(markerMatch[1] ?? '1', 10);
+			const gap = prevEndLine > 0 ? nextStart - prevEndLine - 1 : 0;
+			const label = gap > 0 ? ` ${gap} lines ` : '\u00b7\u00b7\u00b7';
+			const totalW = Math.min(72, gutterW + 40);
+			const pad = Math.max(0, totalW - label.length);
+			const half1 = Math.floor(pad / 2);
+			const half2 = pad - half1;
+			out.push(theme.fg('muted', `${'─'.repeat(half1)}${label}${'─'.repeat(half2)}`));
+			currentLine = nextStart;
+		} else {
+			const ln = String(currentLine).padStart(nw);
+			out.push(`${theme.fg('muted', ln)} ${theme.fg('muted', '\u2502')} ${highlighted[i]}`);
+			prevEndLine = currentLine;
+			currentLine++;
+		}
+	}
+
+	return out;
 }
 
 /**
@@ -135,7 +170,7 @@ function renderFileBlocks(
 		const filePath = shortPath(repoRoot, home, ctx.file);
 		out.push(theme.fg('accent', `--- ${filePath} ---`));
 
-		const guttered = highlightWithGutter(ctx.content, ctx.file, ctx.startLine, theme);
+		const guttered = highlightWithGutter(ctx.content, ctx.file, ctx.ranges, theme);
 
 		if (maxLines != null) {
 			const budget = maxLines - totalShown;
