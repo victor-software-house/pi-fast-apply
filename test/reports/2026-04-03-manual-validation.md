@@ -4,7 +4,7 @@ First systematic test run of `morph_edit` against the fixture corpus.
 
 ## Environment
 
-- **Pi version:** 0.63.x (local path install from `~/workspace/victor/pi-fast-apply`)
+- **Pi version:** 0.63.x (local path install from the repo root)
 - **Model:** claude-sonnet-4-6
 - **Session CWD:** `~/.pi` (not `/tmp/morph-test`)
 - **Morph SDK:** `@morphllm/morphsdk ^0.2.163`
