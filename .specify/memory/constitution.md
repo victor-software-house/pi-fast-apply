@@ -91,7 +91,7 @@ shippable state, and ensure documentation matches actual capability.
 
 ## Technology Stack & Constraints
 
-- **Runtime**: Bun (TypeScript, ESM, strict mode)
+- **Runtime**: Node.js with pnpm 11 (TypeScript, ESM, strict mode)
 - **Extension host**: `@mariozechner/pi-coding-agent` extension API
 - **Morph SDK**: `@morphllm/morphsdk` (official Fast Apply client)
 - **Schema**: `@sinclair/typebox` for tool parameter definitions
@@ -104,9 +104,9 @@ shippable state, and ensure documentation matches actual capability.
 
 ## Development Workflow
 
-1. **Verify before committing**: `bun run typecheck && bun run lint`
+1. **Verify before committing**: `pnpm run typecheck && pnpm run lint`
    MUST pass. No commits with known type or lint failures.
-2. **Auto-fix first**: Run `bun run fix && bun run format` before
+2. **Auto-fix first**: Run `pnpm run fix && pnpm run format` before
    making manual style-only edits.
 3. **Conventional Commits**: All commits MUST follow the Conventional
    Commits specification. Commit messages drive semantic-release.

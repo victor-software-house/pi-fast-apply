@@ -18,8 +18,8 @@ importers:
         specifier: '>=5.0.0'
         version: 6.0.146(zod@4.3.6)
       pi-diff:
-        specifier: github:victor-software-house/pi-diff
-        version: git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
+        specifier: git+ssh://git@github.com/victor-software-house/pi-diff.git
+        version: git+https://git@github.com:victor-software-house/pi-diff.git#b93060e80172758a7487643fdf9d75a2dec2afc3(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.8
@@ -1190,10 +1190,24 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vercel/oidc@3.1.0':
     resolution: {integrity: sha512-Fw28YZpRnA3cAHHDlkt7xQHiJ0fcL+NRcIqsocZQUSmbzeIKRpwttJjik5ZGanXP+vlA4SbTg+AbA3bP363l+w==}
     engines: {node: '>= 20'}
+
+  '@victor-software-house/pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#7cca216f19b8e3622fbeb9de7ac484efc3fe4c14':
+    resolution: {commit: 7cca216f19b8e3622fbeb9de7ac484efc3fe4c14, repo: git@github.com:victor-software-house/pi-render-core.git, type: git}
+    version: 0.1.1
+    peerDependencies:
+      '@mariozechner/pi-coding-agent': '*'
+      '@mariozechner/pi-tui': '*'
+      shiki: '*'
+    peerDependenciesMeta:
+      '@mariozechner/pi-coding-agent':
+        optional: true
+      '@mariozechner/pi-tui':
+        optional: true
 
   '@vscode/ripgrep@1.17.1':
     resolution: {integrity: sha512-xTs7DGyAO3IsJYOCTBP8LnTvPiYVKEuyv8s0xyJDBXfs8rhBfqnZPvb6xDT+RnwWzcXqW27xLS/aGrkjX7lNWw==}
@@ -2752,25 +2766,12 @@ packages:
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
 
-  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e:
-    resolution: {commit: 3e73f41ea0ae2a32768d65145256191e11960e7e, repo: git@github.com:victor-software-house/pi-diff.git, type: git}
+  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#b93060e80172758a7487643fdf9d75a2dec2afc3:
+    resolution: {commit: b93060e80172758a7487643fdf9d75a2dec2afc3, repo: git@github.com:victor-software-house/pi-diff.git, type: git}
     version: 0.4.0
     peerDependencies:
       '@mariozechner/pi-coding-agent': '*'
       '@mariozechner/pi-tui': '*'
-
-  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d:
-    resolution: {commit: 0adc09f58344060c9292b7ccbf4eadddd3807f9d, repo: git@github.com:victor-software-house/pi-render-core.git, type: git}
-    version: 0.1.0
-    peerDependencies:
-      '@mariozechner/pi-coding-agent': '*'
-      '@mariozechner/pi-tui': '*'
-      shiki: '*'
-    peerDependenciesMeta:
-      '@mariozechner/pi-coding-agent':
-        optional: true
-      '@mariozechner/pi-tui':
-        optional: true
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -4945,6 +4946,15 @@ snapshots:
 
   '@vercel/oidc@3.1.0': {}
 
+  '@victor-software-house/pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#7cca216f19b8e3622fbeb9de7ac484efc3fe4c14(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)':
+    dependencies:
+      '@shikijs/cli': 4.0.2
+      shiki: 4.0.2
+      unbash: 2.2.0
+    optionalDependencies:
+      '@mariozechner/pi-coding-agent': 0.63.2(ws@8.20.0)(zod@4.3.6)
+      '@mariozechner/pi-tui': 0.63.2
+
   '@vscode/ripgrep@1.17.1':
     dependencies:
       https-proxy-agent: 7.0.6
@@ -6429,23 +6439,14 @@ snapshots:
 
   pend@1.2.0: {}
 
-  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#3e73f41ea0ae2a32768d65145256191e11960e7e(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
+  pi-diff@git+https://git@github.com:victor-software-house/pi-diff.git#b93060e80172758a7487643fdf9d75a2dec2afc3(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
     dependencies:
       '@mariozechner/pi-coding-agent': 0.63.2(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-tui': 0.63.2
+      '@victor-software-house/pi-render-core': git+https://git@github.com:victor-software-house/pi-render-core.git#7cca216f19b8e3622fbeb9de7ac484efc3fe4c14(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
       diff: 7.0.0
-      pi-render-core: git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2)
     transitivePeerDependencies:
       - shiki
-
-  pi-render-core@git+https://git@github.com:victor-software-house/pi-render-core.git#0adc09f58344060c9292b7ccbf4eadddd3807f9d(@mariozechner/pi-coding-agent@0.63.2(ws@8.20.0)(zod@4.3.6))(@mariozechner/pi-tui@0.63.2)(shiki@4.0.2):
-    dependencies:
-      '@shikijs/cli': 4.0.2
-      shiki: 4.0.2
-      unbash: 2.2.0
-    optionalDependencies:
-      '@mariozechner/pi-coding-agent': 0.63.2(ws@8.20.0)(zod@4.3.6)
-      '@mariozechner/pi-tui': 0.63.2
 
   picocolors@1.1.1: {}
 

@@ -104,15 +104,15 @@ Each call returns a unified diff, the merged source, and a change summary (`+add
 ## Development
 
 ```bash
-bun install
-bun run typecheck
-bun run lint
+pnpm install
+pnpm run typecheck
+pnpm run lint
 ```
 
 Autofix:
 
 ```bash
-bun run fix
+pnpm run fix
 ```
 
 ## License

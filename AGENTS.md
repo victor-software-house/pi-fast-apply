@@ -32,8 +32,8 @@ Read these files in order before changing behavior:
 Run these from the repo root:
 
 ```bash
-bun run fix
-bun run format
+pnpm run fix
+pnpm run format
 ```
 
 Use auto-fix before making manual style-only edits.
@@ -43,14 +43,14 @@ Use auto-fix before making manual style-only edits.
 Required gate before committing:
 
 ```bash
-bun run typecheck
-bun run lint
+pnpm run typecheck
+pnpm run lint
 ```
 
 Also run:
 
 ```bash
-bun install
+pnpm install
 ```
 
 when dependencies, hooks, or release tooling change.

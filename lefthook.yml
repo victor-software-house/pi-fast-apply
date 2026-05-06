@@ -5,7 +5,7 @@ output:
 commit-msg:
   commands:
     commitlint:
-      run: bunx commitlint --edit {1}
+      run: pnpm exec commitlint --edit {1}
 
 pre-commit:
   parallel: false
@@ -13,14 +13,14 @@ pre-commit:
     oxlint-fix:
       glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
       stage_fixed: true
-      run: bunx oxlint --fix --import-plugin {staged_files}
+      run: pnpm exec oxlint --fix --import-plugin {staged_files}
     format:
       stage_fixed: true
-      run: bunx biome check --write --no-errors-on-unmatched {staged_files}
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
     lint:
-      run: bun run lint
+      run: pnpm run lint
     typecheck:
-      run: bun run typecheck
+      run: pnpm run typecheck
 
 pre-push:
   parallel: false
@@ -28,20 +28,20 @@ pre-push:
     lockfile-sync:
       priority: 0
       run: |
-        bun install
-        if ! git diff --quiet -- bun.lock; then
+        pnpm install
+        if ! git diff --quiet -- pnpm-lock.yaml; then
           echo ""
           echo "Lockfile is out of sync. Commit the updated lockfile before pushing:"
           echo ""
-          git diff --stat -- bun.lock
+          git diff --stat -- pnpm-lock.yaml
           echo ""
-          echo "  git add bun.lock && git commit -m 'chore: sync lockfile'"
+          echo "  git add pnpm-lock.yaml && git commit -m 'chore: sync lockfile'"
           echo ""
           exit 1
         fi
     typecheck:
       priority: 1
-      run: bun run typecheck
+      run: pnpm run typecheck
     lint:
       priority: 2
-      run: bun run lint
+      run: pnpm run lint
