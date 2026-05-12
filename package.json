@@ -1,20 +1,20 @@
 {
-  "name": "pi-fast-apply",
-  "version": "0.1.0",
+  "name": "@victor-software-house/pi-fast-apply",
+  "version": "0.1.1",
   "description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
   "license": "MIT",
   "author": "Victor Software House",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/victor-software-house/pi-fast-apply.git"
+    "url": "git+ssh://git@github.com/victor-software-house/pi-fast-apply.git"
   },
   "homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
   "bugs": {
     "url": "https://github.com/victor-software-house/pi-fast-apply/issues"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "keywords": [
     "pi-package",
@@ -38,20 +38,30 @@
     "LICENSE"
   ],
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "pnpm run lint:biome && pnpm run lint:oxlint",
     "lint:biome": "biome check .",
     "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+    "test": "vitest run --passWithNoTests",
     "fix": "pnpm run fix:oxlint && pnpm run fix:biome",
     "fix:biome": "biome check --write .",
     "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "format": "biome format --write .",
     "prepare": "lefthook install",
-    "prepublishOnly": "pnpm run typecheck"
+    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": ">=0.74.0",
     "@earendil-works/pi-tui": ">=0.74.0"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@morphllm/morphsdk": "^0.2.163",
@@ -64,23 +74,20 @@
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@limegrass/eslint-plugin-import-alias": "^1.6.1",
-    "@earendil-works/pi-coding-agent": "^0.74.0",
-    "@earendil-works/pi-tui": "^0.74.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.6",
-    "@semantic-release/npm": "^13.1.5",
     "@types/node": "^24.3.0",
     "eslint-plugin-zod": "^3.5.0",
     "lefthook": "^2.1.4",
     "oxlint": "^1.56.0",
     "oxlint-tsgolint": "^0.19.0",
-    "semantic-release": "^25.0.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
   },
   "engines": {
     "pnpm": ">=11 <12",
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.1.1"
+  "packageManager": "pnpm@11.1.1",
+  "pnpm": {
+    "autoInstallPeers": false
+  }
 }

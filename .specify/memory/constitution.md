@@ -91,25 +91,25 @@ shippable state, and ensure documentation matches actual capability.
 
 ## Technology Stack & Constraints
 
-- **Runtime**: Node.js with pnpm 11 (TypeScript, ESM, strict mode)
-- **Extension host**: `@mariozechner/pi-coding-agent` extension API
+- **Runtime**: Node.js 24 LTS with pnpm 11.1.1 (TypeScript, ESM, strict mode)
+- **Extension host**: `@earendil-works/pi-coding-agent` extension API
 - **Morph SDK**: `@morphllm/morphsdk` (official Fast Apply client)
 - **Schema**: `@sinclair/typebox` for tool parameter definitions
 - **Lint**: Biome + oxlint (strict, no suppressions without justification)
 - **Type checking**: `tsc --noEmit` (strict TypeScript config)
 - **Hooks**: lefthook (pre-commit lint + typecheck gates)
-- **Release**: semantic-release from `main` via Conventional Commits
+- **Release**: tag-driven GitHub Packages publish workflow
 - **Credentials**: `MORPH_API_KEY` via environment; Pi auth storage
   path planned (see ROADMAP PIM-005)
 
 ## Development Workflow
 
-1. **Verify before committing**: `pnpm run typecheck && pnpm run lint`
-   MUST pass. No commits with known type or lint failures.
+1. **Verify before committing**: `pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build`
+   MUST pass. No commits with known type, lint, test, or build failures.
 2. **Auto-fix first**: Run `pnpm run fix && pnpm run format` before
    making manual style-only edits.
 3. **Conventional Commits**: All commits MUST follow the Conventional
-   Commits specification. Commit messages drive semantic-release.
+   Commits specification. Commit messages stay Conventional for release notes and versioning.
 4. **Small slices**: Each commit MUST be a reviewable, self-contained
    change. Avoid bundling unrelated work.
 5. **Import discipline**: Use single quotes, omit file extensions in
@@ -135,4 +135,4 @@ updates MUST comply with the principles above.
 MUST be evaluated before Phase 0 research and re-checked after
 Phase 1 design for every feature specification.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-02 | **Last Amended**: 2026-04-02
+**Version**: 1.0.0 | **Ratified**: 2026-04-02 | **Last Amended**: 2026-05-12

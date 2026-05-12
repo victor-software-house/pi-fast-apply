@@ -1,6 +1,4 @@
 declare module 'pi-diff/render' {
-	import type { BundledLanguage } from 'shiki';
-
 	interface DiffLine {
 		type: 'add' | 'del' | 'ctx' | 'sep';
 		oldNum: number | null;
@@ -41,21 +39,21 @@ declare module 'pi-diff/render' {
 	export function parseDiff(oldContent: string, newContent: string, ctx?: number, lineOffset?: number): ParsedDiff;
 	export function renderSplit(
 		diff: ParsedDiff,
-		language: BundledLanguage | undefined,
+		language: string | undefined,
 		max?: number,
 		dc?: DiffColors,
 		wrapRows?: number,
 	): Promise<string>;
 	export function renderUnified(
 		diff: ParsedDiff,
-		language: BundledLanguage | undefined,
+		language: string | undefined,
 		max?: number,
 		dc?: DiffColors,
 		wrapRows?: number,
 	): Promise<string>;
-	export function hlBlock(code: string, language: BundledLanguage | undefined): Promise<string[]>;
+	export function hlBlock(code: string, language: string | undefined): Promise<string[]>;
 	export function summarize(added: number, removed: number): string;
-	export function lang(filePath: string): BundledLanguage | undefined;
+	export function lang(filePath: string): string | undefined;
 	// biome-ignore lint/suspicious/noExplicitAny: Pi theme object has no public type
 	export function resolveDiffColors(theme: any): DiffColors;
 	export function termW(): number;
@@ -64,5 +62,5 @@ declare module 'pi-diff/render' {
 	export const cfg: PrettifyConfig;
 	export const ANSI_RE: RegExp;
 
-	export type { ParsedDiff, DiffLine, DiffColors, PrettifyConfig };
+	export type { DiffColors, DiffLine, ParsedDiff, PrettifyConfig };
 }

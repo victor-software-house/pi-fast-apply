@@ -18,7 +18,7 @@
 ## Installation
 
 ```bash
-pi install npm:pi-fast-apply
+pi install npm:@victor-software-house/pi-fast-apply
 ```
 
 ## Quickstart

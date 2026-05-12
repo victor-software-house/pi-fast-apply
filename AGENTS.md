@@ -9,7 +9,7 @@ Read these files in order before changing behavior:
 1. [`README.md`](README.md) — package purpose, package shape, development flow
 2. [`ROADMAP.md`](ROADMAP.md) — ordered work items and acceptance criteria
 3. [`extensions/index.ts`](extensions/index.ts) — current runtime truth
-4. [`package.json`](package.json), [`biome.json`](biome.json), [`tsconfig.json`](tsconfig.json), [`lefthook.yml`](lefthook.yml), [`release.config.mjs`](release.config.mjs) — package metadata, lint/type rules, hooks, and release flow
+4. [`package.json`](package.json), [`biome.json`](biome.json), [`tsconfig.json`](tsconfig.json), [`lefthook.yml`](lefthook.yml), [`pnpm-workspace.yaml`](pnpm-workspace.yaml), [`.github/workflows/`](.github/workflows/) — package metadata, lint/type rules, hooks, workspace config, and release flow
 5. [`assets/README.md`](assets/README.md) — preview-image expectations for `pi.image`
 
 ## Repo shape
@@ -45,6 +45,8 @@ Required gate before committing:
 ```bash
 pnpm run typecheck
 pnpm run lint
+pnpm run test
+pnpm run build
 ```
 
 Also run:
@@ -68,7 +70,7 @@ when dependencies, hooks, or release tooling change.
 - Use Conventional Commits.
 - Keep commits small and reviewable.
 - Keep `lefthook` protections working unless the user explicitly requests otherwise.
-- Releases publish from `main` through semantic-release. Every push to `main` is evaluated. Only commits that map to a releasable type produce a version bump.
+- Releases publish through tag-driven GitHub Packages workflows. Keep package version, tag, and changelog aligned before release.
 
 ## Version bump discipline
 
