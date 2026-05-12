@@ -46,25 +46,26 @@
     "fix:biome": "biome check --write .",
     "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "format": "biome format --write .",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "prepublishOnly": "pnpm run typecheck"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*",
-    "@mariozechner/pi-tui": "*"
+    "@earendil-works/pi-coding-agent": ">=0.74.0",
+    "@earendil-works/pi-tui": ">=0.74.0"
   },
   "dependencies": {
     "@morphllm/morphsdk": "^0.2.163",
     "@sinclair/typebox": "^0.34.49",
     "ai": ">=5.0.0",
-    "pi-diff": "git+ssh://git@github.com/victor-software-house/pi-diff.git"
+    "pi-diff": "npm:@victor-software-house/pi-diff@^0.4.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@limegrass/eslint-plugin-import-alias": "^1.6.1",
-    "@mariozechner/pi-coding-agent": "^0.63.0",
-    "@mariozechner/pi-tui": "^0.63.0",
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.6",
@@ -78,6 +79,8 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "pnpm": ">=11 <12"
-  }
+    "pnpm": ">=11 <12",
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.1.1"
 }
