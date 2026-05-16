@@ -116,7 +116,7 @@ Status: pending — blocked on PIM-006.
 
 **Pi integration approach:**
 
-Intercept at Pi's tool result rendering pipeline, not at `/compact` slash command time. When a tool result exceeds a configurable threshold (e.g. 2K tokens), compress it with Compact before it enters the conversation history. The user's last message text becomes the `query` param.
+Intercept with Pi's current `tool_result` extension hook, not with `renderResult()` and not only at `/compact` slash command time. When a tool result exceeds a configurable threshold (e.g. 2K tokens), compress it with Compact before it enters conversation history. The user's last message text becomes the `query` param.
 
 Design doc: [`docs/compact-interception.md`](docs/compact-interception.md)
 
@@ -208,7 +208,7 @@ Wire Morph Compact into Pi's `PreCompact` lifecycle hook for manual `/compact` i
 
 **Acceptance criteria:**
 
-- Compact wired to Pi's `PreCompact` lifecycle hook
+- Compact wired to Pi's `session_before_compact` lifecycle hook
 - `query` set to last user message text
 - configurable `compression_ratio` and `preserve_recent` via env vars
 - `<keepContext>` tag injection documented

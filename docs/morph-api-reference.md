@@ -1,207 +1,311 @@
 # Morph API Reference for pi-fast-apply
 
-Distilled reference of the Morph API surface relevant to this package. Source: [docs.morphllm.com/llms-full.txt](https://docs.morphllm.com/llms-full.txt) (reviewed 2026-04-07).
+Distilled reference of the Morph API surface relevant to this package.
+
+Sources refreshed 2026-05-15:
+
+- [Morph Quickstart](https://docs.morphllm.com/quickstart)
+- [Morph SDK Reference](https://docs.morphllm.com/sdk/reference)
+- [Fast Apply](https://docs.morphllm.com/sdk/components/fast-apply)
+- [WarpGrep direct protocol](https://docs.morphllm.com/sdk/components/warp-grep/direct)
+- [WarpGrep agent tool](https://docs.morphllm.com/sdk/components/warp-grep/tool)
+- [Compact](https://docs.morphllm.com/sdk/components/compact)
+- [Model Router](https://docs.morphllm.com/sdk/components/router)
+- Local package inspection: `@morphllm/morphsdk@0.2.171`
 
 ---
 
 ## Base URL and auth
 
-```
+```text
 Base URL: https://api.morphllm.com/v1
 Auth:     Authorization: Bearer <MORPH_API_KEY>
 ```
 
-All endpoints are OpenAI-compatible — any OpenAI SDK works with `baseURL` override.
+The SDK accepts a raw API key through `MorphClient({ apiKey })` or per-client config. For this Pi package, keep auth resolution Pi-owned (`auth.json` via `/morph-login`, then `MORPH_API_KEY`) and pass the resolved key into Morph calls at execution time.
 
 ---
 
-## Model IDs
+## Current SDK surface
 
-| Model | ID | Purpose | Speed | Accuracy |
-|:--|:--|:--|:--|:--|
-| Apply (fast) | `morph-v3-fast` | Default file editing | 10,500+ tok/s | 96% |
-| Apply (large) | `morph-v3-large` | Complex multi-edit changes | 2,500+ tok/s | 98% |
-| Apply (auto) | `auto` | Router picks fast vs large | Variable | ~98% |
-| WarpGrep | `morph-warp-grep-v2.1` | Codebase search subagent | ~6s per search | #1 SWE-Bench Pro |
-| Compact | `morph-compactor` | Context compression | 33,000 tok/s | Verbatim lines |
-| Embedding | `morph-embedding-v4` | Code/text embeddings (1536d) | Fastest in market | SoTA code retrieval |
-| Rerank | `morph-rerank-v4` | Search result reranking | Fastest in market | SoTA code benchmarks |
-| Router | `morph-routers` | Prompt complexity classifier | ~430ms | — |
-| Browser | `morph-computer-use-v1` | Browser automation | 200 tok/s | — |
+`@morphllm/morphsdk@0.2.171` exports:
 
----
-
-## Products used by pi-fast-apply
-
-### 1. Fast Apply (current — PIM-002)
-
-**Endpoints:**
-- `POST /v1/chat/completions` — OpenAI-compat (used by SDK)
-- `POST /v1/code/apply` — Direct structured endpoint
-
-**Message format:**
+```typescript
+import {
+  MorphClient,
+  FastApplyClient,
+  WarpGrepClient,
+  CompactClient,
+  CodebaseSearchClient,
+  MorphGit,
+  OpenAIRouter,
+  AnthropicRouter,
+  GeminiRouter,
+  RawRouter,
+  applyEdit,
+} from '@morphllm/morphsdk';
 ```
+
+`new MorphClient({ apiKey })` exposes these relevant namespaces:
+
+| Namespace | Current use |
+|:--|:--|
+| `morph.fastApply` | Fast Apply file edits, including `execute()` and `applyEdit()` |
+| `morph.warpGrep` | local WarpGrep and public GitHub search |
+| `morph.compact(...)` | context compression helper bound as a function |
+| `morph.codebaseSearch` | embedding/rerank-backed codebase search; requires pushing/indexing with MorphGit |
+| `morph.routers` | provider model routing (`anthropic`, `openai`, `gemini`, `raw`) |
+| `morph.git` / `morph.github` | Morph-hosted git/GitHub workflows; out of scope for Pi-owned file mutation |
+
+This package currently uses standalone `applyEdit()` because Pi owns file I/O and mutation queueing. Future broader integration can use `MorphClient` for WarpGrep, Compact, and Router.
+
+---
+
+## Model IDs and products
+
+| Product | ID / API | Purpose | Current status |
+|:--|:--|:--|:--|
+| Fast Apply | `morph-v3-fast` / `morph-v3-large` | Merge lazy edit snippets into existing files | implemented |
+| WarpGrep | `morph-warp-grep-v2.1` | isolated-context code search subagent | planned |
+| Compact | `morph-compactor` or `/v1/compact` | delete irrelevant lines, preserve surviving lines verbatim | planned |
+| Router | `morph.routers.*` | classify prompt complexity and select model tier | planned |
+| Codebase Search | `morph.codebaseSearch.search()` | indexed semantic code search | deferred; needs MorphGit/indexing |
+| GitHub Search | `morph.warpGrep.searchGitHub()` | search public GitHub repos without cloning | planned |
+| Embeddings/Rerank | `morph-embedding-v4`, `morph-rerank-v4` | custom retrieval pipelines | deferred |
+| Browser/Computer use | `morph-computer-use-v1` | browser automation | out of scope |
+
+---
+
+## 1. Fast Apply (current — PIM-002)
+
+### Official pattern
+
+Fast Apply expects a lazy edit from the parent model:
+
+```xml
 <instruction>First-person description of the edit</instruction>
 <code>Original file content</code>
 <update>Partial edit with // ... existing code ... markers</update>
 ```
 
-**Key rules:**
-- Always set `temperature: 0`
-- Always include `<instruction>` — accuracy jumps from 92% to 98%
-- `<update>` must use `// ... existing code ...` markers for unchanged regions
-- Apply is for edits, not file creation — do not send empty `<code>` blocks
-- Make all edits to a file in a single call, not multiple calls
+Rules from current docs:
 
-**SDK:**
+- `instructions` / `instruction` must be generated by the parent model, not hardcoded.
+- Use `// ... existing code ...` markers for unchanged regions.
+- Use one Morph call per file and batch all changes to that file.
+- Use Fast Apply for existing files, not new-file creation.
+- OpenAI/high-thinking models may emit patch-style output; markers still give better results.
+
+### Pi-owned code-in/code-out API
+
+Current package uses this low-level path:
+
 ```typescript
 import { applyEdit } from '@morphllm/morphsdk';
 
 const result = await applyEdit(
-  { targetFilepath, instructions, codeEdit },
-  { morphApiKey, morphApiUrl, timeout, generateUdiff: true }
+  {
+    originalCode,
+    codeEdit,
+    instruction: 'I am adding input validation to the add function.',
+  },
+  {
+    morphApiKey,
+    morphApiUrl,
+    timeout,
+    generateUdiff: true,
+  },
 );
-// result.mergedCode, result.usage, result.udiff
 ```
 
-**Pricing:** Standard Morph API pricing (not separately listed per-model in public docs).
+Important `ApplyEditConfig` detail from `@morphllm/morphsdk@0.2.171`:
 
-### 2. WarpGrep (PIM-006)
-
-**Endpoint:** `POST /v1/chat/completions` with `model: "morph-warp-grep-v2.1"`
-
-**Built-in tools (do NOT pass a `tools` array):**
-
-| Tool | Purpose | Local implementation |
-|:--|:--|:--|
-| `grep_search` | Regex search in file contents | `rg --line-number --no-heading --color=never -i -C 1` |
-| `read` | Read file with optional line range | `fs.readFile` + line slicing |
-| `list_directory` | Explore directory structure | `find` or `ls` |
-| `glob` | Find files by pattern, sorted by mtime | Recursive glob matching |
-| `finish` | Submit final answer with file:line spans | Parse and read the referenced files |
-
-**Output limits per tool:**
-
-| Tool | Max lines |
-|:--|:--|
-| `grep_search` | 200 |
-| `list_directory` | 200 |
-| `read` | 800 |
-| `glob` | 100 files |
-
-**Initial message format:**
-```xml
-<repo_structure>
-/absolute/path/to/repo
-/absolute/path/to/repo/src
-/absolute/path/to/repo/src/auth
-/absolute/path/to/repo/package.json
-</repo_structure>
-
-<search_string>
-Find where user authentication is implemented
-</search_string>
-```
-
-**Turn counter** — injected as `{role: "user"}` after tool results:
-- Turns 1-4: `"You have used N turns and have M remaining"`
-- Turn 5: `"You have used 5 turns, you only have 1 turn remaining. You have run out of turns to explore the code base and MUST call the finish tool now"`
-- Max 6 turns total
-
-**GitHub search mode:**
 ```typescript
-const result = await morph.warpGrep.searchGitHub({
-  searchTerm: 'Find authentication middleware',
-  github: 'vercel/next.js',
-  branch: 'canary',
-});
-```
-
-**Pricing:** $0.80 / 1M input + $0.80 / 1M output tokens.
-
-### 3. Compact (PIM-009, PIM-007)
-
-**Endpoints:**
-- `POST /v1/compact` — Native Morph format (preferred)
-- `POST /v1/chat/completions` with `model: "morph-compactor"` — OpenAI-compat
-- `POST /v1/responses` — OpenAI Responses API
-
-**Parameters:**
-
-| Param | Type | Default | Description |
-|:--|:--|:--|:--|
-| `input` | string or array | — | Text or `{role, content}` messages |
-| `query` | string | auto-detected | Focus query for relevance scoring |
-| `compression_ratio` | float | 0.5 | Fraction to keep (0.3 aggressive, 0.7 light) |
-| `preserve_recent` | int | 2 | Keep last N messages uncompressed |
-| `compress_system_messages` | bool | false | Whether to compress system messages |
-| `include_line_ranges` | bool | true | Include removed line ranges in response |
-| `include_markers` | bool | true | Include `(filtered N lines)` in output |
-
-**`<keepContext>` tags:**
-```
-<keepContext>
-// This section survives compression verbatim
-function authenticate(req, res, next) { ... }
-</keepContext>
-```
-
-Rules: tags on their own line, open and close within same message, unclosed tag preserves to end of message.
-
-**Response shape:**
-```json
-{
-  "output": "compressed text...",
-  "messages": [{
-    "role": "user",
-    "content": "compressed...",
-    "compacted_line_ranges": [{ "start": 5, "end": 10 }],
-    "kept_line_ranges": [{ "start": 1, "end": 4 }]
-  }],
-  "usage": {
-    "input_tokens": 101,
-    "output_tokens": 65,
-    "compression_ratio": 0.644,
-    "processing_time_ms": 109
-  }
+interface ApplyEditConfig {
+  morphApiKey?: string;
+  morphApiUrl?: string;
+  large?: boolean; // default true unless MORPH_LARGE_APPLY=false
+  generateUdiff?: boolean;
+  timeout?: number;
 }
 ```
 
-**SDK:**
-```typescript
-import { MorphClient } from '@morphllm/morphsdk';
+Implication: if this package does not set `large`, the SDK defaults to `morph-v3-large` unless `MORPH_LARGE_APPLY=false` exists. That is accurate but hidden. Add explicit model selection before claiming cost-aware behavior.
 
-const morph = new MorphClient({ apiKey: 'YOUR_API_KEY' });
+### Higher-level SDK API
+
+Current docs also show:
+
+```typescript
+const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
+
+const result = await morph.fastApply.execute({
+  target_filepath: 'src/auth.ts',
+  baseDir: './my-project',
+  instructions: 'Add error handling',
+  code_edit: '// ... existing code ...\nif (!user) throw new Error("Invalid");\n// ... existing code ...',
+}, {
+  generateUdiff: true,
+  autoWrite: true,
+  timeout: 60000,
+});
+```
+
+For Pi, prefer `applyEdit()` / code-in-code-out so Pi keeps path resolution, dry-run behavior, mutation queueing, and writes.
+
+---
+
+## 2. WarpGrep (PIM-006)
+
+WarpGrep is a search subagent that runs in its own context window. Parent agent sees only final file/line-range context, not intermediate greps.
+
+### High-level SDK path
+
+Current quickstart:
+
+```typescript
+const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
+
+const result = await morph.warpGrep.execute({
+  searchTerm: 'Find authentication middleware',
+  repoRoot: '.',
+});
+```
+
+Agent-tool adapters also exist:
+
+```typescript
+const warpGrepSubagent = morph.anthropic.createWarpGrepTool({ repoRoot: '.' });
+const githubTool = morph.anthropic.createGitHubSearchTool();
+```
+
+For Pi, a native `warp_grep` tool should call the SDK from inside `execute()`, render progress with `onUpdate`, and return concise file contexts.
+
+### Direct protocol path
+
+Direct API uses `POST /v1/chat/completions` with `model: "morph-warp-grep-v2.1"`.
+
+Current docs clarify:
+
+- Initial user message contains flat absolute `<repo_structure>` plus `<search_string>`.
+- Model has built-in tool knowledge; client does not need to pass a tool array.
+- Response returns OpenAI-style `tool_calls`.
+- Client executes requested tools locally and returns `role: "tool"` messages.
+- Ignore non-empty assistant `content` when `tool_calls` are present.
+- Stop when `finish` tool is called or max turns reached.
+
+Local tool implementations still need to exist in Pi if we implement the raw loop directly:
+
+| Tool | Local implementation |
+|:--|:--|
+| `grep_search` | `rg`, respecting `.gitignore` |
+| `read` | `fs.readFile` plus line slicing |
+| `list_directory` | bounded directory walk |
+| `glob` | bounded glob matching |
+| `finish` | parse file/range references and read snippets |
+
+Recommended Pi path: start with high-level `morph.warpGrep.execute()` unless it prevents Pi-grade rendering/cancellation. Drop to direct protocol only if needed.
+
+---
+
+## 3. GitHub search (PIM-012)
+
+Current docs show public GitHub search under WarpGrep:
+
+```typescript
+const result = await morph.warpGrep.searchGitHub({
+  searchTerm: 'Find authentication middleware',
+  github: 'vercel/next.js', // or full URL
+  branch: 'canary',        // optional
+});
+```
+
+Use this for public library internals and reference implementations. Do not use for private repos unless Morph docs/API explicitly support the required auth model.
+
+---
+
+## 4. Compact (PIM-009, PIM-007)
+
+Compact removes irrelevant complete lines. It does not rewrite, summarize, or paraphrase surviving lines.
+
+Current docs emphasize one important limitation: if important data lives on giant single lines (minified code, huge JSON, long base64), Compact cannot trim within that line. Split long payloads before compacting when possible.
+
+### Endpoint and SDK
+
+Preferred endpoint:
+
+```text
+POST /v1/compact
+```
+
+SDK pattern:
+
+```typescript
+const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
 
 const result = await morph.compact({
   input: chatHistory,
-  query: 'How do I validate JWT tokens?',
+  query: 'JWT token validation',
   compressionRatio: 0.5,
   preserveRecent: 3,
 });
-
-// result.output — compressed text
-// result.messages[0].compacted_line_ranges — what was removed
 ```
 
-### 4. Router (PIM-011)
+Parameters use snake_case in raw HTTP and camelCase in SDK examples:
 
-**Endpoint:** Internal SDK method.
+| Raw API | SDK style | Default | Meaning |
+|:--|:--|:--|:--|
+| `input` / `messages` | `input` / `messages` | — | text or `{role, content}` messages |
+| `query` | `query` | auto-detected | relevance focus |
+| `compression_ratio` | `compressionRatio` | `0.5` | fraction to keep |
+| `preserve_recent` | `preserveRecent` | `2` | recent messages kept uncompressed |
+| `compress_system_messages` | `compressSystemMessages` | `false` | preserve system by default |
+| `include_line_ranges` | `includeLineRanges` | `true` | include removed ranges |
+| `include_markers` | `includeMarkers` | `true` | include `(filtered N lines)` markers |
 
-**SDK:**
+Best practices:
+
+- Always pass `query` when the current task is known.
+- Keep system messages uncompressed.
+- Preserve at least recent turns for conversation compaction.
+- Start with `0.5`; use `0.3` for long loops, `0.7` when nuance matters.
+- Wrap critical sections with `<keepContext>` tags when they must survive.
+- Compact before sending context to the main LLM, not after.
+
+### Pi hook names
+
+Current Pi extension APIs are:
+
+- implicit per-tool-result path: `pi.on("tool_result", ...)`
+- manual session compaction customization: `pi.on("session_before_compact", ...)`
+
+Do not use stale names like `PostToolUse` or `PreCompact` in implementation docs.
+
+---
+
+## 5. Router (PIM-011)
+
+Router selects provider models for prompts. Current docs list:
+
+- latency: ~430ms
+- input limit: 8,192 tokens
+- pricing: $0.005/request
+- modes: `balanced` (default) and `aggressive`
+
+SDK:
+
 ```typescript
 const { model } = await morph.routers.anthropic.selectModel({
   input: userQuery,
-  mode: 'balanced',  // or 'aggressive'
+  mode: 'balanced',
 });
-// Returns: { model: "claude-haiku-4-5-20251001" } or { model: "claude-sonnet-4-5-20250929" }
 
-// Raw classification:
-const { difficulty } = await morph.routers.raw.classify({ input: userQuery });
-// Returns: { difficulty: "easy" | "medium" | "hard" | "needs_info" }
+const { difficulty } = await morph.routers.raw.classify({
+  input: userQuery,
+});
 ```
 
-**Provider model maps:**
+Provider maps from current docs:
 
 | Provider | Fast/Cheap | Powerful |
 |:--|:--|:--|
@@ -209,53 +313,43 @@ const { difficulty } = await morph.routers.raw.classify({ input: userQuery });
 | OpenAI | `gpt-5-mini` | `gpt-5-low`, `gpt-5-medium`, `gpt-5-high` |
 | Gemini | `gemini-2.5-flash` | `gemini-2.5-pro` |
 
-**Pricing:** $0.001/request.
+Use Router when request complexity varies and cost matters. Skip when deterministic model selection or fixed max quality matters more than savings.
+
+For this package, Router can help future model choice, but the current `applyEdit()` SDK only exposes `large?: boolean`. Map Router/raw difficulty to `large` deliberately rather than pretending `auto` is already wired.
 
 ---
 
-## Products not used (reference only)
+## 6. Codebase Search vs WarpGrep
 
-### Embeddings (`morph-embedding-v4`)
-
-```typescript
-const response = await openai.embeddings.create({
-  model: 'morph-embedding-v4',
-  input: 'function calculateSum(a, b) { return a + b; }',
-});
-// 1536 dimensions, SoTA code retrieval benchmarks
-```
-
-### Rerank (`morph-rerank-v4`)
+Current SDK reference also exposes:
 
 ```typescript
-const response = await fetch('https://api.morphllm.com/v1/rerank', {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    model: 'morph-rerank-v4',
-    query: 'JWT authentication in Express',
-    documents: [...],
-    top_n: 5,
-  }),
+const result = await morph.codebaseSearch.search({
+  query: 'How does user authentication work?',
+  repoId: 'my-project',
+  target_directories: ['src/auth'],
+  explanation: 'Finding auth logic',
+  limit: 10,
 });
-// Cohere-client compatible
 ```
 
-### Report API
-
-```bash
-curl -X POST "https://morphllm.com/api/report" \
-  -H "Authorization: Bearer $KEY" \
-  -d '{ "completion_id": "chatcmpl-...", "failure_reason": "Syntax error in output" }'
-```
+Docs state Codebase Search requires code to be pushed/indexed with MorphGit before searching. That does not fit Pi's local-first search tool as well as WarpGrep. Keep Codebase Search deferred unless we intentionally adopt MorphGit indexing.
 
 ---
+
+## Implementation guardrails for Pi
+
+- Keep Fast Apply Pi-native: Pi resolves paths, reads files, queues mutations, previews diffs, and writes.
+- Use Morph for merge/search/compact inference only.
+- Use `@earendil-works/*` Pi imports, not legacy `@mariozechner/*` imports.
+- Avoid global config mutation during extension load. Prefer Pi auth storage and explicit commands.
+- Avoid global AGENTS.md auto-edits from package runtime.
+- Use `tool_result` and `session_before_compact` current hook names.
+- Use progressive disclosure before adding many always-on tools; large tool families should not all dump snippets/guidelines into every prompt.
 
 ## External links
 
-- [Full docs in one file](https://docs.morphllm.com/llms-full.txt) (~9K tokens distilled, ~18K lines full)
-- [SDK npm package](https://www.npmjs.com/package/@morphllm/morphsdk) — `npm install @morphllm/morphsdk`
-- [MCP server](https://www.npmjs.com/package/@morphllm/morphmcp) — `npx @morphllm/morphmcp`
-- [Examples repo](https://github.com/morphllm/examples) — WarpGrep, agents, integrations
+- [Full docs in one file](https://docs.morphllm.com/llms-full.txt)
+- [SDK npm package](https://www.npmjs.com/package/@morphllm/morphsdk)
+- [Examples repo](https://github.com/morphllm/examples)
 - [API playground](https://morphllm.com/dashboard/playground/apply)
-- [Dashboard / API keys](https://morphllm.com/dashboard/api-keys)

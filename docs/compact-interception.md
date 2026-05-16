@@ -38,11 +38,18 @@ conversation    compressed result
 
 ## Interception point
 
-Pi extensions can intercept tool results via the `PostToolUse` lifecycle event or by wrapping tool output in a custom `renderResult` function. The compact interception should:
+Pi 0.74 exposes two relevant extension hooks:
 
-1. Fire after any tool that produces large text output (read, grep, warp_grep, bash)
-2. NOT fire for tools that produce structured/small output (edit, write, ls)
-3. Be transparent — the model sees the compressed result as if it were the original
+- `pi.on("tool_result", ...)` — per-tool-result interception; return `{ content, details, isError }` to rewrite what enters model context.
+- `pi.on("session_before_compact", ...)` — manual/session compaction customization; return `{ compaction }` to replace Pi's default summary.
+
+Real-time Compact interception belongs in `tool_result`, not in a renderer. `renderResult()` only changes operator display; it does not reduce model-facing context.
+
+The compact interception should:
+
+1. Fire after any tool that produces large text output (`read`, `grep`, selected `bash`, future `warp_grep`).
+2. NOT fire for tools that produce structured/small output (`edit`, `write`, `ls`, `fast_apply`).
+3. Be transparent — the model sees the compressed result as if it were the original.
 
 ## Query derivation
 
@@ -57,11 +64,11 @@ The `query` parameter is critical for compression quality. Without it, Compact a
 
 Certain content should never be compressed:
 
-- **System prompt** — already excluded by `compress_system_messages: false`
-- **Recent messages** — protected by `preserve_recent: 3`
-- **Active file being edited** — if a tool reads a file the model is about to edit, mark it with `<keepContext>` tags
+- **System prompt** — already excluded by `compress_system_messages: false` for message-based compaction.
+- **Recent messages** — protected by `preserve_recent: 3` for session compaction.
+- **Active file being edited** — if a tool reads a file the model is about to edit, mark it with `<keepContext>` tags or skip per-result compaction for that read.
 
-For Pi, the extension can wrap the last N tool results in `<keepContext>` if they were explicitly requested by the model (not background context).
+For Pi per-tool-result compaction, be conservative at first: prefer skipping active edit-target reads over trying to infer all critical spans. Compact is line-deletion, not summarization; it cannot trim within giant single-line payloads, so minified JSON/base64-like lines are poor candidates.
 
 ## Configuration
 
@@ -90,36 +97,27 @@ For typical tool results (5-50K tokens), latency is 0.3-1.5 seconds — well wit
 ```typescript
 import { MorphClient } from '@morphllm/morphsdk';
 
-const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
-
 const THRESHOLD_CHARS = parsePositiveInt(
-  process.env['MORPH_COMPACT_THRESHOLD'], 8000  // ~2K tokens
+  process.env['MORPH_COMPACT_THRESHOLD'],
+  8000, // ~2K tokens
 );
-const RATIO = parseFloat(process.env['MORPH_COMPACT_RATIO'] ?? '0.5');
-const PRESERVE_RECENT = parsePositiveInt(
-  process.env['MORPH_COMPACT_PRESERVE_RECENT'], 3
-);
+const RATIO = Number.parseFloat(process.env['MORPH_COMPACT_RATIO'] ?? '0.5');
 
 async function compactToolResult(
   toolOutput: string,
-  query: string | undefined
+  query: string | undefined,
+  apiKey: string,
 ): Promise<{ output: string; compressed: boolean; stats?: CompactStats }> {
-  // Skip if below threshold
   if (toolOutput.length < THRESHOLD_CHARS) {
     return { output: toolOutput, compressed: false };
   }
 
-  // Skip if no API key
-  const apiKey = await resolveMorphApiKey();
-  if (!apiKey) {
-    return { output: toolOutput, compressed: false };
-  }
-
+  const morph = new MorphClient({ apiKey });
   const result = await morph.compact({
     input: toolOutput,
     query,
     compressionRatio: RATIO,
-    preserveRecent: 0,  // tool results are a single block, not messages
+    preserveRecent: 0, // tool results are a single block, not messages
     includeMarkers: true,
     includeLineRanges: true,
   });
@@ -136,6 +134,23 @@ async function compactToolResult(
     },
   };
 }
+
+pi.on('tool_result', async (event) => {
+  if (event.isError || !shouldCompactTool(event.toolName)) return;
+  const originalText = extractTextContent(event.content);
+  if (!originalText) return;
+
+  const compacted = await compactToolResult(originalText, currentTaskQuery, apiKey);
+  if (!compacted.compressed) return;
+
+  return {
+    content: [{ type: 'text', text: compacted.output }],
+    details: {
+      ...(event.details ?? {}),
+      morphCompact: compacted.stats,
+    },
+  };
+});
 ```
 
 ## Operator-visible output
@@ -152,8 +167,8 @@ PIM-009 is the *implicit* compaction path — automatic on every large tool resu
 PIM-007 is the *explicit* compaction path — triggered by the operator via `/compact`.
 
 They use the same Morph Compact API but fire at different points:
-- PIM-009: `PostToolUse` event, per-result, high frequency, low latency
-- PIM-007: `PreCompact` event, whole conversation, low frequency, higher latency acceptable
+- PIM-009: `tool_result` event, per-result, high frequency, low latency
+- PIM-007: `session_before_compact` event, whole conversation, low frequency, higher latency acceptable
 
 ## Risks and mitigations
 
