@@ -74,11 +74,39 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 - multiple scattered changes in one file
 - complex refactors where `oldText` would be fragile or ambiguous
 - whitespace-sensitive edits that exact replacement handles poorly
+- **reorganizing a file whose lines contain huge or fragile values** (age ciphertexts, JWTs, base64 blobs, long URLs, multi-line embedded JSON) — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
 
 **When to use native tools instead:**
 - small exact replacement → use `edit`
 - creating a new file → use `write`
 - `fast_apply` unavailable (no API key) → fall back to `edit`
+
+### Placeholder pattern for huge values
+
+Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files, secret stores, or large data tables where every right-hand side is a value you must never mistype.
+
+Give every relocated line its own placeholder — one per row scales fine, there is no built-in limit:
+
+```toml
+[secrets]
+
+# Bootstrap secrets.
+ADMIN_TOKEN = // ... existing inline table for ADMIN_TOKEN ...
+VPS_TOKEN   = // ... existing inline table for VPS_TOKEN ...
+
+# Indeed corporate.
+GITLAB_PAT      = // ... existing inline table ...
+ATLASSIAN_TOKEN = // ... existing inline table ...
+# ...one marker per relocated line, no value ever retyped...
+```
+
+Morph fills each placeholder from the existing file by matching the unique key anchor on the left. The huge values never enter the `codeEdit` argument.
+
+Never paste a multi-KB value into `codeEdit` when a marker would work. Never fall back to a Python / Ruby / `sed` / `awk` rewrite script as a workaround for "too much to retype" — that is exactly the case the placeholder pattern was designed to cover.
+
+If a needed line does not yet exist in the file, append it once with a single shell command (`cat >> file`, `echo >> file`) before calling `fast_apply`. Then every line in the `codeEdit` can be a placeholder.
+
+Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
 
 ### Parameters
 

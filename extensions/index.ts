@@ -192,12 +192,15 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			"Edit an existing file using partial code snippets with '// ... existing code ...' markers. Use fast_apply for multiple scattered changes in one existing file, complex refactors, or edits where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files.",
+			"Edit an existing file using partial code snippets with '// ... existing code ...' markers. Markers can appear anywhere a unique anchor exists, including inline within a single line between two literal anchors \u2014 use them for huge or fragile values (ciphertexts, base64 blobs, JWTs, long URLs, multi-KB strings) instead of pasting the value into codeEdit. Use fast_apply for multiple scattered changes, complex refactors, line-by-line reorganizations of an existing file, or any case where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files.",
 		promptSnippet:
-			'Use fast_apply for scattered or fragile edits in existing files; use edit for small exact replacements and write for new files.',
+			"Use fast_apply for scattered/fragile edits and reorganizations in existing files. Use '// ... existing code ...' markers in place of any value already in the file (especially long ciphertexts, base64 blobs, or multi-KB strings) so you never have to retype them. Use edit for small exact replacements and write for new files.",
 		promptGuidelines: [
 			"Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'",
 			"In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file.",
+			"Use '// ... existing code ...' (or a more descriptive variant like '// ... existing inline table ...') for ANY value that already exists in the file and is long, fragile, or risky to retype \u2014 including age ciphertexts, JWTs, base64 blobs, long URLs, multi-line embedded JSON. The marker can appear inline within a single line between two unique literal anchors.",
+			'For reorganizations that touch many lines (regrouping a config table, reordering function declarations), give each relocated line its own placeholder on the right-hand side and let Morph fill them in from the existing file. One marker per line scales fine; there is no built-in limit.',
+			'Never paste a multi-KB value into codeEdit when a marker would work. Never fall back to a Python / Ruby / sed / awk rewrite script as a workaround for "too much to retype" \u2014 that is exactly the case the placeholder pattern was designed to cover.',
 			'Include enough unique surrounding context to anchor each change precisely, preserve exact indentation, and use edit instead when the change is just a small exact replacement.',
 		],
 		parameters: FastApplyParams,
