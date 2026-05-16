@@ -548,6 +548,15 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 | ---------- | ------------- | --------------------- |
 | 2026-05-15 | Initial draft | Victor Software House |
 
+### Creation provenance
+
+| Field                 | Value                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Created in Pi session | `019e2e39-246e-77dc-8b1e-90b3f17e48b1`                                                                                                                              |
+| Session file          | `/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl` |
+| Session name          | Morph Runtime Integration Specdocs                                                                                                                                  |
+| Created               | 2026-05-15 BRT                                                                                                                                                      |
+
 ---
 
 ## 15. Verification (Appendix)

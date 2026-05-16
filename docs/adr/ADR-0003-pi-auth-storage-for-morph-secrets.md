@@ -101,3 +101,12 @@ Non-secret settings such as base URL, timeout, apply model tier, and compaction 
 * **Plan**: [docs/architecture/plan-morph-runtime-integration.md](../architecture/plan-morph-runtime-integration.md)
 * **ADRs**: [ADR-0001](ADR-0001-pi-owned-file-mutation-for-morph-apply.md), [ADR-0002](ADR-0002-progressive-disclosure-for-morph-tool-family.md)
 * **Implementation**: `extensions/index.ts` `resolveMorphApiKey()`, `/morph-login`, `/morph-logout`, `/morph-status`, future `/morph-probe`
+
+## Creation Provenance
+
+| Field                 | Value                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Created in Pi session | `019e2e39-246e-77dc-8b1e-90b3f17e48b1`                                                                                                                              |
+| Session file          | `/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl` |
+| Session name          | Morph Runtime Integration Specdocs                                                                                                                                  |
+| Created               | 2026-05-15 BRT                                                                                                                                                      |

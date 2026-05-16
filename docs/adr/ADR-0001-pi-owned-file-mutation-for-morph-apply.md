@@ -99,3 +99,12 @@ Morph may produce a merged candidate. Pi decides whether that candidate is safe,
 * **Plan**: [docs/architecture/plan-morph-runtime-integration.md](../architecture/plan-morph-runtime-integration.md)
 * **ADRs**: [ADR-0002](ADR-0002-progressive-disclosure-for-morph-tool-family.md), [ADR-0003](ADR-0003-pi-auth-storage-for-morph-secrets.md)
 * **Implementation**: `extensions/index.ts` `applyEdit()` flow and future `/morph-probe`
+
+## Creation Provenance
+
+| Field                 | Value                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Created in Pi session | `019e2e39-246e-77dc-8b1e-90b3f17e48b1`                                                                                                                              |
+| Session file          | `/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl` |
+| Session name          | Morph Runtime Integration Specdocs                                                                                                                                  |
+| Created               | 2026-05-15 BRT                                                                                                                                                      |
