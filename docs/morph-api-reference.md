@@ -8,6 +8,7 @@ Sources refreshed 2026-05-16:
 - [Apply API](https://docs.morphllm.com/api-reference/endpoint/apply)
 - [Code Apply API](https://docs.morphllm.com/api-reference/endpoint/direct)
 - [OpenAPI](https://docs.morphllm.com/api-reference/openapi.json)
+- Local live behavior matrix: [Morph Apply Behavior Matrix](morph-apply-behavior-matrix.md) and [Morph Apply Matrix Scenarios](morph-apply-scenarios.md)
 - [Morph SDK Reference](https://docs.morphllm.com/sdk/reference)
 - [Fast Apply](https://docs.morphllm.com/sdk/components/fast-apply)
 - [WarpGrep overview](https://docs.morphllm.com/sdk/components/warp-grep)
@@ -165,7 +166,7 @@ Current official docs expose two Apply surfaces:
 |:--|:--|:--|:--|:--|
 | SDK `applyEdit()` | `POST /v1/chat/completions` | passed for `large: false` and `large: true` | boolean `large`; `false` → `morph-v3-fast`; `true` → `morph-v3-large` | Best package path: least code, Pi still owns file I/O. |
 | Chat-compatible Apply | `POST /v1/chat/completions` | passed for `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | OpenAPI enum: `morph-v3-fast`, `morph-v3-large`, `auto`; OpenAPI default: `morph-v3-fast`; docs table recommends `auto` | Keep as diagnostic/probe evidence, not main path while SDK flag is enough. |
-| Structured Code Apply | `POST /v1/code/apply` | passed for default, `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | `model` optional; docs say defaults to `auto` | Useful future option, but OpenAPI currently omits this path. |
+| Structured Code Apply | `POST /v1/code/apply` | passed for default, `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true`; expanded matrix passed 10/10 with default auto | `model` optional; docs say defaults to `auto` | Fastest average path in current matrix, but OpenAPI currently omits this path. |
 
 Docs accuracy is inconsistent: Apply docs say `morph-v3-fast` is 96% and `morph-v3-large` is 98%; Code Apply docs say fast is 97% and large is 98.8%. Use the conservative 96% versus 98% guidance in model-facing docs.
 
