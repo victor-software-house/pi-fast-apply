@@ -13,7 +13,7 @@ pre-commit:
     oxlint-fix:
       glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
       stage_fixed: true
-      run: pnpm exec oxlint --fix --import-plugin {staged_files}
+      run: pnpm exec oxlint --fix --import-plugin --no-error-on-unmatched-pattern {staged_files}
     format:
       stage_fixed: true
       run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
