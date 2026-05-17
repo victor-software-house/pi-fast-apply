@@ -87,16 +87,19 @@ describe('createSafeWarpGrepProvider', () => {
 		expect(result.lines.some((line) => line.includes('src.ts'))).toBe(true);
 	});
 
-	it('denies secret-like list and glob roots', async () => {
+	it('does not block directories by name', async () => {
 		await mkdir(join(root, '.ssh'), { recursive: true });
+		await writeFile(join(root, '.ssh/config'), 'Host example\n');
 		await writeFile(join(root, '.ssh/id_ed25519'), 'secret\n');
 		const provider = createSafeWarpGrepProvider(root);
 
-		await expect(provider.listDirectory({ path: '.ssh' })).resolves.toEqual([]);
-		await expect(provider.glob({ pattern: '*', path: '.ssh' })).resolves.toMatchObject({
-			files: [],
-			error: expect.stringContaining('DENIED'),
-		});
+		const listResult = await provider.listDirectory({ path: '.ssh' });
+		const globResult = await provider.glob({ pattern: '*', path: '.ssh' });
+
+		expect(listResult.some((entry) => entry.path.endsWith('config'))).toBe(true);
+		expect(listResult.some((entry) => entry.path.endsWith('id_ed25519'))).toBe(false);
+		expect(globResult.files.some((file) => file.endsWith('config'))).toBe(true);
+		expect(globResult.files.some((file) => file.endsWith('id_ed25519'))).toBe(false);
 	});
 
 	it('filters secret-like paths from glob output', async () => {

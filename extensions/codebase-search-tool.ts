@@ -78,8 +78,6 @@ function isObviousSecretSearchPath(repoRoot: string, candidatePath: string): boo
 	const blockedNames = new Set([
 		'.env',
 		'.npmrc',
-		'.pypirc',
-		'.netrc',
 		'auth.json',
 		'credentials.json',
 		'id_rsa',
@@ -87,11 +85,9 @@ function isObviousSecretSearchPath(repoRoot: string, candidatePath: string): boo
 		'id_ecdsa',
 		'id_ed25519',
 	]);
-	const blockedDirs = new Set(['.ssh', '.aws', '.gnupg']);
 	const blockedExtensions = ['.pem', '.key', '.p12', '.pfx', '.ppk', '.asc', '.gpg', '.agekey', '.log'];
 
 	return (
-		parts.some((part) => blockedDirs.has(part)) ||
 		name.startsWith('.env.') ||
 		blockedNames.has(name) ||
 		name.startsWith('id_rsa') ||
