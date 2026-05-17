@@ -64,39 +64,44 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 |:--------|:------------|
 | `/morph-login <key>` | Store a Morph API key in Pi auth storage |
 | `/morph-logout` | Remove stored Morph credentials |
-| `/morph-status` | Show active auth source, API base URL, and timeout |
+| `/morph-status` | Show active auth source, API base URL, timeout, SDK version, and SDK auto-default patch status |
+| `/morph-probe` | Run Morph runtime diagnostics. Checks config/auth locally, then performs live Compact and Fast Apply API calls when an API key is configured. Does not read or write project files. |
 
 ## Tool Contract
 
 `fast_apply` uses Morph's semantic merge to apply partial edits to existing files.
 
 **When to use `fast_apply`:**
-- multiple scattered changes in one file
+- multiple scattered changes in one non-sensitive workspace file
 - complex refactors where `oldText` would be fragile or ambiguous
 - whitespace-sensitive edits that exact replacement handles poorly
-- **reorganizing a file whose lines contain huge or fragile values** (age ciphertexts, JWTs, base64 blobs, long URLs, multi-line embedded JSON) — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
+- reorganizing a file whose lines contain huge or fragile **non-secret** values — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
 
 **When to use native tools instead:**
+- sensitive files (`.env`, auth files, private keys, credential stores) → use `edit`; Morph receives the full original file before merging
+- files outside the current workspace → use native local tools; `fast_apply` refuses workspace escapes and symlink escapes
 - small exact replacement → use `edit`
 - creating a new file → use `write`
 - `fast_apply` unavailable (no API key) → fall back to `edit`
 
 ### Placeholder pattern for huge values
 
-Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files, secret stores, or large data tables where every right-hand side is a value you must never mistype.
+Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files or large data tables where every right-hand side is a non-secret value you must never mistype.
+
+Do not use `fast_apply` on secret stores, private keys, auth files, `.env` files, or other sensitive files. Markers prevent retyping fragile values, but Morph still receives the full original file as `originalCode`.
 
 Give every relocated line its own placeholder — one per row scales fine, there is no built-in limit:
 
 ```toml
-[secrets]
+[fixtures]
 
-# Bootstrap secrets.
-ADMIN_TOKEN = // ... existing inline table for ADMIN_TOKEN ...
-VPS_TOKEN   = // ... existing inline table for VPS_TOKEN ...
+# Bootstrap public fixtures.
+PUBLIC_FIXTURE_A = // ... existing inline table for PUBLIC_FIXTURE_A ...
+PUBLIC_FIXTURE_B = // ... existing inline table for PUBLIC_FIXTURE_B ...
 
-# Indeed corporate.
-GITLAB_PAT      = // ... existing inline table ...
-ATLASSIAN_TOKEN = // ... existing inline table ...
+# Non-secret test data.
+SAMPLE_PAYLOAD_A = // ... existing inline table ...
+SAMPLE_PAYLOAD_B = // ... existing inline table ...
 # ...one marker per relocated line, no value ever retyped...
 ```
 
@@ -106,7 +111,7 @@ Never paste a multi-KB value into `codeEdit` when a marker would work. Never fal
 
 If a needed line does not yet exist in the file, append it once with a single shell command (`cat >> file`, `echo >> file`) before calling `fast_apply`. Then every line in the `codeEdit` can be a placeholder.
 
-Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
+Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. `fast_apply` also refuses workspace escapes, symlink escapes, likely secret filenames, sensitive directories, and most dotfiles. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
 
 ### Parameters
 
@@ -126,7 +131,8 @@ Each call returns a unified diff, the merged source, and a change summary (`+add
 | Variable | Default | Description |
 |:---------|:--------|:------------|
 | `MORPH_API_KEY` | — | Morph API key (fallback when Pi auth storage has no key) |
-| `MORPH_API_URL` | `https://api.morphllm.com` | Override the Morph base URL |
+| `MORPH_API_URL` | `https://api.morphllm.com` | Override the Morph base URL. Must use `https`, cannot include embedded credentials, query strings, or fragments, and custom hosts require `MORPH_ALLOW_CUSTOM_API_URL=1`. |
+| `MORPH_ALLOW_CUSTOM_API_URL` | — | Opt in to trusted non-default Morph API hosts for testing. |
 | `MORPH_EDIT_TIMEOUT_MS` | `60000` | Request timeout in milliseconds |
 
 ## Development

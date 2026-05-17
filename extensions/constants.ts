@@ -1,0 +1,11 @@
+export const EXISTING_CODE_MARKER = '// ... existing code ...';
+export const DEFAULT_MORPH_API_URL = 'https://api.morphllm.com';
+export const DEFAULT_MORPH_API_HOST = 'api.morphllm.com';
+export const CUSTOM_MORPH_API_URL_OPT_IN = 'MORPH_ALLOW_CUSTOM_API_URL';
+export const DEFAULT_TIMEOUT_MS = 60_000;
+export const NON_TRIVIAL_FILE_LINE_COUNT = 10;
+export const MORPH_PROVIDER_ID = 'morph';
+export const MORPH_ENV_VAR = 'MORPH_API_KEY';
+export const MORPH_SDK_PACKAGE = '@morphllm/morphsdk';
+export const MORPH_APPLY_DEFAULT_MODEL = 'auto';
+export const MORPH_APPLY_MODEL_TYPE_MARKER = "model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large'";
