@@ -102,6 +102,7 @@ Acceptance:
 - Unit or harness tests cover argument validation, path bounds, redaction, and output bounds.
 - Manual search in this repo finds runtime/auth symbols with useful file:line context.
 - `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build` pass.
+- `pnpm run measure:codebase-search -- "<query>"` measures live WarpGrep wall time, SDK timing metrics, and provider operation timings against a chosen repo.
 
 ---
 

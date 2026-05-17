@@ -45,6 +45,7 @@
     "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "test": "vitest run --passWithNoTests",
     "test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
+    "measure:codebase-search": "tsx test/codebase-search-timing.ts",
     "fix": "pnpm run fix:oxlint && pnpm run fix:biome",
     "fix:biome": "biome check --write .",
     "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
@@ -83,6 +84,7 @@
     "lefthook": "^2.1.6",
     "oxlint": "^1.64.0",
     "oxlint-tsgolint": "^0.22.1",
+    "tsx": "^4.22.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   },

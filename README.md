@@ -182,6 +182,17 @@ Autofix:
 pnpm run fix
 ```
 
+Live Codebase Search timing harness:
+
+```bash
+CODEBASE_SEARCH_PUBLIC_REPO_ROOT=/tmp/pi-fast-apply-public-live/node \
+MORPH_API_KEY="$(fnox get MORPH_API_KEY)" \
+pnpm run measure:codebase-search -- \
+  "Find Node.js CommonJS module loading and resolution implementation"
+```
+
+The harness prints total wall time, Morph SDK timing metrics when present, per-provider operation counts/timings (`listDirectory`, `glob`, `grep`, `read`), and a short formatted output preview. It never prints the Morph API key.
+
 ## License
 
 MIT
