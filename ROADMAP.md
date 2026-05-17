@@ -53,7 +53,7 @@ Known caveat:
 
 ---
 
-## Next: local `codebase_search`
+## Current: local `codebase_search`
 
 Priority: highest.
 
@@ -100,14 +100,14 @@ Acceptance:
 
 ---
 
-## Then: docs and verification for `codebase_search`
+## Then: verification for `codebase_search`
 
 After implementation:
 
-- README: add concise `codebase_search` usage section.
-- ROADMAP: mark local search complete and move next item up.
+- Manual/live search in this repo must find runtime/auth symbols with useful bounded file:line context.
 - `/morph-probe`: add skipped/implemented search health check only if low-cost and useful.
 - Tests: keep exact string search guidance pointed at native `grep`/`find`.
+- Standard local gate must pass: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build`.
 
 Docs must avoid prompt bloat. Tool metadata should explain routing in one or two direct sentences, not a mini-manual.
 

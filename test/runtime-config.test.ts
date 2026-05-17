@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildApplyConfig, type MorphRuntimeConfig } from '../extensions/runtime-config';
+import { buildApplyConfig, buildWarpGrepConfig, type MorphRuntimeConfig } from '../extensions/runtime-config';
 
 const runtimeConfig: MorphRuntimeConfig = {
 	apiBaseUrl: 'https://api.morphllm.com',
@@ -30,5 +30,15 @@ describe('buildApplyConfig', () => {
 		});
 		expect('model' in config).toBe(false);
 		expect('large' in config).toBe(false);
+	});
+});
+
+describe('buildWarpGrepConfig', () => {
+	it('passes runtime-owned Morph connection config', () => {
+		expect(buildWarpGrepConfig('test-key', runtimeConfig)).toEqual({
+			morphApiKey: 'test-key',
+			morphApiUrl: 'https://api.morphllm.com',
+			timeout: 60_000,
+		});
 	});
 });

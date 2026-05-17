@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
-import type { ApplyEditConfig } from '@morphllm/morphsdk';
+import type { ApplyEditConfig, WarpGrepClientConfig } from '@morphllm/morphsdk';
 import {
 	CUSTOM_MORPH_API_URL_OPT_IN,
 	DEFAULT_MORPH_API_HOST,
@@ -174,5 +174,13 @@ export function buildApplyConfig(apiKey: string, runtimeConfig: MorphRuntimeConf
 		morphApiUrl: runtimeConfig.apiBaseUrl,
 		timeout: runtimeConfig.timeoutMs,
 		generateUdiff: true,
+	};
+}
+
+export function buildWarpGrepConfig(apiKey: string, runtimeConfig: MorphRuntimeConfig): WarpGrepClientConfig {
+	return {
+		morphApiKey: apiKey,
+		morphApiUrl: runtimeConfig.apiBaseUrl,
+		timeout: runtimeConfig.timeoutMs,
 	};
 }

@@ -174,12 +174,18 @@ export function registerMorphCommands(pi: ExtensionAPI): void {
 			if (source === 'none') {
 				checks.push({ name: 'Compact API', status: 'skip', detail: 'requires Morph API key' });
 				checks.push({ name: 'Fast Apply API', status: 'skip', detail: 'requires Morph API key' });
+				checks.push({ name: 'Codebase Search API', status: 'skip', detail: 'requires Morph API key' });
 				ctx.ui.notify(['Morph probe', formatProbeChecks(checks)].join('\n'), 'warning');
 				return;
 			}
 
 			checks.push(await runProbeCheck('Compact API', () => runCompactProbe(key, runtimeConfig)));
 			checks.push(await runProbeCheck('Fast Apply API', () => runFastApplyProbe(key, runtimeConfig)));
+			checks.push({
+				name: 'Codebase Search API',
+				status: 'skip',
+				detail: 'run codebase_search for live local verification',
+			});
 			const failed = checks.some((check) => check.status === 'fail');
 			ctx.ui.notify(['Morph probe', formatProbeChecks(checks)].join('\n'), failed ? 'error' : 'info');
 		},
