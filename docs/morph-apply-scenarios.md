@@ -1,6 +1,6 @@
 # Morph Apply Matrix Scenarios
 
-Generated: 5/16/2026, 11:15:51 PM
+Generated: 5/17/2026, 4:39:57 PM
 
 These are exact inputs used by `docs/morph-apply-behavior-matrix.md`. Each scenario/path pair ran 3 times.
 
