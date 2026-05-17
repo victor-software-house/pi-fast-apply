@@ -68,7 +68,7 @@ Certain content should never be compressed:
 - **Recent messages** — protected by `preserve_recent: 3` for session compaction.
 - **Active file being edited** — if a tool reads a file the model is about to edit, mark it with `<keepContext>` tags or skip per-result compaction for that read.
 
-For Pi per-tool-result compaction, be conservative at first: prefer skipping active edit-target reads over trying to infer all critical spans. Compact is line-deletion, not summarization; it cannot trim within giant single-line payloads, so minified JSON/base64-like lines are poor candidates.
+For Pi per-tool-result compaction, be conservative at first: prefer skipping active edit-target reads over trying to infer all critical spans. Compact is line-deletion, not summarization; it cannot trim within giant single-line payloads, so minified JSON/base64-like lines are poor candidates. Before compacting JSON or other structured payloads, test pretty-formatting first so important fields are spread across lines.
 
 ## Configuration
 
@@ -77,7 +77,7 @@ For Pi per-tool-result compaction, be conservative at first: prefer skipping act
 | `MORPH_COMPACT_THRESHOLD` | `2000` | Minimum token count to trigger compression (estimated at ~4 chars/token) |
 | `MORPH_COMPACT_RATIO` | `0.5` | Compression ratio (0.3 = aggressive, 0.7 = light) |
 | `MORPH_COMPACT_PRESERVE_RECENT` | `3` | Messages to keep uncompressed |
-| `MORPH_COMPACT_ENABLED` | `true` | Master switch |
+| `MORPH_COMPACT_ENABLED` | `false` for automatic `tool_result`, explicit for session compaction | Master switch |
 
 ## Latency budget
 
@@ -161,14 +161,22 @@ When compression fires, show a diagnostic line in the Pi TUI:
 Compact: 12,450 → 4,890 tokens (60.7% reduction, 0.8s) — query: "JWT validation"
 ```
 
-## Interaction with PIM-007 (lifecycle hook)
+## Rollout relationship with explicit compaction
 
-PIM-009 is the *implicit* compaction path — automatic on every large tool result.
-PIM-007 is the *explicit* compaction path — triggered by the operator via `/compact`.
+Automatic `tool_result` compaction is the *implicit* path — automatic on large tool results after experiments prove quality.
+Explicit compaction is the safer first path — integrated with Pi's existing `session_before_compact` lifecycle.
 
 They use the same Morph Compact API but fire at different points:
-- PIM-009: `tool_result` event, per-result, high frequency, low latency
-- PIM-007: `session_before_compact` event, whole conversation, low frequency, higher latency acceptable
+- automatic result compaction: `tool_result` event, per-result, high frequency, low latency, default off until validated
+- explicit session compaction: `session_before_compact` event, whole conversation, low frequency, higher latency acceptable
+
+Before enabling automatic result compaction, run experiments on:
+
+1. raw file excerpts returned by `codebase_search`
+2. pretty-formatted JSON vs compact single-line JSON
+3. Markdown/code-fenced excerpts
+4. queries derived from the current user task vs tool-call instruction text
+5. frozen-block reuse for repeated compaction, inspired by the OpenCode Morph plugin's cache-stable compaction strategy
 
 ## Risks and mitigations
 

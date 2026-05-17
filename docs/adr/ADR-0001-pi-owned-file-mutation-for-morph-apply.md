@@ -105,7 +105,7 @@ Morph may produce a merged candidate. Pi decides whether that candidate is safe,
 ## Related
 
 * **Plan**: [docs/architecture/plan-morph-runtime-integration.md](../architecture/plan-morph-runtime-integration.md)
-* **ADRs**: [ADR-0002](ADR-0002-progressive-disclosure-for-morph-tool-family.md), [ADR-0003](ADR-0003-pi-auth-storage-for-morph-secrets.md)
+* **ADRs**: [ADR-0002](ADR-0002-straightforward-morph-tool-declarations.md), [ADR-0003](ADR-0003-pi-auth-storage-for-morph-secrets.md)
 * **Implementation**: `extensions/index.ts` `applyEdit()` flow and future `/morph-probe`
 
 ## Creation Provenance

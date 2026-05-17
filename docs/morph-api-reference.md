@@ -2,16 +2,21 @@
 
 Distilled reference of the Morph API surface relevant to this package.
 
-Sources refreshed 2026-05-15:
+Sources refreshed 2026-05-16:
 
 - [Morph Quickstart](https://docs.morphllm.com/quickstart)
 - [Morph SDK Reference](https://docs.morphllm.com/sdk/reference)
 - [Fast Apply](https://docs.morphllm.com/sdk/components/fast-apply)
+- [WarpGrep overview](https://docs.morphllm.com/sdk/components/warp-grep)
+- [WarpGrep streaming](https://docs.morphllm.com/sdk/components/warp-grep/streaming)
+- [WarpGrep GitHub search](https://docs.morphllm.com/sdk/components/warp-grep/github-search)
+- [WarpGrep sandbox execution](https://docs.morphllm.com/sdk/components/warp-grep/sandbox-execution)
 - [WarpGrep direct protocol](https://docs.morphllm.com/sdk/components/warp-grep/direct)
 - [WarpGrep agent tool](https://docs.morphllm.com/sdk/components/warp-grep/tool)
 - [Compact](https://docs.morphllm.com/sdk/components/compact)
 - [Model Router](https://docs.morphllm.com/sdk/components/router)
-- Local package inspection: `@morphllm/morphsdk@0.2.171`
+- [OpenCode Morph plugin](https://github.com/morphllm/opencode-morph-plugin)
+- Local package inspection and npm latest check: `@morphllm/morphsdk@0.2.171`
 
 ---
 
@@ -132,6 +137,8 @@ interface ApplyEditConfig {
 
 Implication: if this package does not set `large`, the SDK defaults to `morph-v3-large` unless `MORPH_LARGE_APPLY=false` exists. That is accurate but hidden. Add explicit model selection before claiming cost-aware behavior.
 
+The raw OpenAI-compatible Apply API also supports a model value of `auto`, but current `applyEdit()` only exposes `large?: boolean`. Using raw API directly for `auto` would require re-owning request formatting, response parsing, retries, and local diff/change counting. Do not switch the first probe/model-tier slice to raw API just for `auto`; keep `large|fast` explicit now and treat `auto` as a later experiment if quality/cost tests justify it.
+
 ### Higher-level SDK API
 
 Current docs also show:
@@ -151,7 +158,7 @@ const result = await morph.fastApply.execute({
 });
 ```
 
-For Pi, prefer `applyEdit()` / code-in-code-out so Pi keeps path resolution, dry-run behavior, mutation queueing, and writes.
+For Pi, prefer `applyEdit()` / code-in-code-out so Pi keeps path resolution, dry-run behavior, mutation queueing, and writes. Direct raw API use is acceptable only for a deliberate experiment, such as testing `model: "auto"`, after parity tests prove it preserves SDK behavior.
 
 ---
 
@@ -179,7 +186,11 @@ const warpGrepSubagent = morph.anthropic.createWarpGrepTool({ repoRoot: '.' });
 const githubTool = morph.anthropic.createGitHubSearchTool();
 ```
 
-For Pi, a native `warp_grep` tool should call the SDK from inside `execute()`, render progress with `onUpdate`, and return concise file contexts.
+For Pi, wrap `MorphClient` directly in `pi.registerTool()` rather than using provider-adapter tool factories. The local model-facing tool should be named `codebase_search` with operator label `Codebase Search`; this matches Morph's examples while preserving readable Pi UI. It should call the SDK from inside `execute()`, stream progress with `onUpdate`, and return concise file contexts.
+
+Parameter naming needs live validation: Morph examples often expose `search_term`, while the SDK and current Pi tool patterns use camelCase `searchTerm`. Prefer a small provider schema and consider `prepareArguments` compatibility for `search_term` if testing shows the model emits Morph-trained snake_case.
+
+Avoid activator stubs for this package. Prior activator flows were unreliable in practice; direct self-explanatory tools are preferred as long as schemas and descriptions stay concise.
 
 ### Direct protocol path
 
@@ -204,7 +215,24 @@ Local tool implementations still need to exist in Pi if we implement the raw loo
 | `glob` | bounded glob matching |
 | `finish` | parse file/range references and read snippets |
 
-Recommended Pi path: start with high-level `morph.warpGrep.execute()` unless it prevents Pi-grade rendering/cancellation. Drop to direct protocol only if needed.
+Recommended Pi path: start with high-level `morph.warpGrep.execute({ searchTerm, repoRoot, streamSteps: true })` unless it prevents Pi-grade rendering, cancellation, bounded output, or direct protocol features. Always stream when possible: streaming yields WarpGrep steps from the same search operation and adds no extra latency.
+
+Installed SDK input shape:
+
+```typescript
+interface WarpGrepInput {
+  searchTerm: string;
+  repoRoot: string;
+  remoteCommands?: RemoteCommands;
+  provider?: WarpGrepProvider;
+  excludes?: string[];
+  includes?: string[];
+  streamSteps?: boolean;
+  search_type?: 'default' | 'node_modules';
+}
+```
+
+Remote/sandbox search is a later experiment. The SDK supports `remoteCommands` where `grep` returns ripgrep stdout, `read` returns raw file content, and directory/glob functions return one path per line. Do not expose remote execution knobs until failure modes and security boundaries are tested.
 
 ---
 
@@ -221,6 +249,8 @@ const result = await morph.warpGrep.searchGitHub({
 ```
 
 Use this for public library internals and reference implementations. Do not use for private repos unless Morph docs/API explicitly support the required auth model.
+
+Planned Pi tool: `github_code_search` with label `GitHub Code Search`, shipped after local `codebase_search`. Use `streamSteps: true` when supported. Normalize `owner/repo` and full GitHub URLs locally before calling Morph.
 
 ---
 
@@ -267,10 +297,13 @@ Best practices:
 
 - Always pass `query` when the current task is known.
 - Keep system messages uncompressed.
-- Preserve at least recent turns for conversation compaction.
+- Preserve at least 3 recent turns for conversation compaction, even though the SDK default is 2.
 - Start with `0.5`; use `0.3` for long loops, `0.7` when nuance matters.
 - Wrap critical sections with `<keepContext>` tags when they must survive.
 - Compact before sending context to the main LLM, not after.
+- Pretty-format JSON or other huge single-line structured payloads before compaction experiments; Compact deletes whole lines and performs poorly when important data is packed into one line.
+
+OpenCode's official Morph plugin uses a useful production pattern for future experiments: compact old context when a threshold is reached, keep recent user intent uncompacted, and cache a frozen compacted block for prompt-cache stability. Pi should validate result quality before adopting automatic `tool_result` compaction or compacting full search excerpts.
 
 ### Pi hook names
 
@@ -315,7 +348,7 @@ Provider maps from current docs:
 
 Use Router when request complexity varies and cost matters. Skip when deterministic model selection or fixed max quality matters more than savings.
 
-For this package, Router can help future model choice, but the current `applyEdit()` SDK only exposes `large?: boolean`. Map Router/raw difficulty to `large` deliberately rather than pretending `auto` is already wired.
+For this package, Router can help future model choice, but it is not part of the next implementation slice. The current `applyEdit()` SDK only exposes `large?: boolean`; map Router/raw difficulty to `large` deliberately later rather than pretending `auto` is already wired.
 
 ---
 
@@ -333,7 +366,9 @@ const result = await morph.codebaseSearch.search({
 });
 ```
 
-Docs state Codebase Search requires code to be pushed/indexed with MorphGit before searching. That does not fit Pi's local-first search tool as well as WarpGrep. Keep Codebase Search deferred unless we intentionally adopt MorphGit indexing.
+Docs state the SDK `morph.codebaseSearch.search()` path requires code to be pushed/indexed with MorphGit before searching. That does not fit Pi's local-first search tool as well as WarpGrep. Keep the indexed `morph.codebaseSearch` product deferred unless we intentionally adopt MorphGit indexing.
+
+Naming caveat: the planned Pi model-facing tool name `codebase_search` should wrap WarpGrep local search, not `morph.codebaseSearch.search()`. This follows Morph agent-tool naming guidance while keeping the implementation on the no-indexing WarpGrep path.
 
 ---
 
@@ -345,7 +380,7 @@ Docs state Codebase Search requires code to be pushed/indexed with MorphGit befo
 - Avoid global config mutation during extension load. Prefer Pi auth storage and explicit commands.
 - Avoid global AGENTS.md auto-edits from package runtime.
 - Use `tool_result` and `session_before_compact` current hook names.
-- Use progressive disclosure before adding many always-on tools; large tool families should not all dump snippets/guidelines into every prompt.
+- Prefer direct, intuitive model-facing tool names and readable labels over activator stubs. Keep schemas and descriptions concise enough that always-available tools do not become a prompt tax.
 
 ## External links
 

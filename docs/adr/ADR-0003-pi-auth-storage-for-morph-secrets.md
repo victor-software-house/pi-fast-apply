@@ -107,7 +107,7 @@ Non-secret settings such as base URL, timeout, apply model tier, and compaction 
 ## Related
 
 * **Plan**: [docs/architecture/plan-morph-runtime-integration.md](../architecture/plan-morph-runtime-integration.md)
-* **ADRs**: [ADR-0001](ADR-0001-pi-owned-file-mutation-for-morph-apply.md), [ADR-0002](ADR-0002-progressive-disclosure-for-morph-tool-family.md)
+* **ADRs**: [ADR-0001](ADR-0001-pi-owned-file-mutation-for-morph-apply.md), [ADR-0002](ADR-0002-straightforward-morph-tool-declarations.md)
 * **Implementation**: `extensions/index.ts` `resolveMorphApiKey()`, `/morph-login`, `/morph-logout`, `/morph-status`, future `/morph-probe`
 
 ## Creation Provenance

@@ -37,7 +37,7 @@ provenance:
 
 The first implementation workstream should not add search or compaction. It should make the current runtime observable and explicit: add `/morph-probe`, factor shared Morph config/auth helpers, and pass explicit Fast Apply model-tier config into `applyEdit()`. That creates a safe verification surface before additional Morph API calls enter the package.
 
-Broader capabilities should be added as specialist families. `fast_apply` remains the baseline always-visible tool because editing is the package's current core value. Local WarpGrep and GitHub search should use progressive disclosure so their schemas, descriptions, prompt snippets, and guidelines do not tax unrelated turns. Compact has two paths: explicit session compaction through `session_before_compact` first, then optional conservative `tool_result` compaction after real behavior is proven.
+Broader capabilities should be added with straightforward model-facing names and readable labels. `fast_apply` remains stable with label `Fast Apply`; local WarpGrep should use Morph's recommended `codebase_search` name with label `Codebase Search`; public GitHub search should ship later as a separate direct tool such as `github_code_search` with label `GitHub Code Search`. Activator stubs are explicitly avoided because they have not been reliable in practice. Compact has two paths: explicit session compaction through `session_before_compact` first, then experimental conservative `tool_result` compaction after real behavior is proven.
 
 ## Components
 
@@ -76,6 +76,7 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * Default should preserve current effective SDK behavior: `large` unless config says `fast`.
 * `/morph-status`, `/morph-probe`, and `fast_apply` result `details` should include selected tier and source.
 * Invalid config should not silently choose a surprising model; report default/fallback clearly.
+* `@morphllm/morphsdk@0.2.171` is current latest. Direct raw Apply API supports `model: "auto"`, but current `applyEdit()` does not. Leave raw API / auto-model experiments for a later quality slice.
 
 **ADR Reference**: [ADR-0001](../adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md): Pi-owned file mutation for Morph Apply.
 
@@ -93,33 +94,36 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 **ADR Reference**: None — command shape is implementation detail; operator-vs-model diagnostic decision is captured in PRD design decisions.
 
-### Morph Search Family
+### Morph Search Tools
 
-**Purpose**: Add local and public GitHub semantic code search through WarpGrep without bloating baseline model context.
+**Purpose**: Add local and public GitHub semantic code search through WarpGrep using direct, intuitive tool declarations.
 
 **Key Details**:
 
-* Prefer high-level SDK `morph.warpGrep.execute({ searchTerm, repoRoot })` for first local implementation.
-* Drop to direct protocol only if high-level SDK prevents required rendering, cancellation, or bounded output.
-* GitHub search should use `morph.warpGrep.searchGitHub({ searchTerm, github, branch })` and stay public-only initially.
+* Prefer high-level SDK `morph.warpGrep.execute({ searchTerm, repoRoot, streamSteps: true })` for first local implementation.
+* Always stream when SDK supports it; route yielded WarpGrep steps through Pi `onUpdate` for operator-visible progress.
+* Local search model-facing name should be `codebase_search`; operator label should be `Codebase Search`.
+* Drop to direct protocol only if high-level SDK prevents required rendering, cancellation, bounded output, or direct API features.
+* GitHub search should be a separate later tool, likely `github_code_search` with label `GitHub Code Search`, using `morph.warpGrep.searchGitHub({ searchTerm, github, branch, streamSteps: true })` and public repos only.
 * Tool output should return bounded file:line contexts. Intermediate search attempts should remain inside WarpGrep's isolated context.
 * Search tools should distinguish semantic/broad search from exact keyword lookup; exact lookup stays native grep/find.
+* Remote/sandbox search via `remoteCommands` or custom providers is an advanced later phase after local and public GitHub behavior is validated.
 
-**ADR Reference**: [ADR-0002](../adr/ADR-0002-progressive-disclosure-for-morph-tool-family.md): Progressive disclosure for Morph tool family.
+**ADR Reference**: [ADR-0002](../adr/ADR-0002-straightforward-morph-tool-declarations.md): Straightforward Morph tool declarations.
 
-### Progressive Disclosure Controller
+### Tool Declaration Surface
 
-**Purpose**: Keep Morph specialist tools inactive until needed while preserving discoverability.
+**Purpose**: Keep Morph tools obvious to the model and readable to the operator without unreliable activator stubs.
 
 **Key Details**:
 
-* Keep `fast_apply` always visible for backward compatibility and current package purpose.
-* Add a minimal activation/control path for Morph search family before registering full search tools as active.
-* Use `pi.setActiveTools()` and session-local state if model-triggered activation is implemented.
-* Restore state on `session_start`/`session_tree`; reset on new session and compaction unless the ADR chooses otherwise.
+* Keep `fast_apply` stable with label `Fast Apply`.
+* Add direct search tools with names that match model expectations and current tool patterns.
+* Keep schemas minimal and natural-language oriented; `codebase_search` should accept natural-language `searchTerm` or a carefully chosen equivalent, not regex flags.
+* Use concise descriptions and prompt guidance; avoid mini-manuals in provider-visible tool metadata.
 * Validate provider-visible prompt/tool impact before shipping expanded tool metadata.
 
-**ADR Reference**: [ADR-0002](../adr/ADR-0002-progressive-disclosure-for-morph-tool-family.md): Progressive disclosure for Morph tool family.
+**ADR Reference**: [ADR-0002](../adr/ADR-0002-straightforward-morph-tool-declarations.md): Straightforward Morph tool declarations.
 
 ### Morph Compact Hooks
 
@@ -150,19 +154,21 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 ## Implementation Order
 
-| Phase | Component                         | Dependencies        | Estimated Scope |
-| ----- | --------------------------------- | ------------------- | --------------- |
-| 1     | Specdocs foundation               | None                | S               |
-| 2     | Runtime core helper cleanup       | Phase 1             | S               |
-| 3     | Morph probe command               | Phase 2             | M               |
-| 4     | Fast Apply explicit model control | Phase 2             | S               |
-| 5     | Progressive disclosure controller | Phase 1, Phase 2    | M               |
-| 6     | Local WarpGrep search             | Phase 5             | M               |
-| 7     | Public GitHub search              | Phase 6             | M               |
-| 8     | Explicit Compact hook             | Phase 2, Phase 3    | M               |
-| 9     | Optional tool\_result compaction  | Phase 8             | M/L             |
-| 10    | Roadmap/specdocs cleanup          | Phase 1, ADRs       | S               |
-| 11    | Rename evaluation                 | Phases 6-9 complete | M               |
+| Phase | Component                             | Dependencies         | Estimated Scope |
+| ----- | ------------------------------------- | -------------------- | --------------- |
+| 1     | Specdocs foundation                   | None                 | S               |
+| 2     | Runtime core helper cleanup           | Phase 1              | S               |
+| 3     | Morph probe command                   | Phase 2              | M               |
+| 4     | Fast Apply explicit model control     | Phase 2              | S               |
+| 5     | Tool declaration surface              | Phase 1, Phase 2     | S               |
+| 6     | Local WarpGrep `codebase_search`      | Phase 5              | M               |
+| 7     | Public GitHub code search             | Phase 6              | M               |
+| 8     | Remote/sandbox search experiment      | Phase 6              | M               |
+| 9     | Explicit Compact hook                 | Phase 2, Phase 3     | M               |
+| 10    | Search excerpt compaction experiments | Phase 6, Phase 9     | M/L             |
+| 11    | Optional tool\_result compaction      | Phase 9, Phase 10    | M/L             |
+| 12    | Roadmap/specdocs cleanup              | Phase 1, ADRs        | S               |
+| 13    | Rename evaluation                     | Phases 6-11 complete | M               |
 
 ### Phase 1: Specdocs foundation
 
@@ -172,7 +178,7 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 * Create `docs/prd/PRD-001-morph-runtime-integration.md`.
 * Create `docs/architecture/plan-morph-runtime-integration.md`.
-* Create ADRs for file mutation ownership, progressive disclosure, and secret storage.
+* Create ADRs for file mutation ownership, straightforward tool declarations, and secret storage.
 * Run `specdocs_format` and `specdocs_validate`.
 
 **Verification**:
@@ -223,46 +229,47 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 **Tasks**:
 
-* Add `getMorphApplyModel()` parsing, likely values: `large` and `fast`.
+* Add `getMorphApplyModel()` parsing, values: `large` and `fast`.
 * Preserve current effective default: `large`.
 * Pass `large: selected === 'large'` in `buildApplyConfig()`.
 * Show tier and source in `/morph-status` and `/morph-probe`.
 * Put tier in `fast_apply` result `details` for renderer/debugging.
+* Do not implement `auto` in this slice; raw API auto-model selection needs separate parity/quality testing.
 
 **Verification**:
 
 * Helper tests for unset, `large`, `fast`, invalid values.
 * Manual dry-run confirms no behavior regression.
 
-### Phase 5: Progressive disclosure controller
+### Phase 5: Tool declaration surface
 
-**Outcome**: Morph specialist tools can be hidden/activated intentionally.
+**Outcome**: Morph tools have stable model-facing names, readable labels, concise schemas, and no activator stubs.
 
 **Tasks**:
 
-* Define Morph families: baseline edit, search, compact controls if needed.
-* Decide activation surface for search: model-facing `morph_search_enable`, operator command, or both.
-* Use `pi.setActiveTools()` for next-turn activation if model-triggered.
-* Persist family state with `pi.appendEntry()` if activation must survive resume/tree.
-* Reset on new session and compaction if chosen.
+* Keep existing `fast_apply` name and `Fast Apply` label.
+* Reserve `codebase_search` for local WarpGrep search with label `Codebase Search`.
+* Reserve a separate later GitHub search name such as `github_code_search` with label `GitHub Code Search`.
+* Keep parameter schemas minimal and natural-language oriented; `codebase_search` should accept a natural-language query. Prefer `searchTerm` to match current Pi/SDK camelCase patterns, but consider accepting `search_term` via `prepareArguments` compatibility if live tests show Morph-trained prompting favors it.
 * Probe provider-visible prompt/tool state before release if possible.
 
 **Verification**:
 
-* New session: only baseline tools/activators visible.
-* After activation: search tools visible next turn and activator removed.
-* Resume/tree/fork behavior matches ADR.
+* Tool declarations are direct and self-explanatory.
+* No model-facing activator stub is required to use implemented Morph tools.
+* Exact-string search guidance points back to native grep/find.
 
-### Phase 6: Local WarpGrep search
+### Phase 6: Local WarpGrep `codebase_search`
 
 **Outcome**: Model can request broad semantic local search through Morph.
 
 **Tasks**:
 
-* Add local search tool in search family.
-* Use high-level SDK first: `morph.warpGrep.execute({ searchTerm, repoRoot })`.
+* Add direct `codebase_search` model-facing tool with label `Codebase Search`.
+* Use high-level SDK first: `morph.warpGrep.execute({ searchTerm, repoRoot, streamSteps: true })`.
+* Test whether model calls prefer `searchTerm` or `search_term`; support both if needed without bloating provider schema.
+* Always stream when possible and surface WarpGrep steps through `onUpdate`.
 * Bound output size and format as file:line contexts.
-* Add rendering for progress/result if SDK exposes steps; otherwise return concise status.
 * Document exact-grep fallback to native tools.
 * Add `/morph-probe` local search check after implementation.
 
@@ -272,13 +279,14 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * Search broad term like `operator auth status`; output bounded and useful.
 * Exact string guidance remains in tool metadata/docs.
 
-### Phase 7: Public GitHub search
+### Phase 7: Public GitHub code search
 
 **Outcome**: Model can search public GitHub repos without cloning.
 
 **Tasks**:
 
-* Add GitHub search tool in search family.
+* Add separate GitHub search tool, likely `github_code_search`, with label `GitHub Code Search`.
+* Use `morph.warpGrep.searchGitHub({ searchTerm, github, branch, streamSteps: true })`.
 * Accept `owner/repo` and full GitHub URL; normalize to `owner/repo`.
 * Optional branch parameter.
 * Validate malformed identifiers locally; treat 404/private as public-only failure.
@@ -290,7 +298,23 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * Malformed repo input fails locally with clear message.
 * Private/missing repo failure does not ask for extra secrets.
 
-### Phase 8: Explicit Compact hook
+### Phase 8: Remote/sandbox search experiment
+
+**Outcome**: Decide whether Pi needs WarpGrep `remoteCommands` or custom provider support.
+
+**Tasks**:
+
+* Test SDK `remoteCommands` with a controlled command provider before adding public schema.
+* Confirm return formats: ripgrep stdout for `grep`, raw file text for `read`, one path per line for `listDir` / `glob` where applicable.
+* Decide whether remote search belongs in this package or should be separate from local/GitHub search.
+* Keep remote/sandbox config out of the initial local search tool unless experiments prove it is needed.
+
+**Verification**:
+
+* Remote experiment records result quality, latency, failure modes, and security concerns.
+* No remote execution knobs ship without explicit docs and tests.
+
+### Phase 9: Explicit Compact hook
 
 **Outcome**: Manual/session compaction can use Morph Compact safely.
 
@@ -298,7 +322,7 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 * Register `pi.on('session_before_compact', ...)`.
 * Build compact input from Pi event shape after inspecting current types.
-* Pass `query`, `compressionRatio`, `preserveRecent`, and `compressSystemMessages: false` where supported.
+* Pass `query`, `compressionRatio`, and `preserveRecent >= 3` where supported.
 * Fallback to default compaction if disabled, missing key, or API failure.
 * Add status/probe fields for compact config.
 
@@ -307,14 +331,30 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * Trigger compaction in a test/manual Pi session with key and inspect reduction stats.
 * Remove key and verify default compaction path still works.
 
-### Phase 9: Optional tool\_result compaction
+### Phase 10: Search excerpt compaction experiments
+
+**Outcome**: Determine whether full file excerpts returned from search should be compacted directly, formatted first, or left untouched.
+
+**Tasks**:
+
+* Run experiments compacting raw file excerpts, pretty-formatted JSON, and Markdown/code-fenced excerpts.
+* Test JSON pretty-formatting before compaction to avoid giant single-line payload failures.
+* Compare result quality for search excerpts using explicit `query` values.
+* Decide whether excerpt compaction belongs inside search tools, Compact hooks, or a later optional mode.
+
+**Verification**:
+
+* Experiment notes include before/after excerpts, token/line reduction, and qualitative usefulness.
+* No automatic excerpt compaction ships until quality is validated.
+
+### Phase 11: Optional tool\_result compaction
 
 **Outcome**: Large model-facing tool outputs can be compacted before reaching the model when explicitly enabled.
 
 **Tasks**:
 
 * Add opt-in env/config flag and threshold.
-* Register `pi.on('tool_result', ...)`.
+* Register `pi.on('tool_result', ...)` only after explicit compaction and excerpt experiments are validated.
 * Skip mutation tools and small/structured outputs.
 * Preserve or skip active edit-target reads conservatively.
 * Put reduction stats in `details`; show concise operator diagnostic.
@@ -325,7 +365,7 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * `fast_apply`, `edit`, `write`, and errors are skipped.
 * Failures fall back to original content.
 
-### Phase 10: Roadmap/specdocs cleanup
+### Phase 12: Roadmap/specdocs cleanup
 
 **Outcome**: Specdocs are source of truth.
 
@@ -340,7 +380,7 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 * `rg` for old roadmap code pattern returns none outside historical git.
 * Docs links resolve locally.
 
-### Phase 11: Rename evaluation
+### Phase 13: Rename evaluation
 
 **Outcome**: Rename decision is made only after broader capability exists.
 
@@ -356,19 +396,19 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 ## Risks and Mitigations
 
-| Risk                                                        | Likelihood | Impact | Mitigation                                                                                                           |
-| ----------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `/morph-probe` becomes flaky due network/API state          | Med        | Med    | Classify external failures separately from implementation failures; keep checks small; allow skipped future checks.  |
-| Helper extraction creates churn before value                | Med        | Low    | Keep helpers in `extensions/index.ts` until multiple features need split; extract only at reviewable boundary.       |
-| Progressive disclosure activation gets stateful and brittle | Med        | Med    | Start with minimal search family; derive active tools from family state; restore/reset on documented session events. |
-| SDK high-level WarpGrep output lacks enough Pi control      | Med        | Med    | Start high-level for speed; switch to direct protocol only if rendering/cancellation/bounds require it.              |
-| Compact hook event shape differs from docs                  | Low        | Med    | Inspect current Pi type definitions before implementation; add probe/manual verification before claiming done.       |
-| Automatic tool result compaction hides needed evidence      | Med        | High   | Keep default off/conservative; skip mutation outputs; always fallback to original on error.                          |
-| Roadmap cleanup disrupts useful historical context          | Low        | Low    | Preserve useful history through specdocs links and git history; do not delete docs until PRD/plan cover them.        |
+| Risk                                                   | Likelihood | Impact | Mitigation                                                                                                          |
+| ------------------------------------------------------ | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| `/morph-probe` becomes flaky due network/API state     | Med        | Med    | Classify external failures separately from implementation failures; keep checks small; allow skipped future checks. |
+| Helper extraction creates churn before value           | Med        | Low    | Keep helpers in `extensions/index.ts` until multiple features need split; extract only at reviewable boundary.      |
+| Direct search tools add baseline prompt/schema cost    | Med        | Med    | Keep schemas concise, avoid long prompt guidelines, and inspect provider-visible tool payload before release.       |
+| SDK high-level WarpGrep output lacks enough Pi control | Med        | Med    | Start high-level for speed; switch to direct protocol only if rendering/cancellation/bounds require it.             |
+| Compact hook event shape differs from docs             | Low        | Med    | Inspect current Pi type definitions before implementation; add probe/manual verification before claiming done.      |
+| Automatic tool result compaction hides needed evidence | Med        | High   | Keep default off/conservative; skip mutation outputs; always fallback to original on error.                         |
+| Roadmap cleanup disrupts useful historical context     | Low        | Low    | Preserve useful history through specdocs links and git history; do not delete docs until PRD/plan cover them.       |
 
 ## Open Questions
 
-* Should Morph search activation be model-triggered (`morph_search_enable`), operator-triggered (`/morph search enable`), or both?
+* Resolved: do not use Morph search activators; use direct `codebase_search` and later `github_code_search` declarations.
 * Should code be split into multiple extension modules before search/compact land, or after `/morph-probe` and model tier are complete?
 * Should `/morph-probe` run a real Compact API call by default, or only when passed a subcommand such as `/morph-probe full`?
 * What exact config names should be used for Compact enable/threshold/ratio once implementation starts?
@@ -378,11 +418,11 @@ Broader capabilities should be added as specialist families. `fast_apply` remain
 
 Decisions made during this plan:
 
-| ADR                                                                         | Title                                        | Status   |
-| --------------------------------------------------------------------------- | -------------------------------------------- | -------- |
-| [ADR-0001](../adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md)       | Pi-owned file mutation for Morph Apply       | Proposed |
-| [ADR-0002](../adr/ADR-0002-progressive-disclosure-for-morph-tool-family.md) | Progressive disclosure for Morph tool family | Proposed |
-| [ADR-0003](../adr/ADR-0003-pi-auth-storage-for-morph-secrets.md)            | Pi auth storage for Morph secrets            | Proposed |
+| ADR                                                                    | Title                                   | Status   |
+| ---------------------------------------------------------------------- | --------------------------------------- | -------- |
+| [ADR-0001](../adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md)  | Pi-owned file mutation for Morph Apply  | Proposed |
+| [ADR-0002](../adr/ADR-0002-straightforward-morph-tool-declarations.md) | Straightforward Morph tool declarations | Proposed |
+| [ADR-0003](../adr/ADR-0003-pi-auth-storage-for-morph-secrets.md)       | Pi auth storage for Morph secrets       | Proposed |
 
 ## Verification Plan
 
@@ -394,5 +434,5 @@ Before merging implementation phases:
 4. Run `pnpm run build`.
 5. Run `/morph-status` manually in Pi after command/config changes.
 6. Run `/morph-probe` manually with missing and valid credentials after probe lands.
-7. For each new model-facing tool, inspect or probe active tool visibility before release.
+7. For each new model-facing tool, inspect or probe provider-visible tool metadata before release.
 8. Run `specdocs_validate` after specdocs changes.
