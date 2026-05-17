@@ -1,6 +1,6 @@
 # pi-fast-apply
 
-[Morph](https://www.morphllm.com/) Fast Apply for [Pi](https://github.com/badlogic/pi-mono). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
+[Morph](https://www.morphllm.com/) Fast Apply for [Pi](https://github.com/earendil-works/pi). A native `fast_apply` tool that edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required.
 
 ## Why
 
@@ -12,7 +12,7 @@
 
 ## Prerequisites
 
-1. [Pi](https://github.com/badlogic/pi-mono) must be installed
+1. [Pi](https://github.com/earendil-works/pi) must be installed
 2. A [Morph API key](https://morphllm.com)
 
 ## Installation
@@ -65,7 +65,7 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 | `/morph-login <key>` | Store a Morph API key in Pi auth storage |
 | `/morph-logout` | Remove stored Morph credentials |
 | `/morph-status` | Show active auth source, API base URL, timeout, SDK version, and SDK auto-default patch status |
-| `/morph-probe` | Run Morph runtime diagnostics. Checks config/auth locally, then performs live Compact and Fast Apply API calls when an API key is configured. Does not read or write project files. |
+| `/morph-probe` | Run Morph runtime diagnostics. Reports SDK auto-default patch status, checks config/auth locally, then performs live Compact and Fast Apply API calls when an API key is configured. Does not read or write project files. |
 
 ## Tool Contract
 
@@ -121,7 +121,7 @@ Safety: Morph refuses to write output containing the literal marker syntax if th
 
 ### Output
 
-Each call returns a unified diff, the merged source, and a change summary (`+added -removed ~modified`).
+Each call returns a unified diff, the merged source, and a change summary (`+added -removed ~modified`). Fast Apply uses the patched SDK default `auto` route and does not expose model/large controls.
 
 ## Configuration
 
