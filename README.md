@@ -156,7 +156,7 @@ Use native tools instead for exact lookups:
 
 Each call returns bounded relevant file contexts with line ranges. Intermediate WarpGrep search steps stay inside Morph's search context and are shown to the operator as progress updates when Pi can render them.
 
-Data flow: Pi executes local search/read operations under the selected workspace directory, sends WarpGrep tool context to Morph, then returns selected file:line/code context. Obvious secret-like paths (`.env`, `.npmrc`, private keys, credential files, key/cert files, logs) are omitted from local search reads/results.
+Data flow: Pi executes local search/read operations under the selected workspace directory, sends WarpGrep tool context to Morph, then returns selected file:line/code context. `codebase_search` keeps WarpGrep's default discovery behavior; only obvious secret-like file contents (`.env`, `.npmrc`, private keys, credential files, key/cert files, logs) are redacted before being sent back through the WarpGrep loop.
 
 ## Configuration
 

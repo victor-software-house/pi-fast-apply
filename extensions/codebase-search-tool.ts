@@ -98,17 +98,20 @@ function isObviousSecretSearchPath(repoRoot: string, candidatePath: string): boo
 	);
 }
 
-const DENIED_SEARCH_PATH = '[DENIED] codebase_search omitted an obvious secret-like path.';
+const REDACTED_SEARCH_CONTENT = '[REDACTED] codebase_search found an obvious secret-like file; content omitted.';
 
-function grepLinePath(line: string): string | undefined {
+function grepLineParts(line: string): { filePath: string; separator: string } | undefined {
 	if (line === '--') return undefined;
-	return /^(.+?)(?=[:-]\d+[:-])/.exec(line)?.[1];
+	const match = /^(.+?)([:-]\d+[:-])/.exec(line);
+	if (match == null) return undefined;
+	return { filePath: match[1] ?? '', separator: match[2] ?? ':' };
 }
 
-function filterSecretLikeGrepLines(repoRoot: string, lines: string[]): string[] {
-	return lines.filter((line) => {
-		const filePath = grepLinePath(line);
-		return filePath == null || !isObviousSecretSearchPath(repoRoot, filePath);
+function redactSecretLikeGrepLines(repoRoot: string, lines: string[]): string[] {
+	return lines.map((line) => {
+		const parts = grepLineParts(line);
+		if (parts == null || !isObviousSecretSearchPath(repoRoot, parts.filePath)) return line;
+		return `${parts.filePath}${parts.separator}${REDACTED_SEARCH_CONTENT}`;
 	});
 }
 
@@ -116,26 +119,21 @@ export function createSafeWarpGrepProvider(repoRoot: string): WarpGrepProvider {
 	const inner = new LocalRipgrepProvider(repoRoot);
 	return {
 		async grep(params) {
-			if (isObviousSecretSearchPath(repoRoot, params.path)) return { lines: [], error: DENIED_SEARCH_PATH };
+			if (isObviousSecretSearchPath(repoRoot, params.path)) {
+				return { lines: [`${params.path}:0:${REDACTED_SEARCH_CONTENT}`] };
+			}
 			const result = await inner.grep(params);
-			return { ...result, lines: filterSecretLikeGrepLines(repoRoot, result.lines) };
+			return { ...result, lines: redactSecretLikeGrepLines(repoRoot, result.lines) };
 		},
 		async read(params) {
-			if (isObviousSecretSearchPath(repoRoot, params.path)) return { lines: [], error: DENIED_SEARCH_PATH };
+			if (isObviousSecretSearchPath(repoRoot, params.path)) return { lines: [`0|${REDACTED_SEARCH_CONTENT}`] };
 			return inner.read(params);
 		},
 		async listDirectory(params) {
-			if (isObviousSecretSearchPath(repoRoot, params.path)) return [];
-			const entries = await inner.listDirectory(params);
-			return entries.filter((entry) => !isObviousSecretSearchPath(repoRoot, entry.path));
+			return inner.listDirectory(params);
 		},
 		async glob(params) {
-			if (params.path != null && isObviousSecretSearchPath(repoRoot, params.path)) {
-				return { files: [], searchDir: repoRoot, totalFound: 0, error: DENIED_SEARCH_PATH };
-			}
-			const result = await inner.glob(params);
-			const files = result.files.filter((file) => !isObviousSecretSearchPath(repoRoot, file));
-			return { ...result, files, totalFound: files.length };
+			return inner.glob(params);
 		},
 	};
 }

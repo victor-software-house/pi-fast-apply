@@ -65,29 +65,31 @@ describe('createSafeWarpGrepProvider', () => {
 		expect(grepResult.lines.some((line) => line.includes('src.ts'))).toBe(true);
 	});
 
-	it.each(['.env', '.npmrc', 'secrets.pem', '.ssh/id_ed25519'])('denies secret-like reads for %s', async (name) => {
+	it.each(['.env', '.npmrc', 'secrets.pem', '.ssh/id_ed25519'])('redacts secret-like reads for %s', async (name) => {
 		await mkdir(join(root, name.split('/').slice(0, -1).join('/')), { recursive: true });
 		await writeFile(join(root, name), 'token=value\n');
 		const provider = createSafeWarpGrepProvider(root);
 
-		await expect(provider.read({ path: name })).resolves.toMatchObject({
-			lines: [],
-			error: expect.stringContaining('DENIED'),
-		});
+		const result = await provider.read({ path: name });
+
+		expect(result.lines).toHaveLength(1);
+		expect(result.lines[0]).toContain('[REDACTED]');
+		expect(result.lines[0]).not.toContain('token=value');
 	});
 
-	it('filters secret-like files from broad grep output', async () => {
+	it('redacts secret-like file content from broad grep output', async () => {
 		await writeFile(join(root, 'credentials.json'), 'leaked-token-value\n');
 		await writeFile(join(root, 'src.ts'), 'leaked-token-value is mentioned in a safe fixture\n');
 		const provider = createSafeWarpGrepProvider(root);
 
 		const result = await provider.grep({ pattern: 'leaked-token-value', path: '.' });
 
-		expect(result.lines.some((line) => line.includes('credentials.json'))).toBe(false);
-		expect(result.lines.some((line) => line.includes('src.ts'))).toBe(true);
+		expect(result.lines.some((line) => line.includes('credentials.json') && line.includes('[REDACTED]'))).toBe(true);
+		expect(result.lines.some((line) => line.includes('credentials.json') && line.includes('leaked-token-value'))).toBe(false);
+		expect(result.lines.some((line) => line.includes('src.ts') && line.includes('leaked-token-value'))).toBe(true);
 	});
 
-	it('does not block directories by name', async () => {
+	it('does not block directories by name or redact path-only glob output', async () => {
 		await mkdir(join(root, '.ssh'), { recursive: true });
 		await writeFile(join(root, '.ssh/config'), 'Host example\n');
 		await writeFile(join(root, '.ssh/id_ed25519'), 'secret\n');
@@ -97,19 +99,19 @@ describe('createSafeWarpGrepProvider', () => {
 		const globResult = await provider.glob({ pattern: '*', path: '.ssh' });
 
 		expect(listResult.some((entry) => entry.path.endsWith('config'))).toBe(true);
-		expect(listResult.some((entry) => entry.path.endsWith('id_ed25519'))).toBe(false);
+		expect(listResult.some((entry) => entry.path.endsWith('id_ed25519'))).toBe(true);
 		expect(globResult.files.some((file) => file.endsWith('config'))).toBe(true);
-		expect(globResult.files.some((file) => file.endsWith('id_ed25519'))).toBe(false);
+		expect(globResult.files.some((file) => file.endsWith('id_ed25519'))).toBe(true);
 	});
 
-	it('filters secret-like paths from glob output', async () => {
+	it('keeps WarpGrep default glob behavior', async () => {
 		await writeFile(join(root, 'src.ts'), 'export const ok = true;\n');
-		await writeFile(join(root, '.env'), 'token=value\n');
+		await writeFile(join(root, 'credentials.json'), 'token=value\n');
 		const provider = createSafeWarpGrepProvider(root);
 		const result = await provider.glob({ pattern: '*' });
 
 		expect(result.files.some((file) => file.endsWith('src.ts'))).toBe(true);
-		expect(result.files.some((file) => file.endsWith('.env'))).toBe(false);
+		expect(result.files.some((file) => file.endsWith('credentials.json'))).toBe(true);
 	});
 });
 
