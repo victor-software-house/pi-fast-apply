@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Run live Morph Apply matrix through Vitest (requires MORPH_API_KEY)"
+#MISE alias="tmm"
+set -euo pipefail
+
+if [[ -z "${MORPH_API_KEY:-}" ]]; then
+  if command -v fnox >/dev/null 2>&1; then
+    export MORPH_API_KEY="$(fnox get MORPH_API_KEY)"
+  else
+    echo "Error: MORPH_API_KEY is required (or install/configure fnox)." >&2
+    exit 1
+  fi
+fi
+
+pnpm run test:morph-matrix

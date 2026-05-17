@@ -380,15 +380,15 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 
 ## 6. Non-Functional Requirements
 
-| Category               | Requirement                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Safety**             | Morph must not write directly to user files; all writes remain behind Pi validation and mutation queueing.                     |
-| **Security**           | Morph API keys must resolve from Pi auth storage or `MORPH_API_KEY`; no new plaintext project/global config may store secrets. |
-| **Context efficiency** | New model-facing Morph tool metadata must be minimized through concise schemas, names, labels, and descriptions.               |
-| **Observability**      | Probe, status, and tool results must identify config source, model tier, skip/fail/pass state, and actionable remediation.     |
-| **Reliability**        | A Morph API outage must fail the Morph feature with clear errors and must not corrupt files or block unrelated Pi behavior.    |
-| **Compatibility**      | Existing `fast_apply`, `/morph-login`, `/morph-logout`, and `/morph-status` behavior must remain backward compatible.          |
-| **Maintainability**    | Shared config/auth/client helpers should prevent duplicated env parsing and SDK setup as features grow.                        |
+| Category               | Requirement                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Safety**             | Morph must not write directly to user files; all writes remain behind Pi validation and mutation queueing.                             |
+| **Security**           | Morph API keys must resolve from Pi auth storage or `MORPH_API_KEY`; no new plaintext project/global config may store secrets.         |
+| **Context efficiency** | New model-facing Morph tool metadata must be minimized through concise schemas, names, labels, and descriptions.                       |
+| **Observability**      | Probe, status, and tool results must identify auth/config source, SDK Apply default, skip/fail/pass state, and actionable remediation. |
+| **Reliability**        | A Morph API outage must fail the Morph feature with clear errors and must not corrupt files or block unrelated Pi behavior.            |
+| **Compatibility**      | Existing `fast_apply`, `/morph-login`, `/morph-logout`, and `/morph-status` behavior must remain backward compatible.                  |
+| **Maintainability**    | Shared config/auth/client helpers should prevent duplicated env parsing and SDK setup as features grow.                                |
 
 ---
 
@@ -402,7 +402,7 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 | Compact drops critical context                                | High     | Medium     | Start with explicit `session_before_compact`; make `tool_result` compaction opt-in/conservative; preserve recent turns; skip edit-target/mutation outputs. |
 | Tool surface bloat hurts every Pi turn                        | Medium   | High       | Keep tool count small, use concise schemas/descriptions, and validate provider-visible prompt impact before release.                                       |
 | Hidden SDK/API drift breaks runtime despite passing typecheck | Medium   | Medium     | `/morph-probe` classifies SDK import/API/auth/network failures; add automated seams around config and probe where practical.                               |
-| Model-tier config changes edit quality or cost unexpectedly   | Medium   | Medium     | Keep default compatible with current behavior, show tier in `/morph-status` and probe, document env/source clearly.                                        |
+| SDK patch changes edit quality or cost unexpectedly           | Medium   | Medium     | Keep matrix/probe coverage, show SDK Apply default in `/morph-status` and probe, document upstream removal condition.                                      |
 | Public GitHub search users expect private repo support        | Medium   | Medium     | Document public-only scope; fail clearly; require separate ADR/security review for private auth.                                                           |
 | Rename burns package/repo expectations                        | Medium   | Medium     | Defer rename until broader capability exists; create release migration plan before metadata changes.                                                       |
 
@@ -410,7 +410,7 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 
 * Current Pi extension APIs include `pi.registerTool()`, `pi.registerCommand()`, `pi.on("tool_result")`, `pi.on("session_before_compact")`, and `pi.setActiveTools()`.
 * Current Morph SDK version remains `@morphllm/morphsdk@0.2.171`, verified as latest during research for this PRD update.
-* `applyEdit()` continues supporting `large?: boolean`, `generateUdiff?: boolean`, and code-in/code-out operation; raw Apply API `auto` model selection is reserved for later parity experiments.
+* Local patch keeps `applyEdit()` supporting `large?: boolean`, adds `model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large'`, defaults omitted model selection to `auto`, and preserves code-in/code-out operation.
 * Public GitHub search is acceptable for public repos only until Morph docs and repo policy define a private-repo auth model.
 * The package stays TypeScript-only, ESM, Node >=24, pnpm 11, Biome + oxlint.
 
@@ -487,27 +487,27 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 
 ## 9. File Breakdown
 
-| File                                                           | Change type   | FR                                                   | Description                                                                     |
-| -------------------------------------------------------------- | ------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `docs/prd/PRD-001-morph-runtime-integration.md`                | New           | All                                                  | Source PRD for Morph runtime integration scope and requirements.                |
-| `docs/architecture/plan-morph-runtime-integration.md`          | New           | All                                                  | Implementation sequencing, components, risks, and ADR index.                    |
-| `docs/adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md`  | New           | REQ-001                                              | Records Fast Apply ownership boundary.                                          |
-| `docs/adr/ADR-0002-straightforward-morph-tool-declarations.md` | New           | REQ-004, REQ-005, REQ-008                            | Records tool naming, labels, and no-activator strategy.                         |
-| `docs/adr/ADR-0003-pi-auth-storage-for-morph-secrets.md`       | New           | REQ-009                                              | Records secret storage/config decision.                                         |
-| `extensions/index.ts`                                          | Modify        | REQ-002, REQ-003                                     | Add explicit model tier and `/morph-probe`; later split if file grows.          |
-| `extensions/index.ts` or future `extensions/morph-search.ts`   | Modify/New    | REQ-004, REQ-005, REQ-008                            | Add local/public search tools and activation flow.                              |
-| `extensions/index.ts` or future `extensions/morph-compact.ts`  | Modify/New    | REQ-006, REQ-007                                     | Add Compact hooks and skip policy.                                              |
-| `README.md`                                                    | Modify        | REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-009 | Update docs for probe, config, search, compaction, auth constraints.            |
-| `docs/morph-api-reference.md`                                  | Modify        | REQ-002, REQ-004, REQ-005, REQ-006                   | Keep current SDK/API notes aligned with implementation.                         |
-| `docs/compact-interception.md`                                 | Modify        | REQ-006, REQ-007                                     | Keep Compact hook details and skip rules current.                               |
-| `ROADMAP.md`                                                   | Modify/Delete | All                                                  | Replace ad hoc roadmap codes with pointers to specdocs after plan/ADR adoption. |
-| `package.json`                                                 | Modify later  | REQ-010                                              | Rename only in future approved migration.                                       |
+| File                                                           | Change type   | FR                                                   | Description                                                                      |
+| -------------------------------------------------------------- | ------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `docs/prd/PRD-001-morph-runtime-integration.md`                | New           | All                                                  | Source PRD for Morph runtime integration scope and requirements.                 |
+| `docs/architecture/plan-morph-runtime-integration.md`          | New           | All                                                  | Implementation sequencing, components, risks, and ADR index.                     |
+| `docs/adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md`  | New           | REQ-001                                              | Records Fast Apply ownership boundary.                                           |
+| `docs/adr/ADR-0002-straightforward-morph-tool-declarations.md` | New           | REQ-004, REQ-005, REQ-008                            | Records tool naming, labels, and no-activator strategy.                          |
+| `docs/adr/ADR-0003-pi-auth-storage-for-morph-secrets.md`       | New           | REQ-009                                              | Records secret storage/config decision.                                          |
+| `extensions/index.ts`                                          | Modify        | REQ-002, REQ-003                                     | Report SDK Apply auto default and add `/morph-probe`; later split if file grows. |
+| `extensions/index.ts` or future `extensions/morph-search.ts`   | Modify/New    | REQ-004, REQ-005, REQ-008                            | Add local/public search tools and activation flow.                               |
+| `extensions/index.ts` or future `extensions/morph-compact.ts`  | Modify/New    | REQ-006, REQ-007                                     | Add Compact hooks and skip policy.                                               |
+| `README.md`                                                    | Modify        | REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-009 | Update docs for probe, SDK auto default, search, compaction, auth constraints.   |
+| `docs/morph-api-reference.md`                                  | Modify        | REQ-002, REQ-004, REQ-005, REQ-006                   | Keep current SDK/API notes aligned with implementation.                          |
+| `docs/compact-interception.md`                                 | Modify        | REQ-006, REQ-007                                     | Keep Compact hook details and skip rules current.                                |
+| `ROADMAP.md`                                                   | Modify/Delete | All                                                  | Replace ad hoc roadmap codes with pointers to specdocs after plan/ADR adoption.  |
+| `package.json`                                                 | Modify later  | REQ-010                                              | Rename only in future approved migration.                                        |
 
 ---
 
 ## 10. Dependencies & Constraints
 
-* `@morphllm/morphsdk@^0.2.171` is current dependency for Morph APIs.
+* `@morphllm/morphsdk@^0.2.171` is current dependency for Morph APIs, with repo patch `patches/@morphllm__morphsdk@0.2.171.patch` until upstream supports Apply `auto` default.
 * Pi extension imports must use `@earendil-works/pi-coding-agent` and `@earendil-works/pi-tui`, not legacy package names.
 * Current package is `@victor-software-house/pi-fast-apply`; rename is out of scope for first implementation.
 * Runtime target: Node >=24, ESM TypeScript, pnpm 11.
@@ -524,7 +524,7 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 ## 11. Rollout Plan
 
 1. **Specdocs foundation** — land PRD, implementation plan, and ADRs before changing runtime behavior.
-2. **Probe and explicit model tier** — implement `/morph-probe` and explicit Fast Apply tier config first because they de-risk every later Morph feature.
+2. **Probe and SDK auto default** — implement `/morph-probe` and verify patched Fast Apply auto default first because they de-risk every later Morph feature.
 3. **Search family activation** — add progressive disclosure state/activation before exposing local or GitHub search tools.
 4. **Local WarpGrep search** — implement local search with bounded results and probe coverage.
 5. **Public GitHub search** — add public repo search after local search output contracts are stable.

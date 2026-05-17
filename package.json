@@ -44,6 +44,7 @@
     "lint:biome": "biome check .",
     "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
     "test": "vitest run --passWithNoTests",
+    "test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
     "fix": "pnpm run fix:oxlint && pnpm run fix:biome",
     "fix:biome": "biome check --write .",
     "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",

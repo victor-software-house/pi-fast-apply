@@ -35,7 +35,7 @@ provenance:
 
 `pi-fast-apply` should grow from a single Fast Apply tool into a small Morph runtime integration while preserving Pi as the owning runtime. Pi remains responsible for local filesystem access, mutation queueing, auth resolution, command UX, model-visible tool activation, and operator rendering. Morph remains the semantic service used for merge, search, compact, and optional routing decisions.
 
-The first implementation workstream should not add search or compaction. It should make the current runtime observable and explicit: add `/morph-probe`, factor shared Morph config/auth helpers, and pass explicit Fast Apply model-tier config into `applyEdit()`. That creates a safe verification surface before additional Morph API calls enter the package.
+The first implementation workstream should not add search or compaction. It should make the current runtime observable and explicit: add `/morph-probe`, factor shared Morph config/auth helpers, and verify patched SDK Apply defaults to `auto`. That creates a safe verification surface before additional Morph API calls enter the package.
 
 Broader capabilities should be added with straightforward model-facing names and readable labels. `fast_apply` remains stable with label `Fast Apply`; local WarpGrep should use Morph's recommended `codebase_search` name with label `Codebase Search`; public GitHub search should ship later as a separate direct tool such as `github_code_search` with label `GitHub Code Search`. Activator stubs are explicitly avoided because they have not been reliable in practice. Compact has two paths: explicit session compaction through `session_before_compact` first, then experimental conservative `tool_result` compaction after real behavior is proven.
 
@@ -146,7 +146,7 @@ Broader capabilities should be added with straightforward model-facing names and
 
 **Key Details**:
 
-* Update `README.md` with `/morph-probe`, model tier config, search/compact usage as features ship.
+* Update `README.md` with `/morph-probe`, SDK auto-default behavior, search/compact usage as features ship.
 * Keep `docs/morph-api-reference.md` current with Morph SDK changes.
 * Replace or reduce `ROADMAP.md` so it points to specdocs and no longer uses ad hoc phase codes as source of truth.
 * Defer package rename until broader Morph capability ships and a release migration plan exists.
@@ -410,7 +410,7 @@ Broader capabilities should be added with straightforward model-facing names and
 ## Open Questions
 
 * Resolved: do not use Morph search activators; use direct `codebase_search` and later `github_code_search` declarations.
-* Should code be split into multiple extension modules before search/compact land, or after `/morph-probe` and model tier are complete?
+* Should code be split into multiple extension modules before search/compact land, or after `/morph-probe` and SDK auto-default verification are complete?
 * Should `/morph-probe` run a real Compact API call by default, or only when passed a subcommand such as `/morph-probe full`?
 * What exact config names should be used for Compact enable/threshold/ratio once implementation starts?
 * Should roadmap cleanup happen immediately after specdocs land, or after `/morph-probe` proves the new workflow?

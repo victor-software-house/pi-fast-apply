@@ -82,7 +82,7 @@ Require `MORPH_API_KEY` and remove Pi auth storage commands.
 
 Chosen option: **"Pi auth storage first, `MORPH_API_KEY` fallback"**, because it uses Pi's existing credential path, preserves current UX, and avoids package-specific plaintext secret config.
 
-Non-secret settings such as base URL, timeout, apply model tier, and compaction thresholds may use env vars or future explicit settings. Morph API keys must remain in Pi auth storage or external env injection.
+Non-secret settings such as base URL, timeout, SDK patch status, and compaction thresholds may use env vars or future explicit settings. Morph API keys must remain in Pi auth storage or external env injection.
 
 ## Consequences
 
