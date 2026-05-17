@@ -10,8 +10,6 @@ provenance:
   pi_session:
     id: "019e2e39-246e-77dc-8b1e-90b3f17e48b1"
     name: "Morph Runtime Integration Specdocs"
-    file: "/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl"
-    cwd: "/Users/victor/workspace/victor/pi-ecosystem/pi-fast-apply"
     started_at_brt: "2026-05-15T21:41:51-03:00"
   created_at_brt: "2026-05-15"
 ---
@@ -565,12 +563,11 @@ Then a migration plan covers npm package naming, GitHub repository naming, READM
 
 ### Creation provenance
 
-| Field                 | Value                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Created in Pi session | `019e2e39-246e-77dc-8b1e-90b3f17e48b1`                                                                                                                              |
-| Session file          | `/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl` |
-| Session name          | Morph Runtime Integration Specdocs                                                                                                                                  |
-| Created               | 2026-05-15 BRT                                                                                                                                                      |
+| Field                 | Value                                  |
+| --------------------- | -------------------------------------- |
+| Created in Pi session | `019e2e39-246e-77dc-8b1e-90b3f17e48b1` |
+| Session name          | Morph Runtime Integration Specdocs     |
+| Created               | 2026-05-15 BRT                         |
 
 ---
 

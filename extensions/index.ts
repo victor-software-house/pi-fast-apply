@@ -1,5 +1,6 @@
 import { constants } from 'node:fs';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import type { AuthStorage, ExtensionAPI } from '@earendil-works/pi-coding-agent';
@@ -22,8 +23,14 @@ import {
 
 const EXISTING_CODE_MARKER = '// ... existing code ...';
 const DEFAULT_MORPH_API_URL = 'https://api.morphllm.com';
-const DEFAULT_TIMEOUT_MS = parsePositiveInt(process.env['MORPH_EDIT_TIMEOUT_MS'], 60_000);
+const DEFAULT_MORPH_API_HOST = 'api.morphllm.com';
+const CUSTOM_MORPH_API_URL_OPT_IN = 'MORPH_ALLOW_CUSTOM_API_URL';
+const DEFAULT_TIMEOUT_MS = 60_000;
 const NON_TRIVIAL_FILE_LINE_COUNT = 10;
+const MORPH_SDK_PACKAGE = '@morphllm/morphsdk';
+const MORPH_APPLY_DEFAULT_MODEL = 'auto';
+const MORPH_APPLY_MODEL_TYPE_MARKER = "model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large'";
+const moduleRequire = createRequire(import.meta.url);
 
 /**
  * Provider identifier used as the auth.json key for Morph credentials.
@@ -54,10 +61,136 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function getMorphApiBaseUrl(): string {
+function resolveMorphApiBaseUrl(): {
+	value: string;
+	displayValue: string;
+	source: MorphConfigSource;
+	host: string;
+	customHost: boolean;
+} {
 	const configuredBaseUrl = process.env['MORPH_API_URL']?.trim();
-	const raw = configuredBaseUrl == null || configuredBaseUrl === '' ? DEFAULT_MORPH_API_URL : configuredBaseUrl;
-	return raw.replace(/\/+$/, '').replace(/\/v1$/, '');
+	const source: MorphConfigSource = configuredBaseUrl == null || configuredBaseUrl === '' ? 'default' : 'env';
+	const raw = source === 'default' ? DEFAULT_MORPH_API_URL : (configuredBaseUrl ?? DEFAULT_MORPH_API_URL);
+	let url: URL;
+	try {
+		url = new URL(raw);
+	} catch {
+		throw new Error('MORPH_API_URL must be a valid absolute URL.');
+	}
+
+	if (url.protocol !== 'https:') {
+		throw new Error('MORPH_API_URL must use https.');
+	}
+	if (url.username !== '' || url.password !== '') {
+		throw new Error('MORPH_API_URL must not include embedded credentials.');
+	}
+	if (url.search !== '' || url.hash !== '') {
+		throw new Error('MORPH_API_URL must not include query strings or fragments.');
+	}
+
+	const customHost = url.hostname !== DEFAULT_MORPH_API_HOST;
+	if (customHost && process.env[CUSTOM_MORPH_API_URL_OPT_IN] !== '1') {
+		throw new Error(
+			`Refusing custom MORPH_API_URL host '${url.hostname}'. ` +
+				`Set ${CUSTOM_MORPH_API_URL_OPT_IN}=1 only for trusted test endpoints.`,
+		);
+	}
+
+	url.pathname = url.pathname.replace(/\/+$/, '').replace(/\/v1$/, '');
+	const value = url.toString().replace(/\/$/, '');
+	return {
+		value,
+		displayValue: value,
+		source,
+		host: url.hostname,
+		customHost,
+	};
+}
+
+function resolveMorphTimeout(): { value: number; source: MorphConfigSource } {
+	const configuredTimeout = process.env['MORPH_EDIT_TIMEOUT_MS']?.trim();
+	return {
+		value: parsePositiveInt(configuredTimeout, DEFAULT_TIMEOUT_MS),
+		source: configuredTimeout == null || configuredTimeout === '' ? 'default' : 'env',
+	};
+}
+
+function readJsonStringField(rawJson: string, fieldName: string): string | undefined {
+	const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]+)"`);
+	return pattern.exec(rawJson)?.[1];
+}
+
+function getErrorCode(error: unknown): string | undefined {
+	if (error == null || typeof error !== 'object' || !('code' in error)) return undefined;
+	return typeof error.code === 'string' ? error.code : undefined;
+}
+
+async function readMorphSdkPatchInfo(): Promise<MorphSdkPatchInfo> {
+	try {
+		let directory = dirname(moduleRequire.resolve(MORPH_SDK_PACKAGE));
+		for (let depth = 0; depth < 8; depth++) {
+			const packageJsonPath = resolve(directory, 'package.json');
+			try {
+				const packageJson = await readFile(packageJsonPath, 'utf8');
+				if (readJsonStringField(packageJson, 'name') === MORPH_SDK_PACKAGE) {
+					const packageRoot = directory;
+					const version = readJsonStringField(packageJson, 'version') ?? 'unknown';
+					const typeText = await readFile(resolve(packageRoot, 'dist/tools/fastapply/types.d.ts'), 'utf8');
+					const runtimeText = await readFile(resolve(packageRoot, 'dist/tools/fastapply/apply.cjs'), 'utf8');
+					const hasAutoType = typeText.includes(MORPH_APPLY_MODEL_TYPE_MARKER);
+					const hasAutoRuntime = runtimeText.includes('MORPH_APPLY_MODEL') && runtimeText.includes('"auto"');
+					return {
+						packageName: MORPH_SDK_PACKAGE,
+						version,
+						status: hasAutoType && hasAutoRuntime ? 'auto-default-available' : 'auto-default-not-detected',
+						detail:
+							hasAutoType && hasAutoRuntime
+								? 'installed SDK exposes model auto and defaults omitted Apply model to auto'
+								: 'installed SDK does not expose the expected auto-default patch markers',
+					};
+				}
+			} catch (error) {
+				if (getErrorCode(error) !== 'ENOENT') throw error;
+			}
+
+			const parent = dirname(directory);
+			if (parent === directory) break;
+			directory = parent;
+		}
+	} catch (error) {
+		return {
+			packageName: MORPH_SDK_PACKAGE,
+			version: 'unknown',
+			status: 'unknown',
+			detail: error instanceof Error ? error.message : String(error),
+		};
+	}
+
+	return {
+		packageName: MORPH_SDK_PACKAGE,
+		version: 'unknown',
+		status: 'unknown',
+		detail: 'package root not found from runtime resolver',
+	};
+}
+
+async function getMorphRuntimeConfig(): Promise<MorphRuntimeConfig> {
+	cachedRuntimeConfig ??= (async () => {
+		const apiBaseUrl = resolveMorphApiBaseUrl();
+		const timeout = resolveMorphTimeout();
+		return {
+			apiBaseUrl: apiBaseUrl.value,
+			displayApiBaseUrl: apiBaseUrl.displayValue,
+			apiBaseUrlSource: apiBaseUrl.source,
+			apiBaseUrlHost: apiBaseUrl.host,
+			apiBaseUrlCustomHost: apiBaseUrl.customHost,
+			timeoutMs: timeout.value,
+			timeoutSource: timeout.source,
+			applyDefaultModel: MORPH_APPLY_DEFAULT_MODEL,
+			sdkPatch: await readMorphSdkPatchInfo(),
+		};
+	})();
+	return cachedRuntimeConfig;
 }
 
 function expandPath(filePath: string): string {
@@ -71,11 +204,11 @@ function countLines(text: string): number {
 	return text.length === 0 ? 0 : text.split('\n').length;
 }
 
-function buildApplyConfig(apiKey: string): ApplyEditConfig {
+function buildApplyConfig(apiKey: string, runtimeConfig: MorphRuntimeConfig): ApplyEditConfig {
 	return {
 		morphApiKey: apiKey,
-		morphApiUrl: getMorphApiBaseUrl(),
-		timeout: DEFAULT_TIMEOUT_MS,
+		morphApiUrl: runtimeConfig.apiBaseUrl,
+		timeout: runtimeConfig.timeoutMs,
 		generateUdiff: true,
 	};
 }
@@ -84,6 +217,30 @@ function buildApplyConfig(apiKey: string): ApplyEditConfig {
  * Auth source for operator-visible diagnostics.
  */
 type MorphAuthSource = 'auth.json' | 'env' | 'none';
+type MorphConfigSource = 'default' | 'env';
+type MorphApplyDefaultModel = typeof MORPH_APPLY_DEFAULT_MODEL;
+type MorphSdkPatchStatus = 'auto-default-available' | 'auto-default-not-detected' | 'unknown';
+
+interface MorphSdkPatchInfo {
+	packageName: string;
+	version: string;
+	status: MorphSdkPatchStatus;
+	detail: string;
+}
+
+interface MorphRuntimeConfig {
+	apiBaseUrl: string;
+	displayApiBaseUrl: string;
+	apiBaseUrlSource: MorphConfigSource;
+	apiBaseUrlHost: string;
+	apiBaseUrlCustomHost: boolean;
+	timeoutMs: number;
+	timeoutSource: MorphConfigSource;
+	applyDefaultModel: MorphApplyDefaultModel;
+	sdkPatch: MorphSdkPatchInfo;
+}
+
+let cachedRuntimeConfig: Promise<MorphRuntimeConfig> | undefined;
 
 /**
  * Resolve the Morph API key using Pi's auth priority chain:
@@ -164,6 +321,11 @@ interface FastApplyDetails {
 	completionId: string | undefined;
 	originalLineCount: number;
 	mergedLineCount: number;
+	apiBaseUrl: string;
+	timeoutMs: number;
+	applyDefaultModel: MorphApplyDefaultModel;
+	sdkApplyPatchStatus: MorphSdkPatchStatus;
+	sdkVersion: string;
 }
 
 function summarizeResult(
@@ -183,8 +345,12 @@ function summarizeResult(
 	return lines.join('\n');
 }
 
-async function runMorphApply(input: ApplyEditInput, apiKey: string): Promise<ApplyEditResult> {
-	return applyEdit(input, buildApplyConfig(apiKey));
+async function runMorphApply(
+	input: ApplyEditInput,
+	apiKey: string,
+	runtimeConfig: MorphRuntimeConfig,
+): Promise<ApplyEditResult> {
+	return applyEdit(input, buildApplyConfig(apiKey, runtimeConfig));
 }
 
 export default function fastApplyExtension(pi: ExtensionAPI): void {
@@ -384,6 +550,7 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
 			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
+			const runtimeConfig = await getMorphRuntimeConfig();
 			const targetPath = expandPath(params.path);
 			const absolutePath = resolve(ctx.cwd, targetPath);
 			const dryRun = Boolean(params.dryRun);
@@ -411,6 +578,7 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 						instruction: params.instruction,
 					},
 					apiKey,
+					runtimeConfig,
 				);
 
 				if (!result.success || result.mergedCode == null || result.mergedCode === '') {
@@ -445,6 +613,13 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 						completionId: result.completionId,
 						originalLineCount: countLines(originalCode),
 						mergedLineCount: countLines(result.mergedCode),
+						apiBaseUrl: runtimeConfig.displayApiBaseUrl,
+						apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
+						apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
+						timeoutMs: runtimeConfig.timeoutMs,
+						applyDefaultModel: runtimeConfig.applyDefaultModel,
+						sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
+						sdkVersion: runtimeConfig.sdkPatch.version,
 					},
 				};
 			});
@@ -487,19 +662,31 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 	pi.registerCommand('morph-status', {
 		description: 'Show Morph extension status and configuration hints',
 		handler: async (_args, ctx) => {
-			const { source } = await resolveMorphApiKey(ctx.modelRegistry.authStorage);
+			const [{ source }, runtimeConfig] = await Promise.all([
+				resolveMorphApiKey(ctx.modelRegistry.authStorage),
+				getMorphRuntimeConfig(),
+			]);
 			const authLabel =
 				source === 'auth.json'
 					? 'auth.json (via /morph-login)'
 					: source === 'env'
 						? 'MORPH_API_KEY environment variable'
 						: 'not configured';
+			const patchDetail =
+				runtimeConfig.sdkPatch.status === 'unknown'
+					? 'SDK patch status could not be determined'
+					: runtimeConfig.sdkPatch.detail;
 			const lines = [
 				'Morph extension status',
 				`- API key: ${authLabel}`,
 				'- Fast Apply provider: official Morph SDK',
-				`- API base URL: ${getMorphApiBaseUrl()}`,
-				`- Timeout: ${DEFAULT_TIMEOUT_MS}ms`,
+				`- API base URL: ${runtimeConfig.displayApiBaseUrl} (${runtimeConfig.apiBaseUrlSource})`,
+				`- API base host: ${runtimeConfig.apiBaseUrlHost}${runtimeConfig.apiBaseUrlCustomHost ? ' (custom)' : ''}`,
+				`- Timeout: ${runtimeConfig.timeoutMs}ms (${runtimeConfig.timeoutSource})`,
+				`- SDK package: ${runtimeConfig.sdkPatch.packageName}@${runtimeConfig.sdkPatch.version}`,
+				`- SDK Apply default: ${runtimeConfig.applyDefaultModel}`,
+				`- SDK auto patch: ${runtimeConfig.sdkPatch.status}`,
+				`- SDK patch detail: ${patchDetail}`,
 				'',
 				'Auth resolution priority:',
 				'  1. Pi auth storage (~/.pi/agent/auth.json) — set via /morph-login',
