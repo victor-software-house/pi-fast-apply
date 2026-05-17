@@ -35,7 +35,7 @@ Completed work:
 - SDK patch for `@morphllm/morphsdk@0.2.171` so omitted Apply model selection sends `auto`.
 - `/morph-probe` runtime diagnostics.
 - Runtime split into focused modules under `extensions/`.
-- Minimal workspace path guard and obvious-secret filename guard.
+- Minimal workspace path guard, Secretlint-backed codebase search content redaction, and sensitive container content omission.
 - Vitest coverage for runtime config, workspace guards, and live Morph Apply matrix.
 - README docs for auth, probe, Fast Apply contract, and inline placeholder pattern.
 
@@ -57,7 +57,7 @@ Known caveat:
 
 Priority: highest.
 
-Add local Morph WarpGrep as a Pi-native model-facing tool named `codebase_search`, label `Codebase Search`.
+Local Morph WarpGrep is available as a Pi-native model-facing tool named `codebase_search`, label `Codebase Search`.
 
 Why next:
 
@@ -93,8 +93,12 @@ Acceptance:
 - Uses high-level SDK path first if it allows bounded output and progress rendering.
 - Falls back to direct WarpGrep protocol only if SDK blocks required Pi behavior.
 - Reads only local workspace/repo paths.
+- Rejects secret-like `searchTerm` values before Morph receives them with Secretlint plus TruffleHog-derived preflight detection.
+- Redacts detected secret values with Secretlint before WarpGrep context reaches Morph.
+- Omits content from high-risk secret container paths when `read`/`grep` touches them.
+- Keeps WarpGrep default discovery behavior for list/glob output.
 - Returns compact structured output, not raw grep dumps.
-- Unit or harness tests cover argument validation, path bounds, and output bounds.
+- Unit or harness tests cover argument validation, path bounds, redaction, and output bounds.
 - Manual search in this repo finds runtime/auth symbols with useful file:line context.
 - `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build` pass.
 

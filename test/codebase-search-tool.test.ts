@@ -8,6 +8,7 @@ import {
 	formatSearchContent,
 	resolveWorkspaceDirectory,
 } from '../extensions/codebase-search-tool';
+import { containsDetectedSecret } from '../extensions/secret-redaction';
 
 let root: string;
 let outside: string;
@@ -65,28 +66,62 @@ describe('createSafeWarpGrepProvider', () => {
 		expect(grepResult.lines.some((line) => line.includes('src.ts'))).toBe(true);
 	});
 
-	it.each(['.env', '.npmrc', 'secrets.pem', '.ssh/id_ed25519'])('redacts secret-like reads for %s', async (name) => {
-		await mkdir(join(root, name.split('/').slice(0, -1).join('/')), { recursive: true });
-		await writeFile(join(root, name), 'token=value\n');
+	it('redacts detected secrets from direct reads in normal files', async () => {
+		const token = 'glpat-abcdefghijklmnopqrst';
+		await writeFile(join(root, 'src.ts'), `export const token = '${token}';\nexport const safe = true;\n`);
 		const provider = createSafeWarpGrepProvider(root);
 
-		const result = await provider.read({ path: name });
+		const result = await provider.read({ path: 'src.ts' });
 
-		expect(result.lines).toHaveLength(1);
-		expect(result.lines[0]).toContain('[REDACTED]');
-		expect(result.lines[0]).not.toContain('token=value');
+		expect(result.lines).toContain("1|export const token = '**************************';");
+		expect(result.lines).toContain('2|export const safe = true;');
+		expect(result.lines.join('\n')).not.toContain(token);
 	});
 
-	it('redacts secret-like file content from broad grep output', async () => {
-		await writeFile(join(root, 'credentials.json'), 'leaked-token-value\n');
-		await writeFile(join(root, 'src.ts'), 'leaked-token-value is mentioned in a safe fixture\n');
+	it('redacts sensitive file reads without blocking path discovery', async () => {
+		const token = 'glpat-abcdefghijklmnopqrst';
+		await writeFile(join(root, '.env'), `TOKEN=${token}\nSAFE=value\n`);
 		const provider = createSafeWarpGrepProvider(root);
 
-		const result = await provider.grep({ pattern: 'leaked-token-value', path: '.' });
+		const result = await provider.read({ path: '.env' });
 
-		expect(result.lines.some((line) => line.includes('credentials.json') && line.includes('[REDACTED]'))).toBe(true);
-		expect(result.lines.some((line) => line.includes('credentials.json') && line.includes('leaked-token-value'))).toBe(false);
-		expect(result.lines.some((line) => line.includes('src.ts') && line.includes('leaked-token-value'))).toBe(true);
+		expect(result.lines).toContain('1|[REDACTED] codebase_search found sensitive file content; content omitted.');
+		expect(result.lines).toContain('2|[REDACTED] codebase_search found sensitive file content; content omitted.');
+		expect(result.lines.join('\n')).not.toContain(token);
+		expect(result.lines.join('\n')).not.toContain('SAFE=value');
+	});
+
+	it('redacts detected secrets from grep output while keeping line markers', async () => {
+		const token = 'glpat-abcdefghijklmnopqrst';
+		await writeFile(join(root, 'src.ts'), `export const token = '${token}';\nexport const safe = true;\n`);
+		const provider = createSafeWarpGrepProvider(root);
+
+		const result = await provider.grep({ pattern: token, path: '.' });
+
+		expect(result.lines.some((line) => line.includes('src.ts') && line.includes('**************************'))).toBe(true);
+		expect(result.lines.join('\n')).not.toContain(token);
+	});
+
+	it('redacts grep output from sensitive file paths even when the matched value is generic', async () => {
+		await writeFile(join(root, '.npmrc'), 'registry=https://registry.npmjs.org\n');
+		const provider = createSafeWarpGrepProvider(root);
+
+		const result = await provider.grep({ pattern: 'registry', path: '.npmrc' });
+
+		expect(result.lines).toEqual([
+			'.npmrc:1:[REDACTED] codebase_search found sensitive file content; content omitted.',
+		]);
+	});
+
+	it('redacts common credential container paths missed by scanners', async () => {
+		await mkdir(join(root, '.docker'), { recursive: true });
+		await writeFile(join(root, '.docker/config.json'), '{"auth":"generic-base64-ish-value"}\n');
+		const provider = createSafeWarpGrepProvider(root);
+
+		const result = await provider.read({ path: '.docker/config.json' });
+
+		expect(result.lines).toContain('1|[REDACTED] codebase_search found sensitive file content; content omitted.');
+		expect(result.lines.join('\n')).not.toContain('generic-base64-ish-value');
 	});
 
 	it('does not block directories by name or redact path-only glob output', async () => {
@@ -112,6 +147,18 @@ describe('createSafeWarpGrepProvider', () => {
 
 		expect(result.files.some((file) => file.endsWith('src.ts'))).toBe(true);
 		expect(result.files.some((file) => file.endsWith('credentials.json'))).toBe(true);
+	});
+});
+
+describe('containsDetectedSecret', () => {
+	it('detects secret-like search terms before Morph receives them', async () => {
+		const githubToken = `github_pat_${'A'.repeat(82)}`;
+		const npmToken = `npm_${'A'.repeat(36)}`;
+		await expect(containsDetectedSecret('find glpat-abcdefghijklmnopqrst usage')).resolves.toBe(true);
+		await expect(containsDetectedSecret(`find ${githubToken} usage`)).resolves.toBe(true);
+		await expect(containsDetectedSecret(`find NPM_TOKEN=${npmToken} usage`)).resolves.toBe(true);
+		await expect(containsDetectedSecret('find DATABASE_PASSWORD=correct-horse-battery-staple usage')).resolves.toBe(true);
+		await expect(containsDetectedSecret('find auth config resolution')).resolves.toBe(false);
 	});
 });
 

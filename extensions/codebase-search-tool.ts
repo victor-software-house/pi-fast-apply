@@ -14,6 +14,7 @@ import {
 import { Type } from '@sinclair/typebox';
 import { ensureMorphApiKey } from './auth';
 import { buildWarpGrepConfig, getMorphRuntimeConfig } from './runtime-config';
+import { containsDetectedSecret, redactGrepLines, redactReadLines } from './secret-redaction';
 
 const MAX_CONTEXTS = 8;
 const MAX_CONTEXT_LINES = 120;
@@ -67,67 +68,16 @@ function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void 
 	throw new Error('codebase_search only supports repo roots inside the current workspace.');
 }
 
-function isObviousSecretSearchPath(repoRoot: string, candidatePath: string): boolean {
-	const absolutePath = resolve(repoRoot, candidatePath);
-	const relativePath = relative(repoRoot, absolutePath);
-	if (relativePath.startsWith('..') || isAbsolute(relativePath)) return true;
-	if (relativePath === '') return false;
-
-	const parts = relativePath.split(/[\\/]+/).map((part) => part.toLowerCase());
-	const name = parts.at(-1) ?? '';
-	const blockedNames = new Set([
-		'.env',
-		'.npmrc',
-		'auth.json',
-		'credentials.json',
-		'id_rsa',
-		'id_dsa',
-		'id_ecdsa',
-		'id_ed25519',
-	]);
-	const blockedExtensions = ['.pem', '.key', '.p12', '.pfx', '.ppk', '.asc', '.gpg', '.agekey', '.log'];
-
-	return (
-		name.startsWith('.env.') ||
-		blockedNames.has(name) ||
-		name.startsWith('id_rsa') ||
-		name.startsWith('id_dsa') ||
-		name.startsWith('id_ecdsa') ||
-		name.startsWith('id_ed25519') ||
-		blockedExtensions.some((extension) => name.endsWith(extension))
-	);
-}
-
-const REDACTED_SEARCH_CONTENT = '[REDACTED] codebase_search found an obvious secret-like file; content omitted.';
-
-function grepLineParts(line: string): { filePath: string; separator: string } | undefined {
-	if (line === '--') return undefined;
-	const match = /^(.+?)([:-]\d+[:-])/.exec(line);
-	if (match == null) return undefined;
-	return { filePath: match[1] ?? '', separator: match[2] ?? ':' };
-}
-
-function redactSecretLikeGrepLines(repoRoot: string, lines: string[]): string[] {
-	return lines.map((line) => {
-		const parts = grepLineParts(line);
-		if (parts == null || !isObviousSecretSearchPath(repoRoot, parts.filePath)) return line;
-		return `${parts.filePath}${parts.separator}${REDACTED_SEARCH_CONTENT}`;
-	});
-}
-
 export function createSafeWarpGrepProvider(repoRoot: string): WarpGrepProvider {
 	const inner = new LocalRipgrepProvider(repoRoot);
 	return {
 		async grep(params) {
-			if (isObviousSecretSearchPath(repoRoot, params.path)) {
-				return { lines: [`${params.path}:0:${REDACTED_SEARCH_CONTENT}`] };
-			}
 			const result = await inner.grep(params);
-			return { ...result, lines: redactSecretLikeGrepLines(repoRoot, result.lines) };
+			return { ...result, lines: await redactGrepLines(result.lines, params.path, repoRoot) };
 		},
 		async read(params) {
-			if (isObviousSecretSearchPath(repoRoot, params.path)) return { lines: [`0|${REDACTED_SEARCH_CONTENT}`] };
-			return inner.read(params);
+			const result = await inner.read(params);
+			return { ...result, lines: await redactReadLines(result.lines, params.path, repoRoot) };
 		},
 		async listDirectory(params) {
 			return inner.listDirectory(params);
@@ -327,6 +277,10 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
 			const runtimeConfig = await getMorphRuntimeConfig();
 			const { absolutePath } = await resolveWorkspaceDirectory(ctx.cwd, params.repoRoot);
+
+			if (await containsDetectedSecret(params.searchTerm)) {
+				throw new Error('codebase_search searchTerm appears to contain a secret; use local grep/find instead.');
+			}
 
 			onUpdate?.({
 				content: [{ type: 'text', text: `Starting Codebase Search for ${params.searchTerm}...` }],

@@ -143,7 +143,7 @@ Use native tools instead for exact lookups:
 
 - exact string or regex search → `grep`
 - filename/path lookup → `find`
-- sensitive files or secrets → local-only tools, not Morph-backed tools
+- known sensitive files requiring exact inspection → local-only tools, not Morph-backed tools
 
 ### `codebase_search` parameters
 
@@ -156,7 +156,7 @@ Use native tools instead for exact lookups:
 
 Each call returns bounded relevant file contexts with line ranges. Intermediate WarpGrep search steps stay inside Morph's search context and are shown to the operator as progress updates when Pi can render them.
 
-Data flow: Pi executes local search/read operations under the selected workspace directory, sends WarpGrep tool context to Morph, then returns selected file:line/code context. `codebase_search` keeps WarpGrep's default discovery behavior; only obvious secret-like file contents (`.env`, `.npmrc`, private keys, credential files, key/cert files, logs) are redacted before being sent back through the WarpGrep loop.
+Data flow: Pi rejects secret-like search terms, executes local search/read operations under the selected workspace directory, redacts detected secrets with Secretlint, omits content from high-risk secret container paths, sends sanitized WarpGrep tool context to Morph, then returns selected file:line/code context. Search-term detection uses TruffleHog-derived `@sanity-labs/secret-scan` as a lightweight preflight. `codebase_search` keeps WarpGrep's default discovery behavior; path-only listing/glob output is not blocked.
 
 ## Configuration
 
