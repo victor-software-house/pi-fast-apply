@@ -8,7 +8,7 @@ import {
 	formatSearchContent,
 	resolveWorkspaceDirectory,
 } from '../extensions/codebase-search-tool';
-import { containsDetectedSecret } from '../extensions/secret-redaction';
+import { containsDetectedSecret, isCodebaseSearchRedactionEnabled } from '../extensions/secret-redaction';
 
 let root: string;
 let outside: string;
@@ -66,6 +66,16 @@ describe('createSafeWarpGrepProvider', () => {
 		expect(grepResult.lines.some((line) => line.includes('src.ts'))).toBe(true);
 	});
 
+	it('supports opt-out redaction for debugging', async () => {
+		const token = 'glpat-abcdefghijklmnopqrst';
+		await writeFile(join(root, 'src.ts'), `export const token = '${token}';\n`);
+		const provider = createSafeWarpGrepProvider(root, { enabled: false });
+
+		const result = await provider.read({ path: 'src.ts' });
+
+		expect(result.lines).toContain(`1|export const token = '${token}';`);
+	});
+
 	it('redacts detected secrets from direct reads in normal files', async () => {
 		const token = 'glpat-abcdefghijklmnopqrst';
 		await writeFile(join(root, 'src.ts'), `export const token = '${token}';\nexport const safe = true;\n`);
@@ -73,7 +83,7 @@ describe('createSafeWarpGrepProvider', () => {
 
 		const result = await provider.read({ path: 'src.ts' });
 
-		expect(result.lines).toContain("1|export const token = '**************************';");
+		expect(result.lines).toContain("1|export const token = '[REDACTED]';");
 		expect(result.lines).toContain('2|export const safe = true;');
 		expect(result.lines.join('\n')).not.toContain(token);
 	});
@@ -98,7 +108,7 @@ describe('createSafeWarpGrepProvider', () => {
 
 		const result = await provider.grep({ pattern: token, path: '.' });
 
-		expect(result.lines.some((line) => line.includes('src.ts') && line.includes('**************************'))).toBe(true);
+		expect(result.lines.some((line) => line.includes('src.ts') && line.includes('[REDACTED]'))).toBe(true);
 		expect(result.lines.join('\n')).not.toContain(token);
 	});
 
@@ -111,6 +121,29 @@ describe('createSafeWarpGrepProvider', () => {
 		expect(result.lines).toEqual([
 			'.npmrc:1:[REDACTED] codebase_search found sensitive file content; content omitted.',
 		]);
+	});
+
+	it('redacts secret-like assignments in non-container files', async () => {
+		await writeFile(
+			join(root, 'src.ts'),
+			"const safe = 'public-value'; const password = 'correct-horse-battery-staple';\n",
+		);
+		const provider = createSafeWarpGrepProvider(root);
+
+		const result = await provider.read({ path: 'src.ts' });
+
+		expect(result.lines.join('\n')).toContain("const safe = 'public-value'; const password = '[REDACTED]';");
+		expect(result.lines.join('\n')).not.toContain('correct-horse-battery-staple');
+	});
+
+	it('redacts secret-like assignments in grep-prefixed lines', async () => {
+		await writeFile(join(root, 'src.ts'), "const password = 'correct-horse-battery-staple';\n");
+		const provider = createSafeWarpGrepProvider(root);
+
+		const result = await provider.grep({ pattern: 'correct-horse-battery-staple', path: '.' });
+
+		expect(result.lines.join('\n')).toContain("src.ts:1:const password = '[REDACTED]';");
+		expect(result.lines.join('\n')).not.toContain('correct-horse-battery-staple');
 	});
 
 	it('redacts common credential container paths missed by scanners', async () => {
@@ -150,8 +183,30 @@ describe('createSafeWarpGrepProvider', () => {
 	});
 });
 
+describe('isCodebaseSearchRedactionEnabled', () => {
+	const original = process.env.CODEBASE_SEARCH_REDACTION;
+
+	afterEach(() => {
+		if (original == null) {
+			delete process.env.CODEBASE_SEARCH_REDACTION;
+			return;
+		}
+		process.env.CODEBASE_SEARCH_REDACTION = original;
+	});
+
+	it('defaults on and accepts explicit opt-out values', () => {
+		delete process.env.CODEBASE_SEARCH_REDACTION;
+		expect(isCodebaseSearchRedactionEnabled()).toBe(true);
+		process.env.CODEBASE_SEARCH_REDACTION = '0';
+		expect(isCodebaseSearchRedactionEnabled()).toBe(false);
+		process.env.CODEBASE_SEARCH_REDACTION = 'false';
+		expect(isCodebaseSearchRedactionEnabled()).toBe(false);
+	});
+});
+
 describe('containsDetectedSecret', () => {
-	it('detects secret-like search terms before Morph receives them', async () => {
+	it('detects secret-like search terms before Morph receives them even when redaction is disabled', async () => {
+		process.env.CODEBASE_SEARCH_REDACTION = '0';
 		const githubToken = `github_pat_${'A'.repeat(82)}`;
 		const npmToken = `npm_${'A'.repeat(36)}`;
 		await expect(containsDetectedSecret('find glpat-abcdefghijklmnopqrst usage')).resolves.toBe(true);

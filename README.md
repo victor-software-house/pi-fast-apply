@@ -156,7 +156,7 @@ Use native tools instead for exact lookups:
 
 Each call returns bounded relevant file contexts with line ranges. Intermediate WarpGrep search steps stay inside Morph's search context and are shown to the operator as progress updates when Pi can render them.
 
-Data flow: Pi rejects secret-like search terms, executes local search/read operations under the selected workspace directory, redacts detected secrets with Secretlint, omits content from high-risk secret container paths, sends sanitized WarpGrep tool context to Morph, then returns selected file:line/code context. Search-term detection uses TruffleHog-derived `@sanity-labs/secret-scan` as a lightweight preflight. `codebase_search` keeps WarpGrep's default discovery behavior; path-only listing/glob output is not blocked.
+Data flow: Pi rejects secret-like search terms, executes local search/read operations under the selected workspace directory, redacts detected secrets with Secretlint, omits content from high-risk secret container paths, sends sanitized WarpGrep tool context to Morph, then returns selected file:line/code context. Search-term detection uses TruffleHog-derived `@sanity-labs/secret-scan` as a lightweight preflight. Redaction is enabled by default; set `CODEBASE_SEARCH_REDACTION=0` only for debugging synthetic fixtures. `codebase_search` keeps WarpGrep's default discovery behavior; path-only listing/glob output is not blocked.
 
 ## Configuration
 
@@ -166,6 +166,7 @@ Data flow: Pi rejects secret-like search terms, executes local search/read opera
 | `MORPH_API_URL` | `https://api.morphllm.com` | Override the Morph base URL. Must use `https`, cannot include embedded credentials, query strings, or fragments, and custom hosts require `MORPH_ALLOW_CUSTOM_API_URL=1`. |
 | `MORPH_ALLOW_CUSTOM_API_URL` | — | Opt in to trusted non-default Morph API hosts for testing. |
 | `MORPH_EDIT_TIMEOUT_MS` | `60000` | Morph request timeout in milliseconds for Fast Apply and local Codebase Search |
+| `CODEBASE_SEARCH_REDACTION` | enabled | Set to `0`, `false`, `off`, or `no` to disable codebase search redaction for debugging synthetic fixtures. Do not disable for normal work. |
 
 ## Development
 

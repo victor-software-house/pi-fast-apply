@@ -14,7 +14,13 @@ import {
 import { Type } from '@sinclair/typebox';
 import { ensureMorphApiKey } from './auth';
 import { buildWarpGrepConfig, getMorphRuntimeConfig } from './runtime-config';
-import { containsDetectedSecret, redactGrepLines, redactReadLines } from './secret-redaction';
+import {
+	type CodebaseSearchRedactionOptions,
+	containsDetectedSecret,
+	isCodebaseSearchRedactionEnabled,
+	redactGrepLines,
+	redactReadLines,
+} from './secret-redaction';
 
 const MAX_CONTEXTS = 8;
 const MAX_CONTEXT_LINES = 120;
@@ -68,15 +74,21 @@ function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void 
 	throw new Error('codebase_search only supports repo roots inside the current workspace.');
 }
 
-export function createSafeWarpGrepProvider(repoRoot: string): WarpGrepProvider {
+export function createSafeWarpGrepProvider(
+	repoRoot: string,
+	options: CodebaseSearchRedactionOptions = {},
+): WarpGrepProvider {
 	const inner = new LocalRipgrepProvider(repoRoot);
+	const redactionEnabled = options.enabled ?? true;
 	return {
 		async grep(params) {
 			const result = await inner.grep(params);
+			if (!redactionEnabled) return result;
 			return { ...result, lines: await redactGrepLines(result.lines, params.path, repoRoot) };
 		},
 		async read(params) {
 			const result = await inner.read(params);
+			if (!redactionEnabled) return result;
 			return { ...result, lines: await redactReadLines(result.lines, params.path, repoRoot) };
 		},
 		async listDirectory(params) {
@@ -278,6 +290,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const runtimeConfig = await getMorphRuntimeConfig();
 			const { absolutePath } = await resolveWorkspaceDirectory(ctx.cwd, params.repoRoot);
 
+			const redactionEnabled = isCodebaseSearchRedactionEnabled();
 			if (await containsDetectedSecret(params.searchTerm)) {
 				throw new Error('codebase_search searchTerm appears to contain a secret; use local grep/find instead.');
 			}
@@ -291,7 +304,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const stream = client.execute({
 				searchTerm: params.searchTerm,
 				repoRoot: absolutePath,
-				provider: createSafeWarpGrepProvider(absolutePath),
+				provider: createSafeWarpGrepProvider(absolutePath, { enabled: redactionEnabled }),
 				streamSteps: true,
 			});
 

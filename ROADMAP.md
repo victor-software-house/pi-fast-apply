@@ -96,6 +96,7 @@ Acceptance:
 - Rejects secret-like `searchTerm` values before Morph receives them with Secretlint plus TruffleHog-derived preflight detection.
 - Redacts detected secret values with Secretlint before WarpGrep context reaches Morph.
 - Omits content from high-risk secret container paths when `read`/`grep` touches them.
+- Keeps redaction enabled by default with `CODEBASE_SEARCH_REDACTION=0` opt-out for synthetic debugging.
 - Keeps WarpGrep default discovery behavior for list/glob output.
 - Returns compact structured output, not raw grep dumps.
 - Unit or harness tests cover argument validation, path bounds, redaction, and output bounds.

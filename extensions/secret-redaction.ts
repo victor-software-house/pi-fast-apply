@@ -6,14 +6,32 @@ import { creator as recommendedSecretlintRules } from '@secretlint/secretlint-ru
 const REDACTED_SEARCH_CONTENT = '[REDACTED] codebase_search found sensitive file content; content omitted.';
 const MASK_CHARACTER = '*';
 const SECRET_ASSIGNMENT_PATTERN =
-	/\b(?:[a-z0-9]+[_-])?(?:api[_-]?key|access[_-]?key|auth|client[_-]?secret|credential|password|passwd|private[_-]?key|pwd|secret|token)\b\s*[:=]\s*["']?[^"'\s,}]{6,}/i;
+	/["']?\b(?:[a-z0-9]+[_-])?(?:api[_-]?key|access[_-]?key|auth|client[_-]?secret|credential|password|passwd|private[_-]?key|pwd|secret|token)\b["']?\s*[:=]\s*["']?[^"'\s,}]{6,}/i;
+const SECRET_ASSIGNMENT_VALUE_PATTERN =
+	/(["']?\b(?:[a-z0-9]+[_-])?(?:api[_-]?key|access[_-]?key|auth|client[_-]?secret|credential|password|passwd|private[_-]?key|pwd|secret|token)\b["']?\s*[:=]\s*["']?)[^"'\s,}]{6,}/gi;
+
+export interface CodebaseSearchRedactionOptions {
+	enabled?: boolean;
+}
 
 interface SecretRedactionResult {
 	content: string;
 }
 
+export function isCodebaseSearchRedactionEnabled(): boolean {
+	const raw = process.env['CODEBASE_SEARCH_REDACTION']?.trim().toLowerCase();
+	return raw == null || !['0', 'false', 'off', 'no'].includes(raw);
+}
+
 function maskRange(content: string, start: number, end: number): string {
 	return content.slice(0, start) + MASK_CHARACTER.repeat(Math.max(0, end - start)) + content.slice(end);
+}
+
+function redactSecretAssignments(content: string): string {
+	return content
+		.split('\n')
+		.map((line) => line.replace(SECRET_ASSIGNMENT_VALUE_PATTERN, '$1[REDACTED]'))
+		.join('\n');
 }
 
 async function redactSecrets(content: string, filePath: string): Promise<SecretRedactionResult> {
@@ -43,7 +61,7 @@ async function redactSecrets(content: string, filePath: string): Promise<SecretR
 		.filter((range): range is [number, number] => Array.isArray(range) && range.length === 2)
 		.sort((left, right) => right[0] - left[0]);
 	const redacted = ranges.reduce((current, [start, end]) => maskRange(current, start, end), content);
-	return { content: redacted };
+	return { content: redactSecretAssignments(redacted) };
 }
 
 function isSensitiveContentPath(repoRoot: string, candidatePath: string): boolean {
@@ -78,7 +96,9 @@ function isSensitiveContentPath(repoRoot: string, candidatePath: string): boolea
 
 	return (
 		normalizedPath === '.docker/config.json' ||
+		normalizedPath.endsWith('/.docker/config.json') ||
 		normalizedPath === '.kube/config' ||
+		normalizedPath.endsWith('/.kube/config') ||
 		name.startsWith('.env.') ||
 		name.endsWith('.kubeconfig') ||
 		blockedNames.has(name) ||
