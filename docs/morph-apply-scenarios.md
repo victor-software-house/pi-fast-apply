@@ -1,8 +1,8 @@
 # Morph Apply Matrix Scenarios
 
-Generated: 2026-05-16 22:28:09 BRT.
+Generated: 2026-05-16 22:47:04 BRT
 
-These are exact inputs used by `docs/morph-apply-behavior-matrix.md`.
+These are exact inputs used by `docs/morph-apply-behavior-matrix.md`. Each scenario/path pair ran 3 times.
 
 ## S01: Small JS validation
 

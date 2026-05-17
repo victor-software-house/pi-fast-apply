@@ -60,25 +60,24 @@ Broader capabilities should be added with straightforward model-facing names and
 **Key Details**:
 
 * Keep existing auth priority: Pi auth storage provider id `morph`, then `MORPH_API_KEY` env fallback.
-* Keep `MORPH_API_URL` and `MORPH_EDIT_TIMEOUT_MS`; add explicit Fast Apply large-mode config such as `MORPH_APPLY_LARGE=true|false`.
+* Keep `MORPH_API_URL` and `MORPH_EDIT_TIMEOUT_MS`; no model selector is exposed to `fast_apply`.
 * Avoid global config auto-creation and avoid secret persistence outside Pi auth/env.
 * Consider extracting helpers from `extensions/index.ts` only if the first runtime slice becomes hard to review.
 
 **ADR Reference**: [ADR-0003](../adr/ADR-0003-pi-auth-storage-for-morph-secrets.md): Pi auth storage for Morph secrets.
 
-### Fast Apply Model Control
+### Fast Apply Auto Default
 
-**Purpose**: Preserve existing Fast Apply behavior while making model tier explicit and visible.
+**Purpose**: Use Morph's recommended `auto` routing by default without adding model-facing tool schema.
 
 **Key Details**:
 
-* Parse `MORPH_APPLY_LARGE=true|false`; default false.
-* Add optional per-call `fast_apply.large` boolean; per-call value overrides the configured default for that edit.
-* Always use SDK `applyEdit()` and pass explicit `large: false|true`.
-* `/morph-status`, `/morph-probe`, and `fast_apply` result `details` should include effective large value, source, and resolved model id.
-* Invalid config should not silently choose a surprising model; report default/fallback clearly.
-* Model-facing guidance should stay short: default `large: false` for most edits; use `large: true` for complex/risky edits. Morph docs put fast around 96% accuracy and large around 98% accuracy.
-* `@morphllm/morphsdk@0.2.171` is current latest. It does not expose `auto`; raw Chat Completions and structured Code Apply were live-tested with `auto`, but the first package slice should not add that complexity while SDK `large` flag covers the user-facing choice.
+* Carry a pnpm patch for `@morphllm/morphsdk@0.2.171` until upstream supports `auto` natively.
+* Patched SDK default should resolve omitted Apply model selection to `auto`.
+* Preserve explicit SDK compatibility: `large: false` still maps to `morph-v3-fast`; `large: true` still maps to `morph-v3-large`.
+* `fast_apply` should pass neither `model` nor `large`; auth, base URL, timeout, and diff options only.
+* `/morph-status`, `/morph-probe`, and `fast_apply` result `details` should report SDK Apply default `auto` and patch status, not expose model choice to the model.
+* Existing live matrix shows raw Chat `auto` and Code Apply default auto pass 10/10 scenarios; local intercept confirms patched SDK omitted config sends `auto`.
 
 **ADR Reference**: [ADR-0001](../adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md): Pi-owned file mutation for Morph Apply.
 
@@ -161,7 +160,7 @@ Broader capabilities should be added with straightforward model-facing names and
 | 1     | Specdocs foundation                   | None                 | S               |
 | 2     | Runtime core helper cleanup           | Phase 1              | S               |
 | 3     | Morph probe command                   | Phase 2              | M               |
-| 4     | Fast Apply explicit model control     | Phase 2              | S               |
+| 4     | Fast Apply SDK auto default           | Phase 2              | S               |
 | 5     | Tool declaration surface              | Phase 1, Phase 2     | S               |
 | 6     | Local WarpGrep `codebase_search`      | Phase 5              | M               |
 | 7     | Public GitHub code search             | Phase 6              | M               |
@@ -194,14 +193,14 @@ Broader capabilities should be added with straightforward model-facing names and
 
 **Tasks**:
 
-* Factor `resolveMorphApiKey()`, `getMorphApiBaseUrl()`, timeout parsing, and future model-tier parsing into clear helper functions.
+* Factor `resolveMorphApiKey()`, `getMorphApiBaseUrl()`, timeout parsing, and SDK patch-status helpers into clear helper functions.
 * Decide whether to keep helpers in `extensions/index.ts` for now or split into internal module(s).
 * Add typed source labels for config values shown in status/probe.
 
 **Verification**:
 
 * `pnpm run typecheck`.
-* Existing `/morph-status` behavior unchanged except new model-tier field if Phase 4 lands in same slice.
+* Existing `/morph-status` behavior unchanged except SDK Apply default/patch-status field if Phase 4 lands in same slice.
 
 ### Phase 3: Morph probe command
 
@@ -225,24 +224,23 @@ Broader capabilities should be added with straightforward model-facing names and
 * Manual Pi check with no key: `/morph-probe` reports missing key and skips auth-required probes.
 * Manual Pi check with valid key: `/morph-probe` reports Compact and Fast Apply pass or clear external failure.
 
-### Phase 4: Fast Apply explicit model control
+### Phase 4: Fast Apply SDK auto default
 
-**Outcome**: Fast Apply model tier is explicit, documented, and visible.
+**Outcome**: Fast Apply uses Morph auto routing by default without model-facing schema changes.
 
 **Tasks**:
 
-* Add `getMorphApplyLarge()` parsing, values: `true` and `false`, default false.
-* Add optional `fast_apply.large` boolean parsing; per-call value wins over env/default.
-* Pass `large: effectiveLarge` to SDK `applyEdit()` explicitly.
-* Show large value, source, and resolved model id in `/morph-status` and `/morph-probe`.
-* Put large value, source, and resolved model id in `fast_apply` result `details` for renderer/debugging.
-* Keep raw `auto` evidence in docs/probe diagnostics only; do not expose model enum in first slice.
+* Keep `patches/@morphllm__morphsdk@0.2.171.patch` until upstream SDK supports `auto` default.
+* Ensure `fast_apply` schema contains no `model` or `large` parameter.
+* Call SDK `applyEdit()` without model or large options.
+* Show SDK Apply default `auto` and patch status in `/morph-status` and `/morph-probe`.
+* Put SDK Apply default `auto` and patch status in `fast_apply` result `details` for renderer/debugging.
 
 **Verification**:
 
-* Helper tests for unset, `true`, `false`, invalid values, and per-call override precedence.
-* Config tests confirm SDK receives explicit `large: false|true`.
-* Manual dry-run confirms no behavior regression for default false and per-call true.
+* Local intercept test confirms patched SDK omitted config sends model `auto`.
+* Schema test confirms `fast_apply` exposes no model/large control.
+* Manual dry-run confirms no behavior regression with patched SDK default.
 
 ### Phase 5: Tool declaration surface
 

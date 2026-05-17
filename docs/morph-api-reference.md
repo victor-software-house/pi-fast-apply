@@ -74,7 +74,7 @@ This package currently uses standalone `applyEdit()` because Pi owns file I/O an
 
 | Product | ID / API | Purpose | Current status |
 |:--|:--|:--|:--|
-| Fast Apply | `morph-v3-fast` / `morph-v3-large` | Merge lazy edit snippets into existing files | implemented; expose SDK `large` flag, default false |
+| Fast Apply | `auto` / `morph-v3-fast` / `morph-v3-large` | Merge lazy edit snippets into existing files | implemented through patched SDK defaulting to `auto` |
 | WarpGrep | `morph-warp-grep-v2.1` | isolated-context code search subagent | planned |
 | Compact | `morph-compactor` or `/v1/compact` | delete irrelevant lines, preserve surviving lines verbatim | planned |
 | Router | `morph.routers.*` | classify prompt complexity and select model tier | planned |
@@ -127,25 +127,26 @@ const result = await applyEdit(
 );
 ```
 
-Important `ApplyEditConfig` detail from `@morphllm/morphsdk@0.2.171`:
+Published `@morphllm/morphsdk@0.2.171` only exposes `large?: boolean` and defaults omitted config to `morph-v3-large`. This package carries a pnpm patch until upstream supports `auto` natively. Public SDK source and contribution guidelines were not discoverable from npm metadata or GitHub search; tracking issue opened at [morphllm/opencode-morph-plugin#18](https://github.com/morphllm/opencode-morph-plugin/issues/18):
 
 ```typescript
 interface ApplyEditConfig {
   morphApiKey?: string;
   morphApiUrl?: string;
-  large?: boolean; // default true unless MORPH_LARGE_APPLY=false
+  model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large'; // patched; default auto
+  large?: boolean; // backwards-compatible override
   generateUdiff?: boolean;
   timeout?: number;
 }
 ```
 
-Implication: if this package does not set `large`, the SDK defaults to `morph-v3-large` unless `MORPH_LARGE_APPLY=false` exists. That is accurate but hidden. This package should pass `large` explicitly and make `large: false` the package default.
+Implication: `fast_apply` should not expose model or large controls. Pi calls `applyEdit()` without model selection; patched SDK sends `auto` by default. Existing `large` remains an SDK-level escape hatch only.
 
-The installed SDK sends this OpenAI-compatible request under the hood:
+Published SDK sends a concrete fast/large model under the hood. Patched SDK resolves model in this order: explicit `config.model`, explicit `config.large`, `MORPH_APPLY_MODEL`, legacy `MORPH_LARGE_APPLY`, then `auto`. It still uses the same OpenAI-compatible request shape:
 
 ```typescript
 await client.chat.completions.create({
-  model: config.large ? 'morph-v3-large' : 'morph-v3-fast',
+  model,
   messages: [{ role: 'user', content: message }],
 });
 ```
@@ -158,19 +159,19 @@ where `message` is:
 <update>...</update>
 ```
 
-It does not send `stream`, `temperature`, `max_tokens`, or `auto`.
+It does not send `stream`, `temperature`, or `max_tokens`.
 
 Current official docs expose two Apply surfaces:
 
 | Surface | Endpoint | Verified 2026-05-16 | Model handling | Notes |
 |:--|:--|:--|:--|:--|
-| SDK `applyEdit()` | `POST /v1/chat/completions` | passed for `large: false` and `large: true` | boolean `large`; `false` → `morph-v3-fast`; `true` → `morph-v3-large` | Best package path: least code, Pi still owns file I/O. |
-| Chat-compatible Apply | `POST /v1/chat/completions` | passed for `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | OpenAPI enum: `morph-v3-fast`, `morph-v3-large`, `auto`; OpenAPI default: `morph-v3-fast`; docs table recommends `auto` | Keep as diagnostic/probe evidence, not main path while SDK flag is enough. |
+| Patched SDK `applyEdit()` | `POST /v1/chat/completions` | local intercept confirms omitted config sends `auto`; live SDK fast/large paths pass | default `auto`; explicit `large` still maps to fast/large | Best package path: least code, Pi still owns file I/O. |
+| Chat-compatible Apply | `POST /v1/chat/completions` | passed for `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | OpenAPI enum: `morph-v3-fast`, `morph-v3-large`, `auto`; OpenAPI default: `morph-v3-fast`; docs table recommends `auto` | Patched SDK uses this path for default `auto`. |
 | Structured Code Apply | `POST /v1/code/apply` | passed for default, `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true`; expanded matrix passed 10/10 with default auto | `model` optional; docs say defaults to `auto` | Fastest average path in current matrix, but OpenAPI currently omits this path. |
 
 Docs accuracy is inconsistent: Apply docs say `morph-v3-fast` is 96% and `morph-v3-large` is 98%; Code Apply docs say fast is 97% and large is 98.8%. Use the conservative 96% versus 98% guidance in model-facing docs.
 
-Recommended package direction: expose the SDK-shaped boolean, not a model enum. Add optional `large?: boolean` to `fast_apply`, default `false`. Decision guide for the model: leave `large` false for most edits; set `large: true` only for complex or risky edits where accuracy matters more than speed.
+Recommended package direction: expose no model selection on `fast_apply`. Default to SDK `auto` for all edits. Keep raw matrix/probe coverage so a future upstream SDK release can replace the local patch safely.
 
 ### Higher-level SDK API
 

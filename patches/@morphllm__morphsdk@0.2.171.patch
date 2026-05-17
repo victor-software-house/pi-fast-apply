@@ -1,0 +1,180 @@
+diff --git a/dist/chunk-3BCKZKNK.js b/dist/chunk-3BCKZKNK.js
+index 92ee23b1fead27e732733d08045761d0fae9dddf..2dd226fe0401d6103ea3cb576775a02097470ddb 100644
+--- a/dist/chunk-3BCKZKNK.js
++++ b/dist/chunk-3BCKZKNK.js
+@@ -42,8 +42,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/client.cjs b/dist/client.cjs
+index 5ddaf3d836b16ad5a95b3b53e5bcd32670e366f8..b93ec47bc320d3e456ab581463a38898a73966ec 100644
+--- a/dist/client.cjs
++++ b/dist/client.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/edge.cjs b/dist/edge.cjs
+index 93517658747a9c903175c563b0dbb266aac6dd43..94382fcaf8e479e8532c714fcbd67a420dca1aa1 100644
+--- a/dist/edge.cjs
++++ b/dist/edge.cjs
+@@ -376,8 +376,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 780e51774632d7d73dcaa91ee48dcff99d0a4a48..0b7c0cd86fe680063279ed6d6d88ac71381f8690 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/anthropic.cjs b/dist/tools/fastapply/anthropic.cjs
+index 62738a0263162b95d7946259c23b7cf0e221f3f2..c2216a0d0a4cbd3cff92684e1848081e992d67bf 100644
+--- a/dist/tools/fastapply/anthropic.cjs
++++ b/dist/tools/fastapply/anthropic.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/apply.cjs b/dist/tools/fastapply/apply.cjs
+index 2cd7b70233376285a5ec64e931eec44784a6494c..0c333be6ce429ad8af48123d51e9d15b2c180bff 100644
+--- a/dist/tools/fastapply/apply.cjs
++++ b/dist/tools/fastapply/apply.cjs
+@@ -368,8 +368,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/core.cjs b/dist/tools/fastapply/core.cjs
+index c14b9dc0a056c3b7bdbdb85b37bd0ea05b2ed880..72be7c779a9acf89425bd7edabd043b28e9103b5 100644
+--- a/dist/tools/fastapply/core.cjs
++++ b/dist/tools/fastapply/core.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/index.cjs b/dist/tools/fastapply/index.cjs
+index 8aaab3e53b6ba399d9e535f457582bcbbec6ee4f..8844930799a283050db2790279b5a0aa426b114e 100644
+--- a/dist/tools/fastapply/index.cjs
++++ b/dist/tools/fastapply/index.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/openai.cjs b/dist/tools/fastapply/openai.cjs
+index 3f14d691a6ab0b2849bcfdbbaf25366a6eeb82f8..1b4560621450af83158bb0a13f2c8809d2ac3f25 100644
+--- a/dist/tools/fastapply/openai.cjs
++++ b/dist/tools/fastapply/openai.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/fastapply/types.d.ts b/dist/tools/fastapply/types.d.ts
+index 21cc80fba27bc1b315dd6b4b2259d5faba62d593..0c41f7ba29ebe70eeee9f293592c53278d32af5f 100644
+--- a/dist/tools/fastapply/types.d.ts
++++ b/dist/tools/fastapply/types.d.ts
+@@ -50,7 +50,9 @@ interface EditFileConfig {
+     morphApiKey?: string;
+     /** Morph API base URL */
+     morphApiUrl?: string;
+-    /** Use morph-v3-large (default: true). Set to false to use morph-v3-fast. Defaults to MORPH_LARGE_APPLY env var. */
++    /** Apply model to use (default: auto). Overrides large when provided. */
++    model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large';
++    /** Use morph-v3-large when true, morph-v3-fast when false. Deprecated: prefer model. */
+     large?: boolean;
+     /** Base directory for file operations (defaults to cwd) */
+     baseDir?: string;
+@@ -104,7 +106,9 @@ interface ApplyEditConfig {
+     morphApiKey?: string;
+     /** Morph API base URL */
+     morphApiUrl?: string;
+-    /** Use morph-v3-large (default: true). Set to false to use morph-v3-fast. Defaults to MORPH_LARGE_APPLY env var. */
++    /** Apply model to use (default: auto). Overrides large when provided. */
++    model?: 'auto' | 'morph-v3-fast' | 'morph-v3-large';
++    /** Use morph-v3-large when true, morph-v3-fast when false. Deprecated: prefer model. */
+     large?: boolean;
+     /** Whether to generate udiff (default: true) */
+     generateUdiff?: boolean;
+diff --git a/dist/tools/fastapply/vercel.cjs b/dist/tools/fastapply/vercel.cjs
+index 7088b2dccb57e69b80c61fff13705adacafa8ab4..2fbbb85d9e24e762e1596397a17877cba2e316ca 100644
+--- a/dist/tools/fastapply/vercel.cjs
++++ b/dist/tools/fastapply/vercel.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
+diff --git a/dist/tools/index.cjs b/dist/tools/index.cjs
+index 7f81529df36213d72a97700253cb8b4dee78f038..5464a9e76a805b23c6b5352ec3386cd94b20080d 100644
+--- a/dist/tools/index.cjs
++++ b/dist/tools/index.cjs
+@@ -382,8 +382,7 @@ function countChanges(original, modified) {
+ async function callMorphAPI(originalCode, codeEdit, instructions, filepath, config) {
+   const apiKey = config.morphApiKey || (typeof process !== "undefined" ? process.env?.MORPH_API_KEY : void 0);
+   const apiUrl = config.morphApiUrl || DEFAULT_API_URL;
+-  const useLarge = config.large ?? (typeof process !== "undefined" ? process.env?.MORPH_LARGE_APPLY !== "false" : true);
+-  const model = useLarge ? "morph-v3-large" : "morph-v3-fast";
++  const model = config.model ?? (config.large !== void 0 ? config.large ? "morph-v3-large" : "morph-v3-fast" : typeof process !== "undefined" ? process.env?.MORPH_APPLY_MODEL ?? (process.env?.MORPH_LARGE_APPLY !== void 0 ? process.env.MORPH_LARGE_APPLY !== "false" ? "morph-v3-large" : "morph-v3-fast" : "auto") : "auto");
+   const timeout = config.timeout || DEFAULT_TIMEOUT;
+   const debug = config.debug || false;
+   if (!apiKey) {
