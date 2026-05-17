@@ -72,23 +72,20 @@ Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
 `fast_apply` uses Morph's semantic merge to apply partial edits to existing files.
 
 **When to use `fast_apply`:**
-- multiple scattered changes in one non-sensitive workspace file
+- multiple scattered changes in one workspace file
 - complex refactors where `oldText` would be fragile or ambiguous
 - whitespace-sensitive edits that exact replacement handles poorly
-- reorganizing a file whose lines contain huge or fragile **non-secret** values — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
+- reorganizing a file whose lines contain huge or fragile values — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
 
 **When to use native tools instead:**
-- sensitive files (`.env`, auth files, private keys, credential stores) → use `edit`; Morph receives the full original file before merging
-- files outside the current workspace → use native local tools; `fast_apply` refuses workspace escapes and symlink escapes
 - small exact replacement → use `edit`
+- sensitive files → use `edit`
 - creating a new file → use `write`
 - `fast_apply` unavailable (no API key) → fall back to `edit`
 
 ### Placeholder pattern for huge values
 
-Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files or large data tables where every right-hand side is a non-secret value you must never mistype.
-
-Do not use `fast_apply` on secret stores, private keys, auth files, `.env` files, or other sensitive files. Markers prevent retyping fragile values, but Morph still receives the full original file as `originalCode`.
+Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files or large data tables where every right-hand side is a value you must never mistype.
 
 Give every relocated line its own placeholder — one per row scales fine, there is no built-in limit:
 
@@ -111,7 +108,7 @@ Never paste a multi-KB value into `codeEdit` when a marker would work. Never fal
 
 If a needed line does not yet exist in the file, append it once with a single shell command (`cat >> file`, `echo >> file`) before calling `fast_apply`. Then every line in the `codeEdit` can be a placeholder.
 
-Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. `fast_apply` also refuses workspace escapes, symlink escapes, likely secret filenames, sensitive directories, and most dotfiles. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
+Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. `fast_apply` also refuses workspace escapes, symlink escapes, and obvious secret filenames. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
 
 ### Parameters
 

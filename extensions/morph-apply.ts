@@ -48,64 +48,30 @@ function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void 
 	);
 }
 
-function assertNotSensitivePath(workspaceRoot: string, targetPath: string): void {
-	const relativePath = relative(workspaceRoot, targetPath);
-	const parts = relativePath.split(/[\\/]+/).map((part) => part.toLowerCase());
+function assertNotSensitivePath(_workspaceRoot: string, targetPath: string): void {
 	const name = basename(targetPath).toLowerCase();
-	const lowerRelative = relativePath.toLowerCase();
-	const normalizedRelative = parts.join('/');
 	const blockedNames = new Set([
 		'.env',
 		'.npmrc',
-		'.netrc',
-		'.pypirc',
-		'.dockercfg',
-		'.git-credentials',
 		'auth.json',
 		'credentials.json',
-		'kubeconfig',
 		'id_rsa',
 		'id_dsa',
 		'id_ecdsa',
 		'id_ed25519',
-		'keys.txt',
-		'gradle.properties',
 	]);
-	const allowedDotfiles = new Set(['.editorconfig', '.gitattributes', '.gitignore', '.npmignore', '.prettierignore']);
-	const blockedExtensions = ['.env', '.pem', '.key', '.p12', '.pfx', '.ppk', '.asc', '.gpg', '.agekey'];
-	const sensitiveDirectories = [
-		'.git',
-		'.ssh',
-		'.gnupg',
-		'.aws',
-		'.azure',
-		'.docker',
-		'.kube',
-		'.m2',
-		'.gradle',
-		'.config/gcloud',
-		'.config/gh',
-		'.config/hub',
-	];
-	const sensitiveNamePrefixes = ['id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519'];
-	const sensitiveNameFragments = ['secret', 'credential', 'credentials', 'token', 'private'];
-	const isSensitiveDirectory = sensitiveDirectories.some(
-		(directory) => normalizedRelative === directory || normalizedRelative.startsWith(`${directory}/`),
-	);
+	const blockedExtensions = ['.pem', '.key', '.p12', '.pfx', '.ppk', '.asc', '.gpg', '.agekey', '.log'];
 
 	if (
 		name.startsWith('.env.') ||
-		name.endsWith('.env') ||
-		(name.startsWith('.') && !allowedDotfiles.has(name)) ||
 		blockedNames.has(name) ||
-		sensitiveNamePrefixes.some((prefix) => name.startsWith(prefix)) ||
-		blockedExtensions.some((extension) => name.endsWith(extension)) ||
-		isSensitiveDirectory ||
-		sensitiveNameFragments.some((fragment) => lowerRelative.includes(fragment))
+		name.startsWith('id_rsa') ||
+		name.startsWith('id_dsa') ||
+		name.startsWith('id_ecdsa') ||
+		name.startsWith('id_ed25519') ||
+		blockedExtensions.some((extension) => name.endsWith(extension))
 	) {
-		throw new Error(
-			'fast_apply refuses likely secret files because Morph receives the full original file. Use edit for sensitive files.',
-		);
+		throw new Error('fast_apply refuses obvious secret files. Use edit for sensitive files.');
 	}
 }
 

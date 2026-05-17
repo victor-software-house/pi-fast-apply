@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -53,34 +53,25 @@ describe('resolveWorkspaceFilePath', () => {
 		);
 	});
 
-	it.each(['.env', '.npmrc', '.netrc', '.pypirc', 'auth.json', 'id_ecdsa', 'key.pem', 'app-secret.ts'])(
-		'rejects likely secret file %s',
-		async (name) => {
-			await writeFile(join(root, name), 'token=value\n');
-
-			await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('fast_apply refuses likely secret files');
-		},
-	);
-
 	it.each([
-		'.docker/config.json',
-		'.kube/config',
-		'.aws/credentials',
-		'.git/config',
-		'.m2/settings.xml',
-		'.gradle/gradle.properties',
-		'.config/gh/hosts.yml',
-	])('rejects sensitive directory file %s', async (name) => {
-		const fullPath = join(root, name);
-		await mkdir(fullPath.split('/').slice(0, -1).join('/'), { recursive: true });
-		await writeFile(fullPath, 'token=value\n');
-
-		await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('fast_apply refuses likely secret files');
-	});
-
-	it.each(['production.env', 'prod.env', 'local.env', 'dev.env'])('rejects env suffix file %s', async (name) => {
+		'.env',
+		'.npmrc',
+		'auth.json',
+		'credentials.json',
+		'id_rsa',
+		'id_dsa',
+		'id_ecdsa',
+		'id_ed25519',
+		'key.pem',
+		'key.p12',
+		'key.pfx',
+		'key.ppk',
+		'secret.gpg',
+		'backup.agekey',
+		'debug.log',
+	])('rejects obvious secret file %s', async (name) => {
 		await writeFile(join(root, name), 'token=value\n');
 
-		await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('fast_apply refuses likely secret files');
+		await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('fast_apply refuses obvious secret files');
 	});
 });

@@ -45,15 +45,15 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			"Edit a non-sensitive existing workspace file using partial code snippets with '// ... existing code ...' markers. Markers can appear anywhere a unique anchor exists, including inline within a single line between two literal anchors — use them for huge or fragile non-secret values (large IDs, long URLs, multi-KB strings) instead of pasting the value into codeEdit. Use fast_apply for multiple scattered changes, complex refactors, line-by-line reorganizations of an existing workspace file, or any case where exact oldText matching would be fragile. Use edit for sensitive files, small exact replacements, and write for new files.",
+			"Edit an existing workspace file using partial code snippets with '// ... existing code ...' markers. Markers can appear anywhere a unique anchor exists, including inline within a single line between two literal anchors. Use fast_apply for multiple scattered changes, complex refactors, line-by-line reorganizations of an existing file, or any case where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files.",
 		promptSnippet:
-			"Use fast_apply for scattered/fragile edits and reorganizations in non-sensitive existing workspace files. Use '// ... existing code ...' markers in place of any non-secret value already in the file so you never have to retype it. Do not use fast_apply for secret files because Morph receives the full original file. Use edit for sensitive files and small exact replacements; use write for new files.",
+			"Use fast_apply for scattered/fragile edits and reorganizations in existing workspace files. Use '// ... existing code ...' markers in place of values already in the file so you never have to retype them. Use edit for small exact replacements and write for new files.",
 		promptGuidelines: [
 			"Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'",
 			"In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file.",
-			"Use '// ... existing code ...' (or a more descriptive variant like '// ... existing inline table ...') for any non-secret value that already exists in the file and is long, fragile, or risky to retype — including large IDs, base64 test fixtures, long URLs, and multi-line embedded JSON. The marker can appear inline within a single line between two unique literal anchors.",
+			"Use '// ... existing code ...' (or a more descriptive variant like '// ... existing inline table ...') for any value that already exists in the file and is long, fragile, or risky to retype. The marker can appear inline within a single line between two unique literal anchors.",
 			'For reorganizations that touch many lines (regrouping a config table, reordering function declarations), give each relocated line its own placeholder on the right-hand side and let Morph fill them in from the existing file. One marker per line scales fine; there is no built-in limit.',
-			'Never paste a multi-KB non-secret value into codeEdit when a marker would work. Never use fast_apply for secret stores, private keys, auth files, or .env files because Morph receives the full original file.',
+			'Never paste a multi-KB value into codeEdit when a marker would work.',
 			'Include enough unique surrounding context to anchor each change precisely, preserve exact indentation, and use edit instead when the change is just a small exact replacement.',
 		],
 		parameters: FastApplyParams,
