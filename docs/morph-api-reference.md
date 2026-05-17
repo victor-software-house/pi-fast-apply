@@ -5,6 +5,9 @@ Distilled reference of the Morph API surface relevant to this package.
 Sources refreshed 2026-05-16:
 
 - [Morph Quickstart](https://docs.morphllm.com/quickstart)
+- [Apply API](https://docs.morphllm.com/api-reference/endpoint/apply)
+- [Code Apply API](https://docs.morphllm.com/api-reference/endpoint/direct)
+- [OpenAPI](https://docs.morphllm.com/api-reference/openapi.json)
 - [Morph SDK Reference](https://docs.morphllm.com/sdk/reference)
 - [Fast Apply](https://docs.morphllm.com/sdk/components/fast-apply)
 - [WarpGrep overview](https://docs.morphllm.com/sdk/components/warp-grep)
@@ -70,7 +73,7 @@ This package currently uses standalone `applyEdit()` because Pi owns file I/O an
 
 | Product | ID / API | Purpose | Current status |
 |:--|:--|:--|:--|
-| Fast Apply | `morph-v3-fast` / `morph-v3-large` | Merge lazy edit snippets into existing files | implemented |
+| Fast Apply | `morph-v3-fast` / `morph-v3-large` | Merge lazy edit snippets into existing files | implemented; expose SDK `large` flag, default false |
 | WarpGrep | `morph-warp-grep-v2.1` | isolated-context code search subagent | planned |
 | Compact | `morph-compactor` or `/v1/compact` | delete irrelevant lines, preserve surviving lines verbatim | planned |
 | Router | `morph.routers.*` | classify prompt complexity and select model tier | planned |
@@ -135,9 +138,38 @@ interface ApplyEditConfig {
 }
 ```
 
-Implication: if this package does not set `large`, the SDK defaults to `morph-v3-large` unless `MORPH_LARGE_APPLY=false` exists. That is accurate but hidden. Add explicit model selection before claiming cost-aware behavior.
+Implication: if this package does not set `large`, the SDK defaults to `morph-v3-large` unless `MORPH_LARGE_APPLY=false` exists. That is accurate but hidden. This package should pass `large` explicitly and make `large: false` the package default.
 
-The raw OpenAI-compatible Apply API also supports a model value of `auto`, but current `applyEdit()` only exposes `large?: boolean`. Using raw API directly for `auto` would require re-owning request formatting, response parsing, retries, and local diff/change counting. Do not switch the first probe/model-tier slice to raw API just for `auto`; keep `large|fast` explicit now and treat `auto` as a later experiment if quality/cost tests justify it.
+The installed SDK sends this OpenAI-compatible request under the hood:
+
+```typescript
+await client.chat.completions.create({
+  model: config.large ? 'morph-v3-large' : 'morph-v3-fast',
+  messages: [{ role: 'user', content: message }],
+});
+```
+
+where `message` is:
+
+```xml
+<instruction>...</instruction>
+<code>...</code>
+<update>...</update>
+```
+
+It does not send `stream`, `temperature`, `max_tokens`, or `auto`.
+
+Current official docs expose two Apply surfaces:
+
+| Surface | Endpoint | Verified 2026-05-16 | Model handling | Notes |
+|:--|:--|:--|:--|:--|
+| SDK `applyEdit()` | `POST /v1/chat/completions` | passed for `large: false` and `large: true` | boolean `large`; `false` → `morph-v3-fast`; `true` → `morph-v3-large` | Best package path: least code, Pi still owns file I/O. |
+| Chat-compatible Apply | `POST /v1/chat/completions` | passed for `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | OpenAPI enum: `morph-v3-fast`, `morph-v3-large`, `auto`; OpenAPI default: `morph-v3-fast`; docs table recommends `auto` | Keep as diagnostic/probe evidence, not main path while SDK flag is enough. |
+| Structured Code Apply | `POST /v1/code/apply` | passed for default, `morph-v3-fast`, `morph-v3-large`, `auto`, and `stream: true` | `model` optional; docs say defaults to `auto` | Useful future option, but OpenAPI currently omits this path. |
+
+Docs accuracy is inconsistent: Apply docs say `morph-v3-fast` is 96% and `morph-v3-large` is 98%; Code Apply docs say fast is 97% and large is 98.8%. Use the conservative 96% versus 98% guidance in model-facing docs.
+
+Recommended package direction: expose the SDK-shaped boolean, not a model enum. Add optional `large?: boolean` to `fast_apply`, default `false`. Decision guide for the model: leave `large` false for most edits; set `large: true` only for complex or risky edits where accuracy matters more than speed.
 
 ### Higher-level SDK API
 

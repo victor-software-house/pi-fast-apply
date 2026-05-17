@@ -60,7 +60,7 @@ Broader capabilities should be added with straightforward model-facing names and
 **Key Details**:
 
 * Keep existing auth priority: Pi auth storage provider id `morph`, then `MORPH_API_KEY` env fallback.
-* Keep `MORPH_API_URL` and `MORPH_EDIT_TIMEOUT_MS`; add explicit Fast Apply tier config such as `MORPH_APPLY_MODEL=large|fast`.
+* Keep `MORPH_API_URL` and `MORPH_EDIT_TIMEOUT_MS`; add explicit Fast Apply large-mode config such as `MORPH_APPLY_LARGE=true|false`.
 * Avoid global config auto-creation and avoid secret persistence outside Pi auth/env.
 * Consider extracting helpers from `extensions/index.ts` only if the first runtime slice becomes hard to review.
 
@@ -72,11 +72,13 @@ Broader capabilities should be added with straightforward model-facing names and
 
 **Key Details**:
 
-* `buildApplyConfig()` should pass `large: true|false` explicitly.
-* Default should preserve current effective SDK behavior: `large` unless config says `fast`.
-* `/morph-status`, `/morph-probe`, and `fast_apply` result `details` should include selected tier and source.
+* Parse `MORPH_APPLY_LARGE=true|false`; default false.
+* Add optional per-call `fast_apply.large` boolean; per-call value overrides the configured default for that edit.
+* Always use SDK `applyEdit()` and pass explicit `large: false|true`.
+* `/morph-status`, `/morph-probe`, and `fast_apply` result `details` should include effective large value, source, and resolved model id.
 * Invalid config should not silently choose a surprising model; report default/fallback clearly.
-* `@morphllm/morphsdk@0.2.171` is current latest. Direct raw Apply API supports `model: "auto"`, but current `applyEdit()` does not. Leave raw API / auto-model experiments for a later quality slice.
+* Model-facing guidance should stay short: default `large: false` for most edits; use `large: true` for complex/risky edits. Morph docs put fast around 96% accuracy and large around 98% accuracy.
+* `@morphllm/morphsdk@0.2.171` is current latest. It does not expose `auto`; raw Chat Completions and structured Code Apply were live-tested with `auto`, but the first package slice should not add that complexity while SDK `large` flag covers the user-facing choice.
 
 **ADR Reference**: [ADR-0001](../adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md): Pi-owned file mutation for Morph Apply.
 
@@ -229,17 +231,18 @@ Broader capabilities should be added with straightforward model-facing names and
 
 **Tasks**:
 
-* Add `getMorphApplyModel()` parsing, values: `large` and `fast`.
-* Preserve current effective default: `large`.
-* Pass `large: selected === 'large'` in `buildApplyConfig()`.
-* Show tier and source in `/morph-status` and `/morph-probe`.
-* Put tier in `fast_apply` result `details` for renderer/debugging.
-* Do not implement `auto` in this slice; raw API auto-model selection needs separate parity/quality testing.
+* Add `getMorphApplyLarge()` parsing, values: `true` and `false`, default false.
+* Add optional `fast_apply.large` boolean parsing; per-call value wins over env/default.
+* Pass `large: effectiveLarge` to SDK `applyEdit()` explicitly.
+* Show large value, source, and resolved model id in `/morph-status` and `/morph-probe`.
+* Put large value, source, and resolved model id in `fast_apply` result `details` for renderer/debugging.
+* Keep raw `auto` evidence in docs/probe diagnostics only; do not expose model enum in first slice.
 
 **Verification**:
 
-* Helper tests for unset, `large`, `fast`, invalid values.
-* Manual dry-run confirms no behavior regression.
+* Helper tests for unset, `true`, `false`, invalid values, and per-call override precedence.
+* Config tests confirm SDK receives explicit `large: false|true`.
+* Manual dry-run confirms no behavior regression for default false and per-call true.
 
 ### Phase 5: Tool declaration surface
 

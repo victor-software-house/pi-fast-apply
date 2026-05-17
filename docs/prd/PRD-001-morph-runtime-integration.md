@@ -36,13 +36,13 @@ This PRD replaces ad hoc roadmap planning with specdocs-first planning before mo
 
 ## 2. Goals & Success Metrics
 
-| Goal                                          | Metric                                                                                              | Target                                                                                                                    |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Live runtime verification**                 | `/morph-probe` can classify SDK, auth, network, Compact, and Fast Apply health in a real Pi session | Command reports pass/fail/skip for each check with actionable failure text                                                |
-| **Explicit Fast Apply model behavior**        | Operator can inspect and configure Fast Apply model tier                                            | `/morph-status` reports the active tier; `fast_apply` passes explicit SDK config instead of relying on hidden SDK default |
-| **Clear Morph tool surface**                  | New Morph capabilities use intuitive names, readable labels, and concise schemas                    | Tools avoid unreliable activator stubs; `fast_apply` keeps label `Fast Apply`; local search uses `codebase_search`        |
-| **Pi-owned safety boundary**                  | Morph never owns local file writes or secret persistence                                            | All file mutation remains behind Pi mutation queue; Morph keys resolve through Pi auth/env chain only                     |
-| **Specdocs replacement for roadmap planning** | Future implementation slices are traceable through specdocs                                         | PRD, plan, and ADRs exist and use named requirements/workstreams instead of ad hoc phase codes                            |
+| Goal                                          | Metric                                                                                              | Target                                                                                                             |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Live runtime verification**                 | `/morph-probe` can classify SDK, auth, network, Compact, and Fast Apply health in a real Pi session | Command reports pass/fail/skip for each check with actionable failure text                                         |
+| **Explicit Fast Apply model behavior**        | Operator and caller can inspect, configure, and override Fast Apply large-mode behavior             | `/morph-status` reports the active default; `fast_apply` supports optional `large` boolean, default false          |
+| **Clear Morph tool surface**                  | New Morph capabilities use intuitive names, readable labels, and concise schemas                    | Tools avoid unreliable activator stubs; `fast_apply` keeps label `Fast Apply`; local search uses `codebase_search` |
+| **Pi-owned safety boundary**                  | Morph never owns local file writes or secret persistence                                            | All file mutation remains behind Pi mutation queue; Morph keys resolve through Pi auth/env chain only              |
+| **Specdocs replacement for roadmap planning** | Future implementation slices are traceable through specdocs                                         | PRD, plan, and ADRs exist and use named requirements/workstreams instead of ad hoc phase codes                     |
 
 **Guardrails (must not regress):**
 
@@ -147,33 +147,51 @@ Then the tool fails with guidance to use write and no file is created by Morph
 
 ### REQ-002: Fast Apply exposes explicit model selection
 
-The extension must stop relying on hidden SDK default model-tier behavior. It must expose the selected tier to operators and pass the tier explicitly to Morph SDK config. Current latest `@morphllm/morphsdk@0.2.171` exposes `large?: boolean` for `applyEdit()`; raw API `model: "auto"` is a later experiment, not part of the first model-tier slice.
+The extension must stop relying on hidden SDK default model-tier behavior. It must expose the selected default large-mode value to operators, support a per-call `large` boolean when the caller can make a better edit-specific tradeoff, and pass `large` explicitly to Morph SDK. Current latest `@morphllm/morphsdk@0.2.171` exposes `large?: boolean`; keep the model-facing surface equally simple.
 
 **Acceptance criteria:**
 
 ```gherkin
-Given no model-tier override is configured
+Given no large-mode override is configured
 When the operator runs /morph-status
-Then the output shows the active Fast Apply model tier and its source as default
+Then the output shows Fast Apply large mode as false and its source as default
 ```
 
 ```gherkin
-Given MORPH_APPLY_MODEL=fast
-When fast_apply executes
-Then buildApplyConfig passes large: false to applyEdit
+Given MORPH_APPLY_LARGE=false
+When fast_apply executes without a per-call override
+Then the runtime passes large: false to applyEdit
 ```
 
 ```gherkin
-Given MORPH_APPLY_MODEL=large
+Given MORPH_APPLY_LARGE=true
+When fast_apply executes without a per-call override
+Then the runtime passes large: true to applyEdit
+```
+
+```gherkin
+Given MORPH_APPLY_LARGE=false and fast_apply receives large true
 When fast_apply executes
-Then buildApplyConfig passes large: true to applyEdit
+Then the per-call large value overrides the default and the runtime passes large: true to applyEdit
+```
+
+```gherkin
+Given fast_apply receives no large value
+When the edit is small, localized, or straightforward
+Then the default large false path uses morph-v3-fast, which Morph documents around 96% accuracy and 10,500+ tok/sec
+```
+
+```gherkin
+Given fast_apply receives large true
+When the edit is complex, broad, ambiguous, or risky
+Then the large path uses morph-v3-large, which Morph documents around 98% accuracy and 5000+ tok/sec
 ```
 
 **Files:**
 
-* `extensions/index.ts` — add model-tier parsing, status output, probe output, and explicit `large` config.
-* `README.md` — document `MORPH_APPLY_MODEL` or final chosen config name.
-* `docs/morph-api-reference.md` — keep SDK default warning current.
+* `extensions/index.ts` — add large-mode parsing, per-call `fast_apply.large` override, status output, probe output, and explicit SDK `large` config.
+* `README.md` — document `MORPH_APPLY_LARGE`, per-call `large`, and the short large-mode decision guide.
+* `docs/morph-api-reference.md` — keep SDK default, OpenAPI, and direct Apply API warnings current.
 
 ### REQ-003: Morph probe verifies live runtime health
 
