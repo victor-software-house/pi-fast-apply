@@ -5,6 +5,14 @@ status: Proposed
 date: 2026-05-15
 prd: "PRD-001-morph-runtime-integration"
 decision: "Keep fast_apply as the baseline Morph tool and expose broader Morph search tools through progressive disclosure"
+provenance:
+  pi_session:
+    id: "019e2e39-246e-77dc-8b1e-90b3f17e48b1"
+    name: "Morph Runtime Integration Specdocs"
+    file: "/Users/victor/.pi/agent/sessions/--Users-victor-workspace-victor-pi-ecosystem-pi-fast-apply--/2026-05-16T00-39-17-359Z_019e2e39-246e-77dc-8b1e-90b3f17e48b1.jsonl"
+    cwd: "/Users/victor/workspace/victor/pi-ecosystem/pi-fast-apply"
+    started_at_brt: "2026-05-15T21:41:51-03:00"
+  created_at_brt: "2026-05-15"
 ---
 
 # ADR-0002: Progressive Disclosure for Morph Tool Family
