@@ -44,8 +44,9 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		name: 'quick_edit',
 		label: 'Quick Edit',
 		description:
-			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes, large files (300+ lines), complex refactors, or reorganizing lines with huge/fragile values. Creates the file directly if it does not exist.",
-		promptSnippet: 'quick_edit: scattered edits, large files, fragile refactors. edit for small exact replacements.',
+			"Default tool for editing workspace files. Supply only the changed sections wrapped in '// ... existing code ...' markers — Morph fills the unchanged parts. Use for: any scattered or large edit, reorganizing table rows or config entries without retyping all values, moving or regrouping blocks, complex refactors, or anything where exact string matching would be fragile. Creates the file directly if it does not exist. Fall back to edit only when quick_edit fails or an exact local replacement is explicitly required.",
+		promptSnippet:
+			'quick_edit: default file editor. Supply only changed sections with markers. Fallback: edit for guaranteed exact replacement.',
 		parameters: QuickEditParams,
 
 		renderCall(args, theme, context) {
