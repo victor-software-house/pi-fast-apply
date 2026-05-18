@@ -45,7 +45,7 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes in one file, large files (300+ lines), complex refactors where exact oldText matching would be fragile, or reorganizing lines with huge/fragile values. Use edit for small exact replacements. Use write for new files. Supports dryRun to preview without writing.",
+			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer for: multiple scattered changes in one file, large files (300+ lines), complex refactors where exact matching is fragile, or reorganizing lines with huge/fragile values. Use quick_edit for small exact replacements. Can create new files when they don't exist, but prefer write for truly new files — fast_apply adds no value when there's no existing code to merge around.",
 		promptSnippet:
 			"fast_apply: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements. Use write for new files.",
 		promptGuidelines: [
