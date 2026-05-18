@@ -441,9 +441,9 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>, SearchRenderState>({
 		name: 'codebase_search',
 		label: 'Codebase Search',
-		// Description merges SDK's WARP_GREP_DESCRIPTION with Pi-specific framing.
+		// SDK's WARP_GREP_DESCRIPTION verbatim.
 		description:
-			'Search the local workspace semantically with Morph WarpGrep. Not a grep tool — runs parallel grep and file reads over multiple turns to locate relevant files and line ranges. Use for broad questions: where a flow is implemented, how a module works, how callers handle errors. The search term should be a targeted natural-language query — e.g. "How does authentication work?" or "Where is the retry logic handled?" — fill in context you can infer to make it specific. Do not pass bare keywords or symbol names; use grep/find for exact lookups. Use this tool first when exploring unfamiliar code. Results may be partial — follow up with grep/find/read if needed.',
+			'Very fast code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "Find where authentication requests are handled in the Express routes" or "How do callers of processOrder handle the error case?". Fill in extra context you can infer to make the query specific. Do not pass bare keywords or symbol names — use grep directly for exact symbol lookups. Use this tool first when exploring unfamiliar code. The results may be partial — follow up with classical search tools or direct file reads if needed.',
 		promptSnippet: 'codebase_search: semantic/exploratory code questions. grep/find for exact strings or filenames.',
 		promptGuidelines: [
 			'codebase_search: use for broad questions about where behavior lives, not for exact strings or filenames — grep/find are faster and use no API budget.',
