@@ -218,8 +218,8 @@ describe('containsDetectedSecret', () => {
 });
 
 describe('formatSearchContent', () => {
-	it('returns bounded file contexts with line ranges', () => {
-		const details = buildSearchDetails('/morph-status command', root, {
+	it('returns bounded file contexts with line ranges', async () => {
+		const details = await buildSearchDetails('/morph-status command', root, {
 			success: true,
 			summary: `Relevant context found:\n- ${join(root, 'extensions/commands.ts')}: 80-120`,
 			contexts: [
@@ -236,14 +236,14 @@ describe('formatSearchContent', () => {
 		expect(formatSearchContent(details)).toContain('extensions/commands.ts');
 	});
 
-	it('bounds context count and context lines', () => {
+	it('bounds context count and context lines', async () => {
 		const contexts = Array.from({ length: 10 }, (_, index) => ({
 			file: `file-${index}.ts`,
 			lines: '*' as const,
 			content: Array.from({ length: 140 }, (__, lineIndex) => `line ${lineIndex}`).join('\n'),
 		}));
 
-		const details = buildSearchDetails('find runtime config', root, { success: true, contexts });
+		const details = await buildSearchDetails('find runtime config', root, { success: true, contexts });
 		const output = formatSearchContent(details);
 
 		expect(details.contextCount).toBe(10);
@@ -253,8 +253,8 @@ describe('formatSearchContent', () => {
 		expect(output).not.toContain('file-8.ts');
 	});
 
-	it('keeps no-result output compact', () => {
-		const details = buildSearchDetails('missing flow', root, { success: true, contexts: [] });
+	it('keeps no-result output compact', async () => {
+		const details = await buildSearchDetails('missing flow', root, { success: true, contexts: [] });
 
 		expect(formatSearchContent(details)).toBe('Codebase Search: missing flow\nNo relevant code found.');
 	});
