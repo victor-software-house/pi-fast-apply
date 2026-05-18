@@ -35,7 +35,7 @@ const QuickEditParams = Type.Object({
 	}),
 	codeEdit: Type.String({
 		description:
-			"Only the changed lines plus enough surrounding context to anchor each change. Everything else MUST be a '// ... existing code ...' marker — never repeat unchanged content. Multiple markers per line: '{ a: newVal, b: // ... existing ..., c: otherNew, d: // ... existing ... }' — each expanded independently. A single inline marker can skip an entire nested value. For reordering, list the new order and mark each unchanged field inline. Limit: the marker string cannot appear verbatim as intended output — Morph always treats it as an instruction.",
+			"Only changed sections plus minimal unique context to anchor each change. Mark everything else '// ... existing code ...' — never repeat unchanged content. Works per-line too: { a: new, b: // ... existing ..., c: other }. One marker skips any region including nested objects.",
 	}),
 });
 
@@ -44,9 +44,8 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		name: 'quick_edit',
 		label: 'Quick Edit',
 		description:
-			"Default tool for editing workspace files. Supply only the changed sections wrapped in '// ... existing code ...' markers — Morph fills the unchanged parts. Use for: any scattered or large edit, reorganizing table rows or config entries without retyping all values, moving or regrouping blocks, complex refactors, or anything where exact string matching would be fragile. Creates the file directly if it does not exist. Fall back to edit only when quick_edit fails or an exact local replacement is explicitly required.",
-		promptSnippet:
-			'quick_edit: default file editor. Supply only changed sections with markers. Fallback: edit for guaranteed exact replacement.',
+			"Default file editor. Provide only changed sections wrapped in '// ... existing code ...' markers — Morph fills the rest. Handles scattered or large edits, table/block reorganisation, complex refactors, or anything where exact string matching would be fragile. Creates new files directly. Fall back to edit only for a simple exact local replacement.",
+		promptSnippet: 'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
 		parameters: QuickEditParams,
 
 		renderCall(args, theme, context) {
