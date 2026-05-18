@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { registerCodebaseSearchTool } from './codebase-search-tool';
 import { registerMorphCommands } from './commands';
-import { registerFastApplyTool } from './fast-apply-tool';
+import { registerQuickEditTool } from './quick-edit-tool';
 
 function envEnabled(envVar: string, defaultValue = true): boolean {
 	const val = process.env[envVar]?.trim().toLowerCase();
@@ -10,7 +10,7 @@ function envEnabled(envVar: string, defaultValue = true): boolean {
 }
 
 export default function fastApplyExtension(pi: ExtensionAPI): void {
-	if (envEnabled('MORPH_EDIT')) registerFastApplyTool(pi);
+	if (envEnabled('MORPH_EDIT')) registerQuickEditTool(pi);
 	if (envEnabled('MORPH_WARPGREP')) registerCodebaseSearchTool(pi);
 	registerMorphCommands(pi);
 }

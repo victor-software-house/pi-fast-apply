@@ -30,7 +30,7 @@ describe('resolveWorkspaceFilePath', () => {
 		await writeFile(join(outside, 'outside.ts'), 'secret\n');
 
 		await expect(resolveWorkspaceFilePath(root, `../${outside.split('/').at(-1)}/outside.ts`)).rejects.toThrow(
-			'fast_apply only supports files inside the current workspace',
+			'quick_edit only supports files inside the current workspace',
 		);
 	});
 
@@ -39,7 +39,7 @@ describe('resolveWorkspaceFilePath', () => {
 		await writeFile(target, 'secret\n');
 
 		await expect(resolveWorkspaceFilePath(root, target)).rejects.toThrow(
-			'fast_apply only supports files inside the current workspace',
+			'quick_edit only supports files inside the current workspace',
 		);
 	});
 
@@ -49,7 +49,7 @@ describe('resolveWorkspaceFilePath', () => {
 		await symlink(target, join(root, 'link.ts'));
 
 		await expect(resolveWorkspaceFilePath(root, 'link.ts')).rejects.toThrow(
-			'fast_apply only supports files inside the current workspace',
+			'quick_edit only supports files inside the current workspace',
 		);
 	});
 
@@ -72,6 +72,6 @@ describe('resolveWorkspaceFilePath', () => {
 	])('rejects obvious secret file %s', async (name) => {
 		await writeFile(join(root, name), 'token=value\n');
 
-		await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('fast_apply refuses obvious secret files');
+		await expect(resolveWorkspaceFilePath(root, name)).rejects.toThrow('quick_edit refuses obvious secret files');
 	});
 });

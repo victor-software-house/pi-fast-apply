@@ -12,7 +12,7 @@ import {
 	type MorphSdkPatchStatus,
 } from './runtime-config';
 
-export interface FastApplyDetails {
+export interface QuickEditDetails {
 	provider: string;
 	path: string;
 	absolutePath: string;
@@ -48,7 +48,7 @@ function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void 
 	if (relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))) return;
 
 	throw new Error(
-		'fast_apply only supports files inside the current workspace. Refusing to read or send files outside ctx.cwd.',
+		'quick_edit only supports files inside the current workspace. Refusing to read or send files outside ctx.cwd.',
 	);
 }
 
@@ -75,7 +75,7 @@ function assertNotSensitivePath(_workspaceRoot: string, targetPath: string): voi
 		name.startsWith('id_ed25519') ||
 		blockedExtensions.some((extension) => name.endsWith(extension))
 	) {
-		throw new Error('fast_apply refuses obvious secret files. Use edit for sensitive files.');
+		throw new Error('quick_edit refuses obvious secret files. Use edit for sensitive files.');
 	}
 }
 
@@ -111,7 +111,7 @@ export function validateInputForExistingFile(codeEdit: string, originalCode: str
 	const originalLines = countLines(originalCode);
 	if (originalLines > NON_TRIVIAL_FILE_LINE_COUNT && !codeEdit.includes(EXISTING_CODE_MARKER)) {
 		throw new Error(
-			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${originalLines}-line file. Use fast_apply for partial edits with markers, or use write for full replacement.`,
+			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${originalLines}-line file. Use quick_edit for partial edits with markers, or use write for full replacement.`,
 		);
 	}
 }

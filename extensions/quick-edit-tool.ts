@@ -19,7 +19,7 @@ import { ensureMorphApiKey } from './auth';
 import {
 	countLines,
 	ensureReadableFile,
-	type FastApplyDetails,
+	type QuickEditDetails,
 	resolveWorkspaceFilePath,
 	runMorphApply,
 	summarizeResult,
@@ -28,7 +28,7 @@ import {
 } from './morph-apply';
 import { getMorphRuntimeConfig } from './runtime-config';
 
-const FastApplyParams = Type.Object({
+const QuickEditParams = Type.Object({
 	path: Type.String({ description: 'Path to a workspace file to create or modify (relative or absolute).' }),
 	instruction: Type.String({
 		description: "A first-person change description. Example: 'I am adding input validation to the add function.'",
@@ -40,19 +40,19 @@ const FastApplyParams = Type.Object({
 	dryRun: Type.Optional(Type.Boolean({ description: 'Preview the Morph merge without writing the file.' })),
 });
 
-export function registerFastApplyTool(pi: ExtensionAPI): void {
-	pi.registerTool<typeof FastApplyParams, Partial<FastApplyDetails>>({
-		name: 'fast_apply',
-		label: 'Fast Apply',
+export function registerQuickEditTool(pi: ExtensionAPI): void {
+	pi.registerTool<typeof QuickEditParams, Partial<QuickEditDetails>>({
+		name: 'quick_edit',
+		label: 'Quick Edit',
 		description:
 			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes in one file, large files (300+ lines), complex refactors where exact oldText matching would be fragile, or reorganizing lines with huge/fragile values. Use edit for small exact replacements. Use write for new files. Supports dryRun to preview without writing.",
 		promptSnippet:
-			"fast_apply: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements. Use write for new files.",
+			"quick_edit: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements. Use write for new files.",
 		promptGuidelines: [
-			"fast_apply instruction: first-person, specific — e.g. 'I am adding input validation to the login function.'",
-			"fast_apply codeEdit: include only changed sections; wrap everything else in '// ... existing code ...' markers. One marker per unchanged region, no limit.",
+			"quick_edit instruction: first-person, specific — e.g. 'I am adding input validation to the login function.'",
+			"quick_edit codeEdit: include only changed sections; wrap everything else in '// ... existing code ...' markers. One marker per unchanged region, no limit.",
 		],
-		parameters: FastApplyParams,
+		parameters: QuickEditParams,
 
 		renderCall(args, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
@@ -63,7 +63,7 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 			const home = process.env['HOME'] ?? '';
 
 			const hdr =
-				`${theme.fg('toolTitle', theme.bold('fast_apply'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
+				`${theme.fg('toolTitle', theme.bold('quick_edit'))} ${theme.fg('accent', shortPath(context.cwd, home, filePath))}` +
 				(instruction ? `\n${theme.fg('muted', instruction)}` : '');
 			const maxShow = cfg.maxPreviewLines;
 			const isFinal = context.argsComplete || !context.isPartial;
@@ -144,7 +144,7 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 				const header =
 					theme.fg('error', '✘') +
 					' ' +
-					theme.fg('toolTitle', theme.bold('fast_apply')) +
+					theme.fg('toolTitle', theme.bold('quick_edit')) +
 					' ' +
 					theme.fg('error', 'failed');
 				text.setText([header, theme.fg('error', errorMsg)].join('\n'));
@@ -165,11 +165,11 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 			const header =
 				theme.fg('success', '✔') +
 				' ' +
-				theme.fg('toolTitle', theme.bold('fast_apply')) +
+				theme.fg('toolTitle', theme.bold('quick_edit')) +
 				': ' +
 				theme.fg('accent', filePath);
 
-			// Collapsed one-liner: "✔ fast_apply: path.ts +12/-4 (842ms) [dry run]"
+			// // Collapsed one-liner: "✔ quick_edit: path.ts +12/-4 (842ms) [dry run]"
 			const collapsedParts: (string | null)[] = [header, changeSummary];
 			if (latency != null) collapsedParts.push(theme.fg('dim', `(${latency})`));
 			if (dryRun) collapsedParts.push(theme.fg('dim', modeLabel));
@@ -241,10 +241,10 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 			try {
 				({ absolutePath } = await resolveWorkspaceFilePath(ctx.cwd, params.path));
 			} catch (error) {
-				if (error instanceof Error && error.message.startsWith('fast_apply ')) throw error;
+				if (error instanceof Error && error.message.startsWith('quick_edit ')) throw error;
 				const targetPath = params.path.startsWith('@') ? params.path.slice(1) : params.path;
 				const fallbackPath = resolve(ctx.cwd, targetPath);
-				throw new Error(`fast_apply: cannot resolve path ${params.path}\nResolved to: ${fallbackPath}`);
+				throw new Error(`quick_edit: cannot resolve path ${params.path}\nResolved to: ${fallbackPath}`);
 			}
 
 			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${params.path}...` }], details: {} });
@@ -320,7 +320,7 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 						sdkVersion: runtimeConfig.sdkPatch.version,
 						latencyMs,
 						isNewFile,
-					} satisfies FastApplyDetails,
+					} satisfies QuickEditDetails,
 				};
 			});
 		},
