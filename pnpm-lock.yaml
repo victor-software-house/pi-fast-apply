@@ -36,8 +36,8 @@ importers:
         specifier: ^6.0.183
         version: 6.0.183(zod@4.4.3)
       pi-diff:
-        specifier: npm:@victor-software-house/pi-diff@^0.4.1
-        version: '@victor-software-house/pi-diff@0.4.1(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)'
+        specifier: npm:@victor-software-house/pi-diff@^0.4.4
+        version: '@victor-software-house/pi-diff@0.4.4(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)'
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
@@ -1355,19 +1355,19 @@ packages:
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
 
-  '@victor-software-house/pi-diff@0.4.1':
-    resolution: {integrity: sha512-CxVd93i4IWJUAswnXrHntRMs1eso89RdVFrmoANUuGipydAH8BqfVqSP9RoUX9VBAO575K5M/PkcOXc/9HmMnw==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-diff/0.4.1/4c2d66b67a48b1e043b9d7a54a79e651e018ede7}
+  '@victor-software-house/pi-diff@0.4.4':
+    resolution: {integrity: sha512-p0aeYg47eiu0M0+Ftx96mzD83Weg80xaSRf8udYE+4ZhIEsUOBH3BMdGMShv2uFOBfAxks/PEP+9lN3WSnaTpg==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-diff/0.4.4/9a7f4b2aa83cfee595aec634bd7d9feb7abcee89}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@earendil-works/pi-coding-agent': '>=0.74.0'
-      '@earendil-works/pi-tui': '>=0.74.0'
+      '@earendil-works/pi-coding-agent': '>=0.75.0'
+      '@earendil-works/pi-tui': '>=0.75.0'
 
-  '@victor-software-house/pi-render-core@0.1.2':
-    resolution: {integrity: sha512-eGQ2iJVPhh1qra639zPh2pnViOYKabCLzJLSNH8FxJ7NdpRB9arCGhHTPHdIpx2qvTTIs6+nFKaTFvQ+hS3UcQ==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.1.2/abcd6ec44b614e8a8fdf546d84c62c17342b1f69}
+  '@victor-software-house/pi-render-core@0.1.4':
+    resolution: {integrity: sha512-n5D+F2Dz5N6vEKz+oRjmiTeN4lWxc16TBVprmUsP2WWtuBip6nB7HKv52BarZrbZNZTLYNbi0JI4pWhjuFmo/A==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.1.4/a175134fa75ecafe8af7495ad50cdd61dc693458}
     engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@earendil-works/pi-coding-agent': '>=0.74.0'
-      '@earendil-works/pi-tui': '>=0.74.0'
+      '@earendil-works/pi-coding-agent': '>=0.75.0'
+      '@earendil-works/pi-tui': '>=0.75.0'
       shiki: ^4.0.2
 
   '@vitest/expect@4.1.6':
@@ -4388,15 +4388,15 @@ snapshots:
 
   '@vercel/oidc@3.2.0': {}
 
-  '@victor-software-house/pi-diff@0.4.1(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)':
+  '@victor-software-house/pi-diff@0.4.4(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.75.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-tui': 0.75.0
-      '@victor-software-house/pi-render-core': 0.1.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
+      '@victor-software-house/pi-render-core': 0.1.4(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
       diff: 9.0.0
       shiki: 4.0.2
 
-  '@victor-software-house/pi-render-core@0.1.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
+  '@victor-software-house/pi-render-core@0.1.4(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.75.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-tui': 0.75.0
