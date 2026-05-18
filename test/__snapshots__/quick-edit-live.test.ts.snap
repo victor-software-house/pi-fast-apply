@@ -1,0 +1,589 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 1`] = `
+"export class AuthService {
+  private readonly db: Database;
+  private readonly mailer: Mailer;
+  private readonly sessionStore: Cache;
+  private readonly logger: Logger;
+
+  constructor(deps: { db: Database; mailer: Mailer; sessionStore: Cache; logger: Logger }) {
+    this.db = deps.db;
+    this.mailer = deps.mailer;
+    this.sessionStore = deps.sessionStore;
+    this.logger = deps.logger;
+  }
+
+  async login(email: string, password: string): Promise<Session> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) throw new AuthError('user_not_found');
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) throw new AuthError('invalid_password');
+    const token = crypto.randomUUID();
+    await this.sessionStore.set(\`session:\${token}\`, user.id, 86400);
+    this.logger.info('login', { userId: user.id });
+    return { token, userId: user.id };
+  }
+
+  async logout(token: string): Promise<void> {
+    await this.sessionStore.del(\`session:\${token}\`);
+    this.logger.info('logout', { token });
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) return;
+    const code = crypto.randomInt(100000, 999999).toString();
+    await this.sessionStore.set(\`reset:\${email}\`, code, 900);
+    await this.mailer.send({ to: email, subject: 'Password reset', body: code });
+    this.logger.info('reset_password', { email });
+  }
+
+  async verifySession(token: string): Promise<string | null> {
+    return this.sessionStore.get(\`session:\${token}\`);
+  }
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 2`] = `
+"export class AuthService {
+  private readonly db: Database;
+  private readonly mailer: Mailer;
+  private readonly sessionStore: Cache;
+  private readonly logger: Logger;
+
+  constructor(deps: { db: Database; mailer: Mailer; sessionStore: Cache; logger: Logger }) {
+    this.db = deps.db;
+    this.mailer = deps.mailer;
+    this.sessionStore = deps.sessionStore;
+    this.logger = deps.logger;
+  }
+
+  async login(email: string, password: string): Promise<Session> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) throw new AuthError('user_not_found');
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) throw new AuthError('invalid_password');
+    const token = crypto.randomUUID();
+    await this.sessionStore.set(\`session:\${token}\`, user.id, 86400);
+    this.logger.info('login', { userId: user.id });
+    return { token, userId: user.id };
+  }
+
+  async logout(token: string): Promise<void> {
+    await this.sessionStore.del(\`session:\${token}\`);
+    this.logger.info('logout', { token });
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) return;
+    const code = crypto.randomInt(100000, 999999).toString();
+    await this.sessionStore.set(\`reset:\${email}\`, code, 900);
+    await this.mailer.send({ to: email, subject: 'Password reset', body: code });
+    this.logger.info('reset_password', { email });
+  }
+
+  async verifySession(token: string): Promise<string | null> {
+    return this.sessionStore.get(\`session:\${token}\`);
+  }
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 3`] = `
+"export class AuthService {
+  private readonly db: Database;
+  private readonly mailer: Mailer;
+  private readonly sessionStore: Cache;
+  private readonly logger: Logger;
+
+  constructor(deps: { db: Database; mailer: Mailer; sessionStore: Cache; logger: Logger }) {
+    this.db = deps.db;
+    this.mailer = deps.mailer;
+    this.sessionStore = deps.sessionStore;
+    this.logger = deps.logger;
+  }
+
+  async login(email: string, password: string): Promise<Session> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) throw new AuthError('user_not_found');
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) throw new AuthError('invalid_password');
+    const token = crypto.randomUUID();
+    await this.sessionStore.set(\`session:\${token}\`, user.id, 86400);
+    this.logger.info('login', { userId: user.id });
+    return { token, userId: user.id };
+  }
+
+  async logout(token: string): Promise<void> {
+    await this.sessionStore.del(\`session:\${token}\`);
+    this.logger.info('logout', { token });
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    const user = await this.db.users.findByEmail(email);
+    if (!user) return;
+    const code = crypto.randomInt(100000, 999999).toString();
+    await this.sessionStore.set(\`reset:\${email}\`, code, 900);
+    await this.mailer.send({ to: email, subject: 'Password reset', body: code });
+    this.logger.info('reset_password', { email });
+  }
+
+  async verifySession(token: string): Promise<string | null> {
+    return this.sessionStore.get(\`session:\${token}\`);
+  }
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'react: add error state + skeleton var…' 1`] = `
+"import React, { useState, useEffect } from 'react';
+import { fetchUser } from '../api/users';
+
+interface Props {
+  userId: string;
+  compact?: boolean;
+  onLoad?: () => void;
+  onError?: (err: Error) => void;
+}
+
+export function UserCard({ userId, compact = false, onLoad, onError }: Props) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetchUser(userId)
+      .then((u) => {
+        setUser(u);
+        setLoading(false);
+        onLoad?.();
+      })
+      .catch((err: Error) => {
+        setError(err);
+        setLoading(false);
+        onError?.(err);
+      });
+  }, [userId, onLoad, onError]);
+
+  if (loading) return <div className="skeleton" />;
+  if (error) return <div className="error">{error.message}</div>;
+
+  if (compact) {
+    return (
+      <div className="user-card user-card--compact">
+        <img src={user!.avatar} alt={user!.name} />
+        <span>{user!.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="user-card">
+      <img src={user!.avatar} alt={user!.name} />
+      <h2>{user!.name}</h2>
+      <p>{user!.email}</p>
+    </div>
+  );
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'react: add error state + skeleton var…' 2`] = `
+"import React, { useState, useEffect } from 'react';
+import { fetchUser } from '../api/users';
+
+interface Props {
+  userId: string;
+  compact?: boolean;
+  onLoad?: () => void;
+  onError?: (err: Error) => void;
+}
+
+export function UserCard({ userId, compact = false, onLoad, onError }: Props) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetchUser(userId)
+      .then((u) => {
+        setUser(u);
+        setLoading(false);
+        onLoad?.();
+      })
+      .catch((err: Error) => {
+        setError(err);
+        setLoading(false);
+        onError?.(err);
+      });
+  }, [userId, onLoad, onError]);
+
+  if (loading) return <div className="skeleton" />;
+  if (error) return <div className="error">{error.message}</div>;
+
+  if (compact) {
+    return (
+      <div className="user-card user-card--compact">
+        <img src={user!.avatar} alt={user!.name} />
+        <span>{user!.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="user-card">
+      <img src={user!.avatar} alt={user!.name} />
+      <h2>{user!.name}</h2>
+      <p>{user!.email}</p>
+    </div>
+  );
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'react: add error state + skeleton var…' 3`] = `
+"import React, { useState, useEffect } from 'react';
+import { fetchUser } from '../api/users';
+
+interface Props {
+  userId: string;
+  compact?: boolean;
+  onLoad?: () => void;
+  onError?: (err: Error) => void;
+}
+
+export function UserCard({ userId, compact = false, onLoad, onError }: Props) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetchUser(userId)
+      .then((u) => {
+        setUser(u);
+        setLoading(false);
+        onLoad?.();
+      })
+      .catch((err: Error) => {
+        setError(err);
+        setLoading(false);
+        onError?.(err);
+      });
+  }, [userId, onLoad, onError]);
+
+  if (loading) return <div className="skeleton" />;
+  if (error) return <div className="error">{error.message}</div>;
+
+  if (compact) {
+    return (
+      <div className="user-card user-card--compact">
+        <img src={user!.avatar} alt={user!.name} />
+        <span>{user!.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="user-card">
+      <img src={user!.avatar} alt={user!.name} />
+      <h2>{user!.name}</h2>
+      <p>{user!.email}</p>
+    </div>
+  );
+}
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 1`] = `
+"export const FEATURE_FLAGS = {
+  FEATURE_01: true ,
+  FEATURE_02: false,
+  FEATURE_03: false,
+  FEATURE_04: true ,
+  FEATURE_05: true ,
+  FEATURE_06: false,
+  FEATURE_07: true ,
+  FEATURE_08: false,
+  FEATURE_09: false,
+  FEATURE_10: true ,
+  FEATURE_11: false,
+  FEATURE_12: false,
+  FEATURE_13: true ,
+  FEATURE_14: true ,
+  FEATURE_15: false,
+  FEATURE_16: true ,
+  FEATURE_17: false,
+  FEATURE_18: false,
+  FEATURE_19: true ,
+  FEATURE_20: false,
+  FEATURE_21: false,
+  FEATURE_22: true ,
+  FEATURE_23: false,
+  FEATURE_24: false,
+  FEATURE_25: true ,
+  FEATURE_26: false,
+  FEATURE_27: false,
+  FEATURE_28: true ,
+  FEATURE_29: true ,
+  FEATURE_30: false,
+} as const;
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 2`] = `
+"export const FEATURE_FLAGS = {
+  FEATURE_01: true ,
+  FEATURE_02: false,
+  FEATURE_03: false,
+  FEATURE_04: true ,
+  FEATURE_05: true ,
+  FEATURE_06: false,
+  FEATURE_07: true ,
+  FEATURE_08: false,
+  FEATURE_09: false,
+  FEATURE_10: true ,
+  FEATURE_11: false,
+  FEATURE_12: false,
+  FEATURE_13: true ,
+  FEATURE_14: true ,
+  FEATURE_15: false,
+  FEATURE_16: true ,
+  FEATURE_17: false,
+  FEATURE_18: false,
+  FEATURE_19: true ,
+  FEATURE_20: false,
+  FEATURE_21: false,
+  FEATURE_22: true ,
+  FEATURE_23: false,
+  FEATURE_24: false,
+  FEATURE_25: true ,
+  FEATURE_26: false,
+  FEATURE_27: false,
+  FEATURE_28: true ,
+  FEATURE_29: true ,
+  FEATURE_30: false,
+} as const;
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 3`] = `
+"export const FEATURE_FLAGS = {
+  FEATURE_01: true ,
+  FEATURE_02: false,
+  FEATURE_03: false,
+  FEATURE_04: true ,
+  FEATURE_05: true ,
+  FEATURE_06: false,
+  FEATURE_07: true ,
+  FEATURE_08: false,
+  FEATURE_09: false,
+  FEATURE_10: true ,
+  FEATURE_11: false,
+  FEATURE_12: false,
+  FEATURE_13: true ,
+  FEATURE_14: true ,
+  FEATURE_15: false,
+  FEATURE_16: true ,
+  FEATURE_17: false,
+  FEATURE_18: false,
+  FEATURE_19: true ,
+  FEATURE_20: false,
+  FEATURE_21: false,
+  FEATURE_22: true ,
+  FEATURE_23: false,
+  FEATURE_24: false,
+  FEATURE_25: true ,
+  FEATURE_26: false,
+  FEATURE_27: false,
+  FEATURE_28: true ,
+  FEATURE_29: true ,
+  FEATURE_30: false,
+} as const;
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 1`] = `
+"-- Migration: 2024_01_add_initial_schema
+CREATE TABLE users (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE products (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  price_cents INTEGER NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ,
+  deleted_at  TIMESTAMPTZ
+);
+
+CREATE TABLE orders (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE order_items (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id   UUID NOT NULL REFERENCES orders(id),
+  product_id UUID NOT NULL REFERENCES products(id),
+  quantity   INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES users(id),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 2`] = `
+"-- Migration: 2024_01_add_initial_schema
+CREATE TABLE users (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE products (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  price_cents INTEGER NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ,
+  deleted_at  TIMESTAMPTZ
+);
+
+CREATE TABLE orders (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE order_items (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id   UUID NOT NULL REFERENCES orders(id),
+  product_id UUID NOT NULL REFERENCES products(id),
+  quantity   INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES users(id),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 3`] = `
+"-- Migration: 2024_01_add_initial_schema
+CREATE TABLE users (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE products (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  price_cents INTEGER NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ,
+  deleted_at  TIMESTAMPTZ
+);
+
+CREATE TABLE orders (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE order_items (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id   UUID NOT NULL REFERENCES orders(id),
+  product_id UUID NOT NULL REFERENCES products(id),
+  quantity   INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES users(id),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 1`] = `
+"export const ROUTES = {
+  createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
+  dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
+  deleteUser: { path: '/users/:id',  method: 'DEL',  auth: true,  rate: 10,  cache: 0    },
+  health:     { path: '/health',     method: 'GET',  auth: false, rate: 1000, cache: 0   },
+  login:      { path: '/auth/login', method: 'POST', auth: false, rate: 5,   cache: 0    },
+  logout:     { path: '/auth/logout',method: 'POST', auth: true,  rate: 100, cache: 0    },
+  metrics:    { path: '/metrics',    method: 'GET',  auth: true,  rate: 10,  cache: 0    },
+  orderById:  { path: '/orders/:id', method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  orders:     { path: '/orders',     method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  productById:{ path: '/products/:id',method:'GET',  auth: false, rate: 200, cache: 3600 },
+  products:   { path: '/products',   method: 'GET',  auth: false, rate: 200, cache: 3600 },
+  userById:   { path: '/users/:id',  method: 'GET',  auth: true,  rate: 100, cache: 30   },
+  users:      { path: '/users',      method: 'GET',  auth: true,  rate: 50,  cache: 30   },
+} as const;
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 2`] = `
+"export const ROUTES = {
+  createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
+  dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
+  deleteUser: { path: '/users/:id',  method: 'DEL',  auth: true,  rate: 10,  cache: 0    },
+  health:     { path: '/health',     method: 'GET',  auth: false, rate: 1000, cache: 0   },
+  login:      { path: '/auth/login', method: 'POST', auth: false, rate: 5,   cache: 0    },
+  logout:     { path: '/auth/logout',method: 'POST', auth: true,  rate: 100, cache: 0    },
+  metrics:    { path: '/metrics',    method: 'GET',  auth: true,  rate: 10,  cache: 0    },
+  orderById:  { path: '/orders/:id', method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  orders:     { path: '/orders',     method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  productById:{ path: '/products/:id',method:'GET',  auth: false, rate: 200, cache: 3600 },
+  products:   { path: '/products',   method: 'GET',  auth: false, rate: 200, cache: 3600 },
+  userById:   { path: '/users/:id',  method: 'GET',  auth: true,  rate: 100, cache: 30   },
+  users:      { path: '/users',      method: 'GET',  auth: true,  rate: 50,  cache: 30   },
+} as const;
+"
+`;
+
+exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 3`] = `
+"export const ROUTES = {
+  createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
+  dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
+  deleteUser: { path: '/users/:id',  method: 'DEL',  auth: true,  rate: 10,  cache: 0    },
+  health:     { path: '/health',     method: 'GET',  auth: false, rate: 1000, cache: 0   },
+  login:      { path: '/auth/login', method: 'POST', auth: false, rate: 5,   cache: 0    },
+  logout:     { path: '/auth/logout',method: 'POST', auth: true,  rate: 100, cache: 0    },
+  metrics:    { path: '/metrics',    method: 'GET',  auth: true,  rate: 10,  cache: 0    },
+  orderById:  { path: '/orders/:id', method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  orders:     { path: '/orders',     method: 'GET',  auth: true,  rate: 50,  cache: 0    },
+  productById:{ path: '/products/:id',method:'GET',  auth: false, rate: 200, cache: 3600 },
+  products:   { path: '/products',   method: 'GET',  auth: false, rate: 200, cache: 3600 },
+  userById:   { path: '/users/:id',  method: 'GET',  auth: true,  rate: 100, cache: 30   },
+  users:      { path: '/users',      method: 'GET',  auth: true,  rate: 50,  cache: 30   },
+} as const;
+"
+`;
