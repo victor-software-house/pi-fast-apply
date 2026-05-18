@@ -278,8 +278,41 @@ index 7f81529df36213d72a97700253cb8b4dee78f038..5464a9e76a805b23c6b5352ec3386cd9
    const timeout = config.timeout || DEFAULT_TIMEOUT;
    const debug = config.debug || false;
    if (!apiKey) {
+diff --git a/dist/tools/warp_grep/anthropic.cjs b/dist/tools/warp_grep/anthropic.cjs
+index 1a5a61d4dcd1989564f304691e7ced252872061f..6ba9e3a4251db22ef789bb1bea19b325519eeeda 100644
+--- a/dist/tools/warp_grep/anthropic.cjs
++++ b/dist/tools/warp_grep/anthropic.cjs
+@@ -798,6 +798,7 @@ async function readFinishFiles(repoRoot, files, reader) {
+     } else {
+       const ranges = mergeRanges(validRanges);
+       const chunks = [];
++      const sourceBlocks = [];
+       for (let i = 0; i < ranges.length; i++) {
+         const [s, e] = ranges[i];
+         if (i === 0 && s > 1) {
+@@ -807,8 +808,9 @@ async function readFinishFiles(repoRoot, files, reader) {
+         }
+         const lines = await reader(f.path, s, e);
+         chunks.push(lines.join("\n"));
++        sourceBlocks.push({ startLine: s, endLine: e, lines });
+       }
+-      out.push({ path: f.path, ranges, content: chunks.join("\n") });
++      out.push({ path: f.path, ranges, content: chunks.join("\n"), sourceBlocks });
+     }
+   }
+   return out;
+@@ -2147,7 +2149,8 @@ async function processAgentResult(result, searchTerm, apiKey, apiUrl) {
+   const contexts = (finish.resolved ?? []).map((r) => ({
+     file: r.path,
+     content: r.content,
+-    lines: r.ranges
++    lines: r.ranges,
++    ...r.sourceBlocks ? { sourceBlocks: r.sourceBlocks } : {}
+   }));
+   try {
+     const compactable = contexts.map((c) => ({ path: c.file, content: c.content }));
 diff --git a/dist/types-CtkD4o1_.d.ts b/dist/types-CtkD4o1_.d.ts
-index 7af07831f5f717dc873e826d43a3672b6f312adb..10d6ea2dd3607bb3b8d44b6241dad8b87f217737 100644
+index 7af07831f5f717dc873e826d43a3672b6f312adb..6bbf92db8ee32976dab31f9a72fc1895155e0541 100644
 --- a/dist/types-CtkD4o1_.d.ts
 +++ b/dist/types-CtkD4o1_.d.ts
 @@ -72,6 +72,16 @@ interface WarpGrepClientConfig {
@@ -316,10 +349,13 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..10d6ea2dd3607bb3b8d44b6241dad8b8
  }
  /**
   * Input for searching a public GitHub repository
-@@ -123,6 +143,24 @@ interface WarpGrepContext {
+@@ -122,6 +142,26 @@ interface WarpGrepContext {
+     content: string;
      /** Line ranges returned (e.g. [[1,50],[100,150]]) or '*' for full file */
      lines?: '*' | Array<[number, number]>;
- }
++    /** Per-range source lines as read from disk — clean, no markers. Use for rendering. */
++    sourceBlocks?: Array<{ startLine: number; endLine: number; lines: string[] }>;
++}
 +/**
 + * Per-turn timing metrics captured by the WarpGrep agent.
 + */
@@ -337,11 +373,10 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..10d6ea2dd3607bb3b8d44b6241dad8b8
 +    initial_state_ms?: number;
 +    finish_resolution_ms?: number;
 +    total_ms?: number;
-+}
+ }
  /**
   * Result from warp grep execution
-  */
-@@ -135,6 +173,10 @@ interface WarpGrepResult {
+@@ -135,6 +175,10 @@ interface WarpGrepResult {
      summary?: string;
      /** Error message if search failed */
      error?: string;
@@ -352,7 +387,7 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..10d6ea2dd3607bb3b8d44b6241dad8b8
  }
  type GitHubSearchToolConfig = Pick<WarpGrepClientConfig, 'morphApiKey' | 'morphApiUrl' | 'codeSearchUrl' | 'timeout'>;
  /**
-@@ -203,6 +245,16 @@ interface WarpGrepToolConfig {
+@@ -203,6 +247,16 @@ interface WarpGrepToolConfig {
      description?: string;
      /** Search type hint. Use 'node_modules' to search inside normally-excluded dependency directories. */
      search_type?: 'default' | 'node_modules';

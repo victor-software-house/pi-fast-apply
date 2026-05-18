@@ -70,8 +70,13 @@ export interface ResolvedWorkspaceDirectory {
 export interface DisplaySearchContext {
 	file: string;
 	lineRanges: string;
-	/** Structured line ranges from WarpGrep — use for rendering instead of parsing lineRanges string. */
+	/** Structured line ranges from WarpGrep. */
 	ranges?: [number, number][];
+	/**
+	 * Per-range source lines as read from disk by the SDK — clean, no markers.
+	 * Populated by the SDK patch. Use directly for rendering.
+	 */
+	sourceBlocks?: Array<{ startLine: number; endLine: number; lines: string[] }>;
 	content: string;
 	truncated: boolean;
 }
@@ -216,6 +221,7 @@ export function buildSearchDetails(
 			file: displayContextFile(repoRoot, context.file),
 			lineRanges: formatLineRanges(context.lines),
 			...(structuredRanges != null ? { ranges: structuredRanges } : {}),
+			...(context.sourceBlocks != null ? { sourceBlocks: context.sourceBlocks } : {}),
 			content,
 			truncated: contextTruncated,
 		});
@@ -340,9 +346,13 @@ function renderSubBlock(
 async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
 	const tw = termW();
 	const lg = lang(ctx.file);
-	// ctx.content = real source lines (SDK reads from disk) + block markers between ranges.
-	// splitIntoSubBlocks uses structured ranges to skip markers and assign correct start lines.
-	const subBlocks = splitIntoSubBlocks(ctx.content, ctx.lineRanges, ctx.ranges);
+
+	// Prefer SDK-provided sourceBlocks (clean per-range lines, no markers).
+	// Fall back to splitting ctx.content for the '*' / no-patch case.
+	const subBlocks: CodeSubBlock[] =
+		ctx.sourceBlocks != null && ctx.sourceBlocks.length > 0
+			? ctx.sourceBlocks.map((b) => ({ startLine: b.startLine, lines: b.lines }))
+			: splitIntoSubBlocks(ctx.content, ctx.lineRanges, ctx.ranges);
 
 	// Compute max end line for gutter width
 	const lastBlock = subBlocks[subBlocks.length - 1];
@@ -431,8 +441,9 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>, SearchRenderState>({
 		name: 'codebase_search',
 		label: 'Codebase Search',
+		// SDK description — sourced from WARP_GREP_DESCRIPTION in @morphllm/morphsdk
 		description:
-			'Search the local workspace semantically with Morph WarpGrep. Use for broad questions: where a flow is implemented, how a module works, where a behavior lives. Not for exact keyword or symbol lookup — use grep/find for those.',
+			'Very fast code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "Find where authentication requests are handled in the Express routes" or "How do callers of processOrder handle the error case?". Fill in extra context you can infer to make the query specific. Do not pass bare keywords or symbol names — use grep directly for exact symbol lookups. Use this tool first when exploring unfamiliar code. The results may be partial — follow up with classical search tools or direct file reads if needed.',
 		promptSnippet: 'codebase_search: semantic/exploratory code questions. grep/find for exact strings or filenames.',
 		promptGuidelines: [
 			'codebase_search: use for broad questions about where behavior lives, not for exact strings or filenames — grep/find are faster and use no API budget.',
