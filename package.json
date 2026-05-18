@@ -74,7 +74,7 @@
 		"@sinclair/typebox": "^0.34.49",
 		"@victor-software-house/pi-render-core": "^0.2.0",
 		"ai": "^6.0.183",
-		"pi-diff": "npm:@victor-software-house/pi-diff@^0.5.6"
+		"pi-diff": "npm:@victor-software-house/pi-diff@^0.5.7"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",
