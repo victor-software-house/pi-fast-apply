@@ -73,6 +73,10 @@ export interface CodebaseSearchDetails {
 	truncated: boolean;
 	contexts: DisplaySearchContext[];
 	lastStep?: WarpGrepStep;
+	/** Total wall time for the WarpGrep search in milliseconds. */
+	latencyMs?: number;
+	/** Number of model turns used. */
+	turnsUsed?: number;
 }
 
 function expandDirectoryPath(directoryPath: string): string {
@@ -263,9 +267,9 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 		name: 'codebase_search',
 		label: 'Codebase Search',
 		description:
-			'Search the local workspace semantically with Morph WarpGrep. Use for broad codebase questions such as where a flow, behavior, or abstraction is implemented. Use native grep/find for exact strings or filename searches.',
+			'Search the local workspace semantically with Morph WarpGrep. Use for broad questions about where a behavior, abstraction, or flow lives. Pass includes/excludes/searchType to narrow scope. Use grep/find for exact strings or filenames.',
 		promptSnippet:
-			'Search local codebase semantically for broad implementation questions; use grep/find for exact strings.',
+			'Use codebase_search for semantic/exploratory code questions; grep/find for exact strings or filenames. See routing policy in instructions/morph-tools.md.',
 		promptGuidelines: ['codebase_search: Use for broad local code exploration, not exact keyword or filename lookup.'],
 		parameters: CodebaseSearchParams,
 
@@ -298,12 +302,17 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			}
 
 			const details = result.details;
+			const ctxLabel = `${details.shownContextCount ?? 0}/${details.contextCount ?? 0} contexts`;
+			const latencyLabel = details.latencyMs != null ? `(${details.latencyMs}ms)` : null;
+			const turnsLabel = details.turnsUsed != null && details.turnsUsed > 0 ? `${details.turnsUsed} turns` : null;
+			const collapsedSuffix = [turnsLabel, latencyLabel].filter(Boolean).join(', ');
 			const header =
 				theme.fg('success', '✔') +
 				' ' +
 				theme.fg('toolTitle', theme.bold('codebase_search')) +
-				' ' +
-				theme.fg('accent', `${details.shownContextCount ?? 0}/${details.contextCount ?? 0} contexts`);
+				': ' +
+				theme.fg('accent', ctxLabel) +
+				(collapsedSuffix ? ` ${theme.fg('dim', collapsedSuffix)}` : '');
 
 			if (!expanded) {
 				text.setText(header);
@@ -346,7 +355,9 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 				...(params.searchType != null ? { search_type: params.searchType } : {}),
 			});
 
+			const searchStart = Date.now();
 			let result: WarpGrepResult | undefined;
+			let turnsUsed = 0;
 			for (;;) {
 				if (signal?.aborted === true) throw new Error('codebase_search aborted.');
 				const next = await stream.next();
@@ -354,8 +365,10 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 					result = next.value;
 					break;
 				}
+				turnsUsed = next.value.turn;
 				onUpdate?.({ content: [{ type: 'text', text: formatStep(next.value) }], details: { lastStep: next.value } });
 			}
+			const latencyMs = Date.now() - searchStart;
 
 			if (result == null) throw new Error('Codebase Search did not return a result.');
 			if (!result.success) throw new Error(`Codebase Search failed: ${result.error ?? 'unknown error'}`);
@@ -363,7 +376,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const details = buildSearchDetails(params.searchTerm, absolutePath, result);
 			return {
 				content: [{ type: 'text', text: formatSearchContent(details) }],
-				details,
+				details: { ...details, latencyMs, turnsUsed },
 			};
 		},
 	});

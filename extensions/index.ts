@@ -3,8 +3,14 @@ import { registerCodebaseSearchTool } from './codebase-search-tool';
 import { registerMorphCommands } from './commands';
 import { registerFastApplyTool } from './fast-apply-tool';
 
+function envEnabled(envVar: string, defaultValue = true): boolean {
+	const val = process.env[envVar]?.trim().toLowerCase();
+	if (val == null || val === '') return defaultValue;
+	return val !== 'false' && val !== '0' && val !== 'off' && val !== 'no';
+}
+
 export default function fastApplyExtension(pi: ExtensionAPI): void {
-	registerFastApplyTool(pi);
-	registerCodebaseSearchTool(pi);
+	if (envEnabled('MORPH_EDIT')) registerFastApplyTool(pi);
+	if (envEnabled('MORPH_WARPGREP')) registerCodebaseSearchTool(pi);
 	registerMorphCommands(pi);
 }

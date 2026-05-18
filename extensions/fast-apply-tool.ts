@@ -29,7 +29,7 @@ import {
 import { getMorphRuntimeConfig } from './runtime-config';
 
 const FastApplyParams = Type.Object({
-	path: Type.String({ description: 'Path to the existing file to modify (relative or absolute)' }),
+	path: Type.String({ description: 'Path to a workspace file to create or modify (relative or absolute).' }),
 	instruction: Type.String({
 		description: "A first-person change description. Example: 'I am adding input validation to the add function.'",
 	}),
@@ -45,9 +45,9 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			"Edit an existing workspace file using partial code snippets with '// ... existing code ...' markers. Markers can appear anywhere a unique anchor exists, including inline within a single line between two literal anchors. Use fast_apply for multiple scattered changes, complex refactors, line-by-line reorganizations of an existing file, or any case where exact oldText matching would be fragile. Use edit for small exact replacements and write for new files.",
+			"Edit a workspace file (existing or new) using partial code snippets with '// ... existing code ...' markers. Use for multiple scattered changes, large files (300+ lines), complex refactors, or any edit where exact oldText matching would be fragile. Use edit for small exact replacements. Supports dryRun to preview before writing.",
 		promptSnippet:
-			"Use fast_apply for scattered/fragile edits and reorganizations in existing workspace files. Use '// ... existing code ...' markers in place of values already in the file so you never have to retype them. Use edit for small exact replacements and write for new files.",
+			"Use fast_apply for scattered/fragile edits, large files, and reorganizations. Use '// ... existing code ...' markers for unchanged sections. Use edit for small exact replacements. See routing policy in instructions/morph-tools.md.",
 		promptGuidelines: [
 			"Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'",
 			"In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file.",
@@ -161,14 +161,22 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 			const dryRun = details.dryRun ?? false;
 
 			const modeLabel = dryRun ? 'dry run' : 'applied';
+			const latency = details.latencyMs != null ? `${details.latencyMs}ms` : null;
+			const changeSummary = changes
+				? theme.fg('success', `+${changes.linesAdded}`) + '/' + theme.fg('error', `-${changes.linesRemoved}`)
+				: null;
+
 			const header =
 				theme.fg('success', '✔') +
 				' ' +
 				theme.fg('toolTitle', theme.bold('fast_apply')) +
-				' ' +
-				theme.fg('accent', filePath) +
-				' ' +
-				theme.fg('dim', modeLabel);
+				': ' +
+				theme.fg('accent', filePath);
+
+			// Collapsed one-liner: "✔ fast_apply: path.ts +12/-4 (842ms) [dry run]"
+			const collapsedParts: (string | null)[] = [header, changeSummary];
+			if (latency != null) collapsedParts.push(theme.fg('dim', `(${latency})`));
+			if (dryRun) collapsedParts.push(theme.fg('dim', modeLabel));
 
 			const changeLine = changes
 				? theme.fg('success', `+${changes.linesAdded}`) +
@@ -179,7 +187,7 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 				: '';
 
 			if (!expanded) {
-				text.setText([header, changeLine].filter(Boolean).join('  '));
+				text.setText(collapsedParts.filter(Boolean).join(' '));
 				return text;
 			}
 
@@ -232,35 +240,37 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 			const runtimeConfig = await getMorphRuntimeConfig();
 			const dryRun = Boolean(params.dryRun);
 			let absolutePath: string;
-			let requestedPath: string;
+			let isNewFile = false;
 
 			try {
-				({ absolutePath, requestedPath } = await resolveWorkspaceFilePath(ctx.cwd, params.path));
+				({ absolutePath } = await resolveWorkspaceFilePath(ctx.cwd, params.path));
 			} catch (error) {
 				if (error instanceof Error && error.message.startsWith('fast_apply ')) throw error;
 				const targetPath = params.path.startsWith('@') ? params.path.slice(1) : params.path;
 				const fallbackPath = resolve(ctx.cwd, targetPath);
-				throw new Error(
-					`File not found: ${params.path}\nResolved to: ${fallbackPath}\nUse the write tool to create new files.`,
-				);
+				throw new Error(`fast_apply: cannot resolve path ${params.path}\nResolved to: ${fallbackPath}`);
 			}
 
 			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${params.path}...` }], details: {} });
 
 			return withFileMutationQueue(absolutePath, async () => {
+				// New-file path: create parent dirs + empty file, then apply without marker requirement.
 				try {
 					await ensureReadableFile(absolutePath);
 				} catch {
-					throw new Error(
-						`File not found: ${params.path}\nResolved to: ${requestedPath}\nUse the write tool to create new files.`,
-					);
+					if (!dryRun) {
+						await mkdir(dirname(absolutePath), { recursive: true });
+						await writeFile(absolutePath, '', 'utf8');
+					}
+					isNewFile = true;
 				}
 
-				const originalCode = await readFile(absolutePath, 'utf8');
-				validateInputForExistingFile(params.codeEdit, originalCode);
+				const originalCode = isNewFile ? '' : await readFile(absolutePath, 'utf8');
+				if (!isNewFile) validateInputForExistingFile(params.codeEdit, originalCode);
 
 				onUpdate?.({ content: [{ type: 'text', text: `Running Morph merge for ${params.path}...` }], details: {} });
 
+				const morphStart = Date.now();
 				const result = await runMorphApply(
 					{
 						originalCode,
@@ -270,6 +280,8 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 					apiKey,
 					runtimeConfig,
 				);
+
+				const latencyMs = Date.now() - morphStart;
 
 				if (!result.success || result.mergedCode == null || result.mergedCode === '') {
 					const errorMessage =
@@ -310,7 +322,9 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 						applyDefaultModel: runtimeConfig.applyDefaultModel,
 						sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
 						sdkVersion: runtimeConfig.sdkPatch.version,
-					},
+						latencyMs,
+						isNewFile,
+					} satisfies FastApplyDetails,
 				};
 			});
 		},

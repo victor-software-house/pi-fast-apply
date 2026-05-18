@@ -32,6 +32,10 @@ export interface FastApplyDetails {
 	applyDefaultModel: MorphApplyDefaultModel;
 	sdkApplyPatchStatus: MorphSdkPatchStatus;
 	sdkVersion: string;
+	/** Morph API call latency in milliseconds. */
+	latencyMs?: number;
+	/** True when the target file did not exist and was created by this call. */
+	isNewFile?: boolean;
 }
 
 export interface ResolvedWorkspaceFile {
