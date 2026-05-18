@@ -45,9 +45,9 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		name: 'quick_edit',
 		label: 'Quick Edit',
 		description:
-			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes in one file, large files (300+ lines), complex refactors where exact oldText matching would be fragile, or reorganizing lines with huge/fragile values. Use edit for small exact replacements. Use write for new files. Supports dryRun to preview without writing.",
+			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes, large files (300+ lines), complex refactors, or reorganizing lines with huge/fragile values. Creates the file directly if it does not exist. Supports dryRun to preview without writing.",
 		promptSnippet:
-			"quick_edit: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements. Use write for new files.",
+			"quick_edit: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements.",
 		promptGuidelines: [
 			"quick_edit instruction: first-person, specific — e.g. 'I am adding input validation to the login function.'",
 			"quick_edit codeEdit: include only changed sections; wrap everything else in '// ... existing code ...' markers. One marker per unchanged region, no limit.",
@@ -236,7 +236,6 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 			const runtimeConfig = await getMorphRuntimeConfig();
 			const dryRun = Boolean(params.dryRun);
 			let absolutePath: string;
-			let isNewFile = false;
 
 			try {
 				({ absolutePath } = await resolveWorkspaceFilePath(ctx.cwd, params.path));
@@ -250,19 +249,47 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${params.path}...` }], details: {} });
 
 			return withFileMutationQueue(absolutePath, async () => {
-				// New-file path: create parent dirs + empty file, then apply without marker requirement.
+				let isNewFile = false;
 				try {
 					await ensureReadableFile(absolutePath);
 				} catch {
-					if (!dryRun) {
-						await mkdir(dirname(absolutePath), { recursive: true });
-						await writeFile(absolutePath, '', 'utf8');
-					}
 					isNewFile = true;
 				}
 
-				const originalCode = isNewFile ? '' : await readFile(absolutePath, 'utf8');
-				if (!isNewFile) validateInputForExistingFile(params.codeEdit, originalCode);
+				// New file: write codeEdit directly — no API round-trip on empty original.
+				if (isNewFile) {
+					if (!dryRun) {
+						await mkdir(dirname(absolutePath), { recursive: true });
+						await writeFile(absolutePath, params.codeEdit, 'utf8');
+					}
+					return {
+						content: [{ type: 'text' as const, text: `Created ${params.path}` }],
+						details: {
+							provider: 'direct',
+							path: params.path,
+							absolutePath,
+							dryRun,
+							instruction: params.instruction,
+							changes: { linesAdded: params.codeEdit.split('\n').length, linesRemoved: 0, linesModified: 0 },
+							udiff: undefined,
+							mergedCode: params.codeEdit,
+							originalCode: '',
+							completionId: undefined,
+							originalLineCount: 0,
+							mergedLineCount: params.codeEdit.split('\n').length,
+							apiBaseUrl: runtimeConfig.displayApiBaseUrl,
+							apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
+							apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
+							timeoutMs: runtimeConfig.timeoutMs,
+							applyDefaultModel: runtimeConfig.applyDefaultModel,
+							sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
+							sdkVersion: runtimeConfig.sdkPatch.version,
+						} satisfies QuickEditDetails,
+					};
+				}
+
+				const originalCode = await readFile(absolutePath, 'utf8');
+				validateInputForExistingFile(params.codeEdit, originalCode);
 
 				onUpdate?.({ content: [{ type: 'text', text: `Running Morph merge for ${params.path}...` }], details: {} });
 
@@ -287,7 +314,6 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 
 				validateMergedOutput(originalCode, params.codeEdit, result.mergedCode);
 				if (!dryRun) {
-					await mkdir(dirname(absolutePath), { recursive: true });
 					await writeFile(absolutePath, result.mergedCode, 'utf8');
 				}
 
@@ -319,7 +345,6 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 						sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
 						sdkVersion: runtimeConfig.sdkPatch.version,
 						latencyMs,
-						isNewFile,
 					} satisfies QuickEditDetails,
 				};
 			});
