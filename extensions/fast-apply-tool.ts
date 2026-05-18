@@ -45,16 +45,12 @@ export function registerFastApplyTool(pi: ExtensionAPI): void {
 		name: 'fast_apply',
 		label: 'Fast Apply',
 		description:
-			"Edit a workspace file (existing or new) using partial code snippets with '// ... existing code ...' markers. Use for multiple scattered changes, large files (300+ lines), complex refactors, or any edit where exact oldText matching would be fragile. Use edit for small exact replacements. Supports dryRun to preview before writing.",
+			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes in one file, large files (300+ lines), complex refactors where exact oldText matching would be fragile, or reorganizing lines with huge/fragile values. Use edit for small exact replacements. Use write for new files. Supports dryRun to preview without writing.",
 		promptSnippet:
-			"Use fast_apply for scattered/fragile edits, large files, and reorganizations. Use '// ... existing code ...' markers for unchanged sections. Use edit for small exact replacements. See routing policy in instructions/morph-tools.md.",
+			"fast_apply: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements. Use write for new files.",
 		promptGuidelines: [
-			"Write instruction in first person and make it specific, for example: 'I am adding input validation to the add function.'",
-			"In codeEdit, include only the changed sections and wrap unchanged sections with '// ... existing code ...' markers instead of rewriting the whole file.",
-			"Use '// ... existing code ...' (or a more descriptive variant like '// ... existing inline table ...') for any value that already exists in the file and is long, fragile, or risky to retype. The marker can appear inline within a single line between two unique literal anchors.",
-			'For reorganizations that touch many lines (regrouping a config table, reordering function declarations), give each relocated line its own placeholder on the right-hand side and let Morph fill them in from the existing file. One marker per line scales fine; there is no built-in limit.',
-			'Never paste a multi-KB value into codeEdit when a marker would work.',
-			'Include enough unique surrounding context to anchor each change precisely, preserve exact indentation, and use edit instead when the change is just a small exact replacement.',
+			"fast_apply instruction: first-person, specific — e.g. 'I am adding input validation to the login function.'",
+			"fast_apply codeEdit: include only changed sections; wrap everything else in '// ... existing code ...' markers. One marker per unchanged region, no limit.",
 		],
 		parameters: FastApplyParams,
 
