@@ -44,7 +44,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		name: 'quick_edit',
 		label: 'Quick Edit',
 		description:
-			"Default file editor. Provide only changed sections wrapped in '// ... existing code ...' markers — Morph fills the rest. Handles scattered or large edits, table/block reorganisation, complex refactors, or anything where exact string matching would be fragile. Creates new files directly. Fall back to edit only for a simple exact local replacement.",
+			"Default file editor. Provide only changed sections — use '// ... existing code ...' to mark everything unchanged; Morph applies the edit. Include minimally sufficient context around each change to resolve ambiguity. DO NOT omit spans of unchanged code without the marker — the apply model will delete them. Handles scattered edits, reorganisation, and complex refactors. Creates new files directly when the path does not exist. Fall back to edit only for a simple single-string replacement.",
 		promptSnippet: 'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
 		promptGuidelines: [
 			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",
