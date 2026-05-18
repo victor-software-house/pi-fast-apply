@@ -12,6 +12,19 @@ import {
 	type WarpGrepStep,
 } from '@morphllm/morphsdk';
 import { Type } from '@sinclair/typebox';
+import {
+	BOLD,
+	FG_DIM,
+	FG_RULE,
+	fileIcon,
+	hlBlock,
+	lang,
+	lnum,
+	RST,
+	rule,
+	strip,
+	termW,
+} from '@victor-software-house/pi-render-core';
 import { ensureMorphApiKey } from './auth';
 import { buildWarpGrepConfig, getMorphRuntimeConfig } from './runtime-config';
 import {
@@ -230,6 +243,85 @@ export function buildSearchDetails(
 	};
 }
 
+// ---------------------------------------------------------------------------
+// Rendering helpers
+// ---------------------------------------------------------------------------
+
+/** Parse the start line from a "N-M" or "N" range string. */
+function parseStartLine(lineRanges: string): number {
+	const first = lineRanges.split(',')[0]?.trim() ?? '';
+	const n = parseInt(first.split('-')[0] ?? '1', 10);
+	return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+/** Render one context block: file header + rule + syntax-highlighted lines with gutter. */
+async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
+	const tw = termW();
+	const startLine = parseStartLine(ctx.lineRanges);
+	const code = ctx.content;
+	const lines = code.split('\n');
+	const lg = lang(ctx.file);
+	const highlighted = await hlBlock(code, lg);
+
+	const endLine = startLine + lines.length - 1;
+	const nw = Math.max(3, String(endLine).length);
+	const gw = nw + 3; // num + " │ "
+	const cw = Math.max(20, tw - gw);
+
+	const icon = fileIcon(ctx.file);
+	const truncNote = ctx.truncated ? ` ${FG_DIM}(truncated)${RST}` : '';
+	const header = `${icon} ${BOLD}${ctx.file}${RST}  ${FG_DIM}lines ${ctx.lineRanges}${RST}${truncNote}`;
+
+	const out: string[] = [header, rule(tw)];
+
+	for (let i = 0; i < highlighted.length; i++) {
+		const ln = startLine + i;
+		const hlLine = highlighted[i] ?? lines[i] ?? '';
+		const plain = strip(hlLine);
+
+		let display = hlLine;
+		if (!expanded && plain.length > cw) {
+			// Truncate to terminal width without breaking ANSI
+			let vis = 0;
+			let j = 0;
+			while (j < hlLine.length && vis < cw - 1) {
+				if (hlLine[j] === '\x1b') {
+					const e = hlLine.indexOf('m', j);
+					if (e !== -1) {
+						j = e + 1;
+						continue;
+					}
+				}
+				vis++;
+				j++;
+			}
+			display = `${hlLine.slice(0, j)}${RST}${FG_DIM}›${RST}`;
+		}
+		out.push(`${lnum(ln, nw)} ${FG_RULE}│${RST} ${display}${RST}`);
+	}
+
+	out.push(rule(tw));
+	return out.join('\n');
+}
+
+/** Async render all context blocks for the expanded result. */
+async function renderExpandedBody(details: CodebaseSearchDetails): Promise<string> {
+	const blocks = await Promise.all(details.contexts.map((ctx) => renderContextBlock(ctx, true)));
+	const parts: string[] = [];
+
+	if (details.summary != null && details.summary.trim() !== '') {
+		parts.push(`${FG_DIM}${details.summary.trim()}${RST}`);
+	}
+
+	if (details.truncated) {
+		parts.push(`${FG_DIM}Output truncated. Refine searchTerm if more context is needed.${RST}`);
+	}
+
+	parts.push(...blocks);
+	return parts.join('\n\n');
+}
+
+/** Model-facing content string — the LLM-visible result (plain XML-like blocks). */
 export function formatSearchContent(details: CodebaseSearchDetails): string {
 	if (!details.success) return 'Codebase Search failed.';
 	if (details.contexts.length === 0) return `Codebase Search: ${details.searchTerm}\nNo relevant code found.`;
@@ -243,18 +335,18 @@ export function formatSearchContent(details: CodebaseSearchDetails): string {
 		lines.push('', 'Summary:', details.summary.trim());
 	}
 
-	for (const context of details.contexts) {
-		const truncatedLabel = context.truncated ? ' truncated="true"' : '';
-		lines.push(
-			'',
-			`<file path="${context.file}" lines="${context.lineRanges}"${truncatedLabel}>`,
-			context.content,
-			'</file>',
-		);
+	for (const ctx of details.contexts) {
+		const truncatedLabel = ctx.truncated ? ' truncated="true"' : '';
+		lines.push('', `<file path="${ctx.file}" lines="${ctx.lineRanges}"${truncatedLabel}>`, ctx.content, '</file>');
 	}
 
 	if (details.truncated) lines.push('', 'Output truncated. Refine searchTerm if more context is needed.');
 	return lines.join('\n');
+}
+
+/** Collapsed file list — no code, just dim path + line range bullets. */
+function renderFileList(details: CodebaseSearchDetails): string {
+	return details.contexts.map((ctx) => `  ${FG_DIM}${ctx.file}:${ctx.lineRanges}${RST}`).join('\n');
 }
 
 function formatStep(step: WarpGrepStep): string {
@@ -263,7 +355,12 @@ function formatStep(step: WarpGrepStep): string {
 }
 
 export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
-	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>>({
+	interface SearchRenderState {
+		key?: string;
+		body?: string | null;
+	}
+
+	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>, SearchRenderState>({
 		name: 'codebase_search',
 		label: 'Codebase Search',
 		description:
@@ -286,16 +383,18 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 		renderResult(result, { expanded, isPartial }, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
 
+			// Partial / still searching
 			if (isPartial) {
 				const first = result.content[0];
-				const raw = first != null && first.type === 'text' ? first.text : '';
+				const raw = first?.type === 'text' ? first.text : '';
 				text.setText(theme.fg('warning', raw !== '' ? raw : 'Searching codebase...'));
 				return text;
 			}
 
+			// Error
 			if (context.isError) {
 				const first = result.content[0];
-				const errorMsg = first != null && first.type === 'text' ? first.text : 'Unknown error';
+				const errorMsg = first?.type === 'text' ? first.text : 'Unknown error';
 				text.setText(
 					`${theme.fg('error', '✘')} ${theme.fg('toolTitle', theme.bold('codebase_search'))} failed\n${theme.fg('error', errorMsg)}`,
 				);
@@ -306,23 +405,51 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const ctxLabel = `${details.shownContextCount ?? 0}/${details.contextCount ?? 0} contexts`;
 			const latencyLabel = details.latencyMs != null ? `(${details.latencyMs}ms)` : null;
 			const turnsLabel = details.turnsUsed != null && details.turnsUsed > 0 ? `${details.turnsUsed} turns` : null;
-			const collapsedSuffix = [turnsLabel, latencyLabel].filter(Boolean).join(', ');
+			const meta = [turnsLabel, latencyLabel].filter(Boolean).join(' · ');
 			const header =
-				theme.fg('success', '✔') +
-				' ' +
-				theme.fg('toolTitle', theme.bold('codebase_search')) +
-				': ' +
-				theme.fg('accent', ctxLabel) +
-				(collapsedSuffix ? ` ${theme.fg('dim', collapsedSuffix)}` : '');
+				`${theme.fg('success', '✔')} ` +
+				`${theme.fg('toolTitle', theme.bold('codebase_search'))}: ` +
+				`${theme.fg('accent', ctxLabel)}` +
+				(meta ? `  ${theme.fg('dim', meta)}` : '');
 
+			// Full details required for rich rendering — fall back to plain header if not yet available.
+			function isFullDetails(d: Partial<CodebaseSearchDetails>): d is CodebaseSearchDetails {
+				return d.searchTerm != null && d.contexts != null;
+			}
+			const fullDetails = isFullDetails(details) ? details : null;
+
+			// Collapsed: header + dim file:line list
 			if (!expanded) {
-				text.setText(header);
+				const fileList = fullDetails != null ? renderFileList(fullDetails) : '';
+				text.setText(fileList ? `${header}\n${fileList}` : header);
 				return text;
 			}
 
-			const first = result.content[0];
-			const raw = first != null && first.type === 'text' ? first.text : header;
-			text.setText(`${header}\n\n${raw}`);
+			// Expanded: async syntax-highlighted blocks
+			const key = `search:${details.searchTerm}:${details.contextCount}:${details.shownContextCount}`;
+			if (context.state.key !== key) {
+				context.state.key = key;
+				context.state.body = null;
+
+				if (fullDetails != null) {
+					renderExpandedBody(fullDetails)
+						.then((body) => {
+							if (context.state.key !== key) return;
+							context.state.body = body;
+							context.invalidate();
+						})
+						.catch(() => {
+							if (context.state.key !== key) return;
+							const first = result.content[0];
+							context.state.body = first?.type === 'text' ? first.text : '';
+							context.invalidate();
+						});
+				}
+			}
+
+			const fallback = fullDetails != null ? renderFileList(fullDetails) : '';
+			const body: string = context.state.body ?? fallback;
+			text.setText(`${header}\n\n${body}`);
 			return text;
 		},
 

@@ -33,8 +33,8 @@ importers:
         specifier: ^0.34.49
         version: 0.34.49
       '@victor-software-house/pi-render-core':
-        specifier: ^0.1.2
-        version: 0.1.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
+        specifier: ^0.2.0
+        version: 0.2.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
       ai:
         specifier: ^6.0.183
         version: 6.0.183(zod@4.4.3)
@@ -1364,14 +1364,6 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.75.0'
       '@earendil-works/pi-tui': '>=0.75.0'
-
-  '@victor-software-house/pi-render-core@0.1.2':
-    resolution: {integrity: sha512-eGQ2iJVPhh1qra639zPh2pnViOYKabCLzJLSNH8FxJ7NdpRB9arCGhHTPHdIpx2qvTTIs6+nFKaTFvQ+hS3UcQ==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.1.2/abcd6ec44b614e8a8fdf546d84c62c17342b1f69}
-    engines: {node: '>=24.0.0'}
-    peerDependencies:
-      '@earendil-works/pi-coding-agent': '>=0.74.0'
-      '@earendil-works/pi-tui': '>=0.74.0'
-      shiki: ^4.0.2
 
   '@victor-software-house/pi-render-core@0.2.0':
     resolution: {integrity: sha512-nkWM2OCW/l9y9s7OgvO/t9XMloLBvWD/npfC1s2YwKvRQbihbjiI5qy1MZObWPKp1bGIXQj6E2RcpTuYFBeiUQ==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.2.0/ba1252e4d57426d33771d617633bb1dc296c7a0a}
@@ -4406,14 +4398,6 @@ snapshots:
       '@victor-software-house/pi-render-core': 0.2.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
       diff: 9.0.0
       shiki: 4.0.2
-
-  '@victor-software-house/pi-render-core@0.1.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
-    dependencies:
-      '@earendil-works/pi-coding-agent': 0.75.0(ws@8.20.0)(zod@4.4.3)
-      '@earendil-works/pi-tui': 0.75.0
-      '@shikijs/cli': 4.0.2
-      shiki: 4.0.2
-      unbash: 3.0.0
 
   '@victor-software-house/pi-render-core@0.2.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
     dependencies:
