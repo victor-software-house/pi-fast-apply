@@ -157,31 +157,29 @@ const CONFIG_ORIGINAL = `export const FEATURE_FLAGS = {\n${CONFIG_ENTRIES}\n} as
 // ─── Scenarios ────────────────────────────────────────────────────────────
 const SCENARIOS = [
 	{
-		name: 'class: add method + change constructor param without rewriting unchanged methods',
+		name: 'class: add method + rename dep — inline markers inside method bodies',
 		original: CLASS_ORIGINAL,
 		instruction:
 			'I am adding a verifySession method and renaming the cache dep to sessionStore throughout.',
 		codeEdit: `\
 export class AuthService {
-  private readonly db: Database;
-  private readonly mailer: Mailer;
+  // ... existing code ...
   private readonly sessionStore: Cache;
-  private readonly logger: Logger;
+  // ... existing code ...
 
   constructor(deps: { db: Database; mailer: Mailer; sessionStore: Cache; logger: Logger }) {
-    this.db = deps.db;
-    this.mailer = deps.mailer;
+    // ... existing code ...
     this.sessionStore = deps.sessionStore;
-    this.logger = deps.logger;
+    // ... existing code ...
   }
 
-  async login(email: string, password: string): Promise<Session> {
+  async login(// ... existing ...) {
     // ... existing code ...
     await this.sessionStore.set(\`session:\${token}\`, user.id, 86400);
     // ... existing code ...
   }
 
-  async logout(token: string): Promise<void> {
+  async logout(// ... existing ...) {
     await this.sessionStore.del(\`session:\${token}\`);
     // ... existing code ...
   }
@@ -194,25 +192,26 @@ export class AuthService {
 }`,
 	},
 	{
-		name: 'table: reorder route table alphabetically + add two new entries',
+		name: 'table: reorder + add rows — inline markers for each unchanged field value',
 		original: ROUTES_ORIGINAL,
 		instruction:
-			'I am reordering ROUTES alphabetically by key and adding a health check and metrics route.',
+			'I am reordering ROUTES alphabetically and adding health + metrics routes.',
+		// Inline markers: only changed/new fields written in full; all others skipped per-field.
 		codeEdit: `\
 export const ROUTES = {
-  createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
-  dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
-  deleteUser: { path: '/users/:id',  method: 'DEL',  auth: true,  rate: 10,  cache: 0    },
+  createUser: { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  dashboard:  { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  deleteUser: { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
   health:     { path: '/health',     method: 'GET',  auth: false, rate: 1000, cache: 0   },
-  login:      { path: '/auth/login', method: 'POST', auth: false, rate: 5,   cache: 0    },
-  logout:     { path: '/auth/logout',method: 'POST', auth: true,  rate: 100, cache: 0    },
+  login:      { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  logout:     { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
   metrics:    { path: '/metrics',    method: 'GET',  auth: true,  rate: 10,  cache: 0    },
   orderById:  { path: '/orders/:id', method: 'GET',  auth: true,  rate: 50,  cache: 0    },
-  orders:     { path: '/orders',     method: 'GET',  auth: true,  rate: 50,  cache: 0    },
-  productById:{ path: '/products/:id',method:'GET',  auth: false, rate: 200, cache: 3600 },
-  products:   { path: '/products',   method: 'GET',  auth: false, rate: 200, cache: 3600 },
-  userById:   { path: '/users/:id',  method: 'GET',  auth: true,  rate: 100, cache: 30   },
-  users:      { path: '/users',      method: 'GET',  auth: true,  rate: 50,  cache: 30   },
+  orders:     { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  productById:{ path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  products:   { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  userById:   { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
+  users:      { path: // ... existing ..., method: // ... existing ..., auth: // ... existing ..., rate: // ... existing ..., cache: // ... existing ... },
 } as const;`,
 	},
 	{
@@ -266,32 +265,28 @@ export function UserCard({ userId, compact = false, onLoad, onError }: Props) {
 }`,
 	},
 	{
-		name: 'sql: add audit columns to every table without rewriting structure',
+		name: 'sql: add audit columns — inline markers skip unchanged column definitions',
 		original: MIGRATION_ORIGINAL,
 		instruction:
 			'I am adding updated_at and deleted_at columns to users, products, and orders.',
 		codeEdit: `\
 -- Migration: 2024_01_add_initial_schema
 CREATE TABLE users (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email      TEXT NOT NULL UNIQUE,
+  // ... existing code ...
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE products (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  price_cents INTEGER NOT NULL,
+  // ... existing code ...
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ,
   deleted_at  TIMESTAMPTZ
 );
 
 CREATE TABLE orders (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID NOT NULL REFERENCES users(id),
+  // ... existing code ...
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   deleted_at TIMESTAMPTZ
@@ -300,7 +295,7 @@ CREATE TABLE orders (
 // ... existing code ...`,
 	},
 	{
-		name: 'sparse: flip 3 feature flags in 30-entry config without retyping others',
+		name: 'sparse: flip 3 of 30 flags with bracketing block markers',
 		original: CONFIG_ORIGINAL,
 		instruction: 'I am enabling FEATURE_05, FEATURE_14, and FEATURE_29.',
 		codeEdit: `\
@@ -313,6 +308,26 @@ export const FEATURE_FLAGS = {
   FEATURE_29: true ,
 // ... existing code ...
 } as const;`,
+	},
+	{
+		name: 'inline: multiple markers on one dense line — change 2 of 6 fields',
+		original: `const cfg = { host: 'localhost', port: 5432, name: 'prod', ssl: true, pool: 10, timeout: 30 };`,
+		instruction: "I am changing host to '10.0.0.1' and pool to 20.",
+		codeEdit: `const cfg = { host: '10.0.0.1', port: // ... existing ..., name: // ... existing ..., ssl: // ... existing ..., pool: 20, timeout: // ... existing ... };`,
+	},
+	{
+		name: 'verbatim: original already contains the marker string — must not throw or corrupt',
+		original: `\
+// Placeholder pattern: use // ... existing code ... to skip unchanged lines.
+const DOCS_EXAMPLE = '// ... existing code ...';
+
+export const VERSION = '1.0.0';
+export const DEBUG = false;`,
+		instruction: "I am bumping VERSION to 2.0.0.",
+		codeEdit: `\
+// ... existing code ...
+export const VERSION = '2.0.0';
+// ... existing code ...`,
 	},
 ] as const;
 
@@ -338,10 +353,17 @@ async function applyAndCheck(
 	if (!result.success || !result.mergedCode) {
 		throw new Error(`applyEdit failed: ${result.error}`);
 	}
-	expect(
-		result.mergedCode,
-		`Unexpanded marker leaked into output — model failed to expand a placeholder`,
-	).not.toContain('// ... existing');
+
+	// Only flag unexpanded markers when the original did NOT already contain the marker as real
+	// content. If original has it verbatim, the string legitimately passes through in output.
+	const originalHadMarker = original.includes('// ... existing');
+	if (!originalHadMarker) {
+		expect(
+			result.mergedCode,
+			`Unexpanded marker leaked — model failed to expand a placeholder`,
+		).not.toContain('// ... existing');
+	}
+
 	return result.mergedCode;
 }
 

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 1`] = `
+exports[`quick_edit live: marker expansion > 'class: add method + rename dep — inli…' 1`] = `
 "export class AuthService {
   private readonly db: Database;
   private readonly mailer: Mailer;
@@ -46,7 +46,7 @@ exports[`quick_edit live: marker expansion > 'class: add method + change constru
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 2`] = `
+exports[`quick_edit live: marker expansion > 'class: add method + rename dep — inli…' 2`] = `
 "export class AuthService {
   private readonly db: Database;
   private readonly mailer: Mailer;
@@ -92,7 +92,7 @@ exports[`quick_edit live: marker expansion > 'class: add method + change constru
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'class: add method + change constructo…' 3`] = `
+exports[`quick_edit live: marker expansion > 'class: add method + rename dep — inli…' 3`] = `
 "export class AuthService {
   private readonly db: Database;
   private readonly mailer: Mailer;
@@ -137,6 +137,12 @@ exports[`quick_edit live: marker expansion > 'class: add method + change constru
 }
 "
 `;
+
+exports[`quick_edit live: marker expansion > 'inline: multiple markers on one dense…' 1`] = `"const cfg = { host: '10.0.0.1', port: 5432, name: 'prod', ssl: true, pool: 20, timeout: 30 };"`;
+
+exports[`quick_edit live: marker expansion > 'inline: multiple markers on one dense…' 2`] = `"const cfg = { host: '10.0.0.1', port: 5432, name: 'prod', ssl: true, pool: 20, timeout: 30 };"`;
+
+exports[`quick_edit live: marker expansion > 'inline: multiple markers on one dense…' 3`] = `"const cfg = { host: '10.0.0.1', port: 5432, name: 'prod', ssl: true, pool: 20, timeout: 30 };"`;
 
 exports[`quick_edit live: marker expansion > 'react: add error state + skeleton var…' 1`] = `
 "import React, { useState, useEffect } from 'react';
@@ -297,7 +303,7 @@ export function UserCard({ userId, compact = false, onLoad, onError }: Props) {
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 1`] = `
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 of 30 flags with brack…' 1`] = `
 "export const FEATURE_FLAGS = {
   FEATURE_01: true ,
   FEATURE_02: false,
@@ -333,7 +339,7 @@ exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 2`] = `
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 of 30 flags with brack…' 2`] = `
 "export const FEATURE_FLAGS = {
   FEATURE_01: true ,
   FEATURE_02: false,
@@ -369,7 +375,7 @@ exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30-en…' 3`] = `
+exports[`quick_edit live: marker expansion > 'sparse: flip 3 of 30 flags with brack…' 3`] = `
 "export const FEATURE_FLAGS = {
   FEATURE_01: true ,
   FEATURE_02: false,
@@ -405,7 +411,7 @@ exports[`quick_edit live: marker expansion > 'sparse: flip 3 feature flags in 30
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 1`] = `
+exports[`quick_edit live: marker expansion > 'sql: add audit columns — inline marke…' 1`] = `
 "-- Migration: 2024_01_add_initial_schema
 CREATE TABLE users (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -447,7 +453,7 @@ CREATE TABLE sessions (
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 2`] = `
+exports[`quick_edit live: marker expansion > 'sql: add audit columns — inline marke…' 2`] = `
 "-- Migration: 2024_01_add_initial_schema
 CREATE TABLE users (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -489,7 +495,7 @@ CREATE TABLE sessions (
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'sql: add audit columns to every table…' 3`] = `
+exports[`quick_edit live: marker expansion > 'sql: add audit columns — inline marke…' 3`] = `
 "-- Migration: 2024_01_add_initial_schema
 CREATE TABLE users (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -531,7 +537,7 @@ CREATE TABLE sessions (
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 1`] = `
+exports[`quick_edit live: marker expansion > 'table: reorder + add rows — inline ma…' 1`] = `
 "export const ROUTES = {
   createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
   dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
@@ -550,7 +556,7 @@ exports[`quick_edit live: marker expansion > 'table: reorder route table alphabe
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 2`] = `
+exports[`quick_edit live: marker expansion > 'table: reorder + add rows — inline ma…' 2`] = `
 "export const ROUTES = {
   createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
   dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
@@ -569,7 +575,7 @@ exports[`quick_edit live: marker expansion > 'table: reorder route table alphabe
 "
 `;
 
-exports[`quick_edit live: marker expansion > 'table: reorder route table alphabetic…' 3`] = `
+exports[`quick_edit live: marker expansion > 'table: reorder + add rows — inline ma…' 3`] = `
 "export const ROUTES = {
   createUser: { path: '/users',      method: 'POST', auth: true,  rate: 10,  cache: 0    },
   dashboard:  { path: '/dashboard',  method: 'GET',  auth: true,  rate: 100, cache: 60   },
@@ -586,4 +592,28 @@ exports[`quick_edit live: marker expansion > 'table: reorder route table alphabe
   users:      { path: '/users',      method: 'GET',  auth: true,  rate: 50,  cache: 30   },
 } as const;
 "
+`;
+
+exports[`quick_edit live: marker expansion > 'verbatim: original already contains t…' 1`] = `
+"// Placeholder pattern: use // ... existing code ... to skip unchanged lines.
+const DOCS_EXAMPLE = '// ... existing code ...';
+
+export const VERSION = '2.0.0';
+export const DEBUG = false;"
+`;
+
+exports[`quick_edit live: marker expansion > 'verbatim: original already contains t…' 2`] = `
+"// Placeholder pattern: use // ... existing code ... to skip unchanged lines.
+const DOCS_EXAMPLE = '// ... existing code ...';
+
+export const VERSION = '2.0.0';
+export const DEBUG = false;"
+`;
+
+exports[`quick_edit live: marker expansion > 'verbatim: original already contains t…' 3`] = `
+"// Placeholder pattern: use // ... existing code ... to skip unchanged lines.
+const DOCS_EXAMPLE = '// ... existing code ...';
+
+export const VERSION = '2.0.0';
+export const DEBUG = false;"
 `;
