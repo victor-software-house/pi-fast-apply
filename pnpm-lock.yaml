@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@morphllm/morphsdk@0.2.171': c50a7e5e803081b09764bfbbc7e65706a76af9d1a452f164531940aa9785ba81
+  '@morphllm/morphsdk@0.2.171': 2196f59e754c04d8365ce98a02d19835e262fedf7d82e68250822ca6183b4148
 
 importers:
 
@@ -19,7 +19,7 @@ importers:
         version: 0.75.0
       '@morphllm/morphsdk':
         specifier: ^0.2.171
-        version: 0.2.171(patch_hash=c50a7e5e803081b09764bfbbc7e65706a76af9d1a452f164531940aa9785ba81)(@anthropic-ai/sdk@0.91.1(zod@4.4.3))(ai@6.0.183(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
+        version: 0.2.171(patch_hash=2196f59e754c04d8365ce98a02d19835e262fedf7d82e68250822ca6183b4148)(@anthropic-ai/sdk@0.91.1(zod@4.4.3))(ai@6.0.183(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
       '@sanity-labs/secret-scan':
         specifier: 1.1.0
         version: 1.1.0
@@ -3834,7 +3834,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@morphllm/morphsdk@0.2.171(patch_hash=c50a7e5e803081b09764bfbbc7e65706a76af9d1a452f164531940aa9785ba81)(@anthropic-ai/sdk@0.91.1(zod@4.4.3))(ai@6.0.183(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)':
+  '@morphllm/morphsdk@0.2.171(patch_hash=2196f59e754c04d8365ce98a02d19835e262fedf7d82e68250822ca6183b4148)(@anthropic-ai/sdk@0.91.1(zod@4.4.3))(ai@6.0.183(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)':
     dependencies:
       '@vscode/ripgrep': 1.18.0
       diff: 7.0.0

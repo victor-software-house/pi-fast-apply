@@ -88,7 +88,7 @@ index c16fb033c201fda8afde8982e01bfa37766d9a5e..b313dce75e1cf317b12e27f9d22eeda9
    if (shortMatch && !shortMatch[1].includes(".")) {
      return { owner: shortMatch[1], repo: shortMatch[2].replace(/\.git$/, "") };
 diff --git a/dist/chunk-C37YAYBK.js b/dist/chunk-C37YAYBK.js
-index ea2b3e526a55f7de8808b6e90cfad316388bbd4e..f8a70833528f8a5b1a218027ba783610e39a235b 100644
+index ea2b3e526a55f7de8808b6e90cfad316388bbd4e..92d62bccd52b2375fb564922225541202fdfa315 100644
 --- a/dist/chunk-C37YAYBK.js
 +++ b/dist/chunk-C37YAYBK.js
 @@ -150,6 +150,9 @@ async function callModel(messages, model, options = {}) {
@@ -97,7 +97,7 @@ index ea2b3e526a55f7de8808b6e90cfad316388bbd4e..f8a70833528f8a5b1a218027ba783610
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -121,7 +121,7 @@ index ea2b3e526a55f7de8808b6e90cfad316388bbd4e..f8a70833528f8a5b1a218027ba783610
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -411,7 +411,7 @@ index df2e7855aaec4c2a606eebadce817292fe24ec2f..3d21e2e889600ad7e576e3b1f9254204
    return createTool({
      description: BROWSER_TOOL_DESCRIPTION,
 diff --git a/dist/client.cjs b/dist/client.cjs
-index 5ddaf3d836b16ad5a95b3b53e5bcd32670e366f8..e161c3114c7deb75c5e072fcf8e46d0523a480ac 100644
+index 5ddaf3d836b16ad5a95b3b53e5bcd32670e366f8..68a68e4675b7aac16c1e37ff8b25c5835d49db26 100644
 --- a/dist/client.cjs
 +++ b/dist/client.cjs
 @@ -382,8 +382,7 @@ function countChanges(original, modified) {
@@ -459,7 +459,7 @@ index 5ddaf3d836b16ad5a95b3b53e5bcd32670e366f8..e161c3114c7deb75c5e072fcf8e46d05
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -483,7 +483,7 @@ index 5ddaf3d836b16ad5a95b3b53e5bcd32670e366f8..e161c3114c7deb75c5e072fcf8e46d05
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -661,7 +661,7 @@ index 26fa50fea7dcd08338a1c99196bce9ce5fb215fd..90a9c3db7cc506df4992d62ac3f52421
          repoId = match[1];
        }
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 780e51774632d7d73dcaa91ee48dcff99d0a4a48..e5dd01fe2d6468c4843461db3fa8b14e6a351097 100644
+index 780e51774632d7d73dcaa91ee48dcff99d0a4a48..af4b469c78e6ffa9c75797bf641aa570413cf2c4 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -382,8 +382,7 @@ function countChanges(original, modified) {
@@ -709,7 +709,7 @@ index 780e51774632d7d73dcaa91ee48dcff99d0a4a48..e5dd01fe2d6468c4843461db3fa8b14e
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -733,7 +733,7 @@ index 780e51774632d7d73dcaa91ee48dcff99d0a4a48..e5dd01fe2d6468c4843461db3fa8b14e
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -1033,7 +1033,7 @@ index 7f81529df36213d72a97700253cb8b4dee78f038..5464a9e76a805b23c6b5352ec3386cd9
    const debug = config.debug || false;
    if (!apiKey) {
 diff --git a/dist/tools/warp_grep/anthropic.cjs b/dist/tools/warp_grep/anthropic.cjs
-index 1a5a61d4dcd1989564f304691e7ced252872061f..156282e80925a89232ed8b8da4aa9b5e3ae83a3c 100644
+index 1a5a61d4dcd1989564f304691e7ced252872061f..ccb04b3d813639b9e2d8feff53faff49c95f45e1 100644
 --- a/dist/tools/warp_grep/anthropic.cjs
 +++ b/dist/tools/warp_grep/anthropic.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -1071,7 +1071,7 @@ index 1a5a61d4dcd1989564f304691e7ced252872061f..156282e80925a89232ed8b8da4aa9b5e
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -1095,7 +1095,7 @@ index 1a5a61d4dcd1989564f304691e7ced252872061f..156282e80925a89232ed8b8da4aa9b5e
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -1224,7 +1224,7 @@ index 1a5a61d4dcd1989564f304691e7ced252872061f..156282e80925a89232ed8b8da4aa9b5e
    let agentResult;
    for (; ; ) {
 diff --git a/dist/tools/warp_grep/client.cjs b/dist/tools/warp_grep/client.cjs
-index 80b355d51581d19987143c1ae3ef5b3a0ff5b421..1acfa95659a24a24a6cd93a533c70aecae07f8e9 100644
+index 80b355d51581d19987143c1ae3ef5b3a0ff5b421..d640ffb0f7e6939e0b49a6d7a608adc96d75fddf 100644
 --- a/dist/tools/warp_grep/client.cjs
 +++ b/dist/tools/warp_grep/client.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -1262,7 +1262,7 @@ index 80b355d51581d19987143c1ae3ef5b3a0ff5b421..1acfa95659a24a24a6cd93a533c70aec
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -1286,7 +1286,7 @@ index 80b355d51581d19987143c1ae3ef5b3a0ff5b421..1acfa95659a24a24a6cd93a533c70aec
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -1415,7 +1415,7 @@ index 80b355d51581d19987143c1ae3ef5b3a0ff5b421..1acfa95659a24a24a6cd93a533c70aec
    let agentResult;
    for (; ; ) {
 diff --git a/dist/tools/warp_grep/gemini.cjs b/dist/tools/warp_grep/gemini.cjs
-index cf4de9b624f299c6b1005740a147c15a7bbc4060..38d30e878c7582aa408eaf17b8ae4579408627b3 100644
+index cf4de9b624f299c6b1005740a147c15a7bbc4060..bcd007b26c12ab6e9435f29a875a6bc2f3a80294 100644
 --- a/dist/tools/warp_grep/gemini.cjs
 +++ b/dist/tools/warp_grep/gemini.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -1453,7 +1453,7 @@ index cf4de9b624f299c6b1005740a147c15a7bbc4060..38d30e878c7582aa408eaf17b8ae4579
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -1477,7 +1477,7 @@ index cf4de9b624f299c6b1005740a147c15a7bbc4060..38d30e878c7582aa408eaf17b8ae4579
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -1606,7 +1606,7 @@ index cf4de9b624f299c6b1005740a147c15a7bbc4060..38d30e878c7582aa408eaf17b8ae4579
    let agentResult;
    for (; ; ) {
 diff --git a/dist/tools/warp_grep/index.cjs b/dist/tools/warp_grep/index.cjs
-index beaddc85433468d4ece48f734ee2419ef0de7bbd..dbcaede1e4edc09fdf2ae22c0161c43ebfb2e25e 100644
+index beaddc85433468d4ece48f734ee2419ef0de7bbd..fab29a01b944d527b68ec7752fcd7b3bb09cb052 100644
 --- a/dist/tools/warp_grep/index.cjs
 +++ b/dist/tools/warp_grep/index.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -1644,7 +1644,7 @@ index beaddc85433468d4ece48f734ee2419ef0de7bbd..dbcaede1e4edc09fdf2ae22c0161c43e
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -1668,7 +1668,7 @@ index beaddc85433468d4ece48f734ee2419ef0de7bbd..dbcaede1e4edc09fdf2ae22c0161c43e
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -1807,7 +1807,7 @@ index 37ee1434c74f5bf693cf53b55e935c1e8fff1ec3..5e8a69d685c462fdb5c5c1f6999b4528
  export { e as GitHubReadFileInput, f as GitHubReadFileResult, h as GitHubReadFileToolConfig, G as GitHubSearchInput, g as GitHubSearchToolConfig, R as RemoteCommands, W as WarpGrepClientConfig, c as WarpGrepContext, a as WarpGrepInput, b as WarpGrepResult, d as WarpGrepToolConfig } from '../../types-CtkD4o1_.js';
  export { GrepResult, ListDirectoryEntry, ReadResult, WarpGrepProvider } from './providers/types.js';
 diff --git a/dist/tools/warp_grep/openai.cjs b/dist/tools/warp_grep/openai.cjs
-index 36befdc6952b3dd94bdc96fc41fa9ebcddb391cc..e6c44a9acb3095f5dd939f64792e35feb5282fec 100644
+index 36befdc6952b3dd94bdc96fc41fa9ebcddb391cc..b8534231f860c19ff4d9c593dfaa5a52ebbf52e4 100644
 --- a/dist/tools/warp_grep/openai.cjs
 +++ b/dist/tools/warp_grep/openai.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -1845,7 +1845,7 @@ index 36befdc6952b3dd94bdc96fc41fa9ebcddb391cc..e6c44a9acb3095f5dd939f64792e35fe
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -1869,7 +1869,7 @@ index 36befdc6952b3dd94bdc96fc41fa9ebcddb391cc..e6c44a9acb3095f5dd939f64792e35fe
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -2032,7 +2032,7 @@ index 0ecbc3c1668b6819b2d4304a116a9fdc7860255b..44967aacdf24bff88fe715780f22b6c1
    if (shortMatch && !shortMatch[1].includes(".")) {
      return { owner: shortMatch[1], repo: shortMatch[2].replace(/\.git$/, "") };
 diff --git a/dist/tools/warp_grep/vercel.cjs b/dist/tools/warp_grep/vercel.cjs
-index 03106eb21fab813eb64bc13dc94df6b551c27c42..e292739c46729cad5862fedf8868273e56685b81 100644
+index 03106eb21fab813eb64bc13dc94df6b551c27c42..e9dc106d8b11e36f45069efca817d3168df1e9c0 100644
 --- a/dist/tools/warp_grep/vercel.cjs
 +++ b/dist/tools/warp_grep/vercel.cjs
 @@ -388,8 +388,12 @@ var init_local = __esm({
@@ -2070,7 +2070,7 @@ index 03106eb21fab813eb64bc13dc94df6b551c27c42..e292739c46729cad5862fedf8868273e
    const MAX_EMPTY_RETRIES = 1;
 +  const temperature = options.temperature ?? 0;
 +  const maxTokens = options.maxTokens ?? 2048;
-+  const useBuiltinTools = options.useBuiltinTools === true;
++  const useBuiltinTools = options.useBuiltinTools !== false;
    logger.debug("WarpGrep", "model_call", { url: baseURL, model, message_count: messages.length });
    const callStartTime = Date.now();
    for (let attempt = 0; attempt <= MAX_EMPTY_RETRIES; attempt++) {
@@ -2094,7 +2094,7 @@ index 03106eb21fab813eb64bc13dc94df6b551c27c42..e292739c46729cad5862fedf8868273e
    const model = config.model || DEFAULT_MODEL;
 +  const temperature = config.temperature;
 +  const maxTokens = config.maxTokens;
-+  const useBuiltinTools = config.useBuiltinTools === true;
++  const useBuiltinTools = config.useBuiltinTools !== false;
    const messages = [];
 -  const maxTurns = AGENT_CONFIG.MAX_TURNS;
 +  const maxTurns = config.maxTurns ?? AGENT_CONFIG.MAX_TURNS;
@@ -2223,7 +2223,7 @@ index 03106eb21fab813eb64bc13dc94df6b551c27c42..e292739c46729cad5862fedf8868273e
    let agentResult;
    for (; ; ) {
 diff --git a/dist/types-CtkD4o1_.d.ts b/dist/types-CtkD4o1_.d.ts
-index 7af07831f5f717dc873e826d43a3672b6f312adb..6aac8202c1755be8785a03c329d6c73b4e611f97 100644
+index 7af07831f5f717dc873e826d43a3672b6f312adb..880feff89dcff8500448695a2b941eb7af15c5d2 100644
 --- a/dist/types-CtkD4o1_.d.ts
 +++ b/dist/types-CtkD4o1_.d.ts
 @@ -72,6 +72,16 @@ interface WarpGrepClientConfig {
@@ -2238,7 +2238,7 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..6aac8202c1755be8785a03c329d6c73b
 +    maxTokens?: number;
 +    /** Maximum agent turns before forced finish (defaults to 6) */
 +    maxTurns?: number;
-+    /** Omit the tools array from chat/completions requests, relying on Morph's built-in tools. Defaults to false. */
++    /** Omit the tools array from chat/completions requests, relying on Morph's built-in tools. Defaults to true. Pass false to send the legacy explicit tools array. */
 +    useBuiltinTools?: boolean;
  }
  /**
@@ -2255,7 +2255,7 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..6aac8202c1755be8785a03c329d6c73b
 +    maxTokens?: number;
 +    /** Per-call override of maxTurns */
 +    maxTurns?: number;
-+    /** Per-call override of useBuiltinTools */
++    /** Per-call override of useBuiltinTools (defaults to true) */
 +    useBuiltinTools?: boolean;
  }
  /**
@@ -2306,7 +2306,7 @@ index 7af07831f5f717dc873e826d43a3672b6f312adb..6aac8202c1755be8785a03c329d6c73b
 +    maxTokens?: number;
 +    /** Maximum agent turns before forced finish (defaults to 6) */
 +    maxTurns?: number;
-+    /** Omit the tools array from chat/completions requests. Defaults to false. */
++    /** Omit the tools array from chat/completions requests. Defaults to true. */
 +    useBuiltinTools?: boolean;
  }
  

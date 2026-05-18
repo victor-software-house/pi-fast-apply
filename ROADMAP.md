@@ -113,7 +113,7 @@ Implemented in `@morphllm/morphsdk@0.2.171` patch:
 - SDK now returns internal `WarpGrepTimings` (`initial_state_ms`, per-turn `morph_api_ms`/`local_tools_ms`, `finish_resolution_ms`, `total_ms`) in `WarpGrepResult.timings`.
 - `WarpGrepClientConfig` and `WarpGrepInput` accept optional `model`, `temperature`, `maxTokens`, `maxTurns`, and `useBuiltinTools` config (defaults: `morph-warp-grep-v2.1` / `0` / `2048` / `6` / `false`).
 - `LocalRipgrepProvider` accepts `includes` options (ripgrep `-g` patterns), wired through `getLocalProvider`, `executeToolCall`, and `executeToolCallStreaming`.
-- `useBuiltinTools: true` omits `tools: TOOL_SPECS` from the chat/completions request. Live recon shows `morph-warp-grep-v2.1` accepts both shapes; default keeps the existing `tools` array.
+- `useBuiltinTools` (default `true`) omits `tools: TOOL_SPECS` from the chat/completions request, matching Morph's official docs/cURL examples. Pass `false` to send the legacy explicit tools array.
 - Pi `codebase_search` schema now exposes `includes`, `excludes`, and `searchType` only. Model selection, generation params, and limits stay in runtime/SDK config; no model-facing exposure.
 - Pi provider wrapper auto-enables `allowNames: ['node_modules']` when `searchType === 'node_modules'` or when `repoRoot` is inside a `node_modules` tree.
 
@@ -129,11 +129,11 @@ Live recon (Morph `/v1/chat/completions`):
 - `morph-warp-grep-v2.1` works with and without a `tools` array; both produce `tool_calls`.
 - `morph-warp-grep-v1` still accepted; `morph-warp-grep` deprecated.
 - `auto` / `morph-warp-grep-auto` not accepted as WarpGrep models.
+- Rigorous interleaved comparison (5 rounds, randomized order) showed median latency parity (895ms tools vs 893ms no-tools after warmup) and identical `prompt_tokens` (1005). Morph injects WarpGrep tool specs server-side regardless, so sending the local `TOOL_SPECS` is purely redundant upload (~2.6 KB per turn). Built-in tools mode now wins by ~16 KB upload per 6-turn search with zero latency or token billing impact.
 
 Deferred (documented in [PRD-002](docs/prd/PRD-002-warpgrep-sdk-flexibility.md)):
 
 - Exposing the remaining `AGENT_CONFIG` limits (`maxContextChars`, `maxOutputLines`, `maxListResults`, `maxReadLines`, `maxListDepth`, `listTimeoutMs`) at SDK level. Only `maxTurns` is exposed now; deeper coverage requires threading config into helpers and the local provider.
-- Defaulting `useBuiltinTools` to `true`. Recon shows behavior parity; switching default needs broader regression evidence before flipping.
 
 ---
 
