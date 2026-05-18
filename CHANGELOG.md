@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.2.3 — 2026-05-18
+
+### Fixed
+
+- Bump pi-diff to 0.5.7 to fix TS errors in CI typecheck.
+
 ## 0.2.2 — 2026-05-18
 
 ### Changed
