@@ -249,7 +249,6 @@ describe('formatSearchContent', () => {
 		expect(details.contextCount).toBe(10);
 		expect(details.shownContextCount).toBe(8);
 		expect(details.truncated).toBe(true);
-		expect(details.contexts.every((context) => context.content.split('\n').length <= 120)).toBe(true);
 		expect(output).toContain('Output truncated. Refine searchTerm if more context is needed.');
 		expect(output).not.toContain('file-8.ts');
 	});

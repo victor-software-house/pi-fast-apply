@@ -36,7 +36,6 @@ import {
 } from './secret-redaction';
 
 const MAX_CONTEXTS = 8;
-const MAX_CONTEXT_LINES = 120;
 const MAX_TOTAL_CHARS = 24_000;
 
 const CodebaseSearchParams = Type.Object({
@@ -74,7 +73,6 @@ export interface DisplaySearchContext {
 	/** Structured line ranges from WarpGrep — use for rendering instead of parsing lineRanges string. */
 	ranges?: [number, number][];
 	content: string;
-	lineCount: number;
 	truncated: boolean;
 }
 
@@ -174,17 +172,6 @@ function formatLineRanges(lines: WarpGrepContext['lines']): string {
 	return lines.map(([start, end]) => `${start}-${end}`).join(',');
 }
 
-function truncateContextContent(content: string): { content: string; lineCount: number; truncated: boolean } {
-	const lines = content.split('\n');
-	const truncated = lines.length > MAX_CONTEXT_LINES;
-	const shown = truncated ? lines.slice(0, MAX_CONTEXT_LINES) : lines;
-	return {
-		content: shown.join('\n'),
-		lineCount: lines.length,
-		truncated,
-	};
-}
-
 function displayContextFile(repoRoot: string, filePath: string): string {
 	const relativePath = relative(repoRoot, filePath);
 	if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) return filePath;
@@ -207,15 +194,15 @@ export function buildSearchDetails(
 	let truncated = sourceContexts.length > MAX_CONTEXTS;
 
 	for (const context of sourceContexts.slice(0, MAX_CONTEXTS)) {
-		const bounded = truncateContextContent(context.content);
-		let content = bounded.content;
-		let contextTruncated = bounded.truncated;
 		const remainingChars = MAX_TOTAL_CHARS - totalChars;
 
 		if (remainingChars <= 0) {
 			truncated = true;
 			break;
 		}
+
+		let content = context.content;
+		let contextTruncated = false;
 
 		if (content.length > remainingChars) {
 			content = content.slice(0, remainingChars);
@@ -230,7 +217,6 @@ export function buildSearchDetails(
 			lineRanges: formatLineRanges(context.lines),
 			...(structuredRanges != null ? { ranges: structuredRanges } : {}),
 			content,
-			lineCount: bounded.lineCount,
 			truncated: contextTruncated,
 		});
 	}
