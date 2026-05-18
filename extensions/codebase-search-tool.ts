@@ -268,11 +268,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 		label: 'Codebase Search',
 		description:
 			'Search the local workspace semantically with Morph WarpGrep. Use for broad questions: where a flow is implemented, how a module works, where a behavior lives. Not for exact keyword or symbol lookup — use grep/find for those.',
-		promptSnippet:
-			'codebase_search: semantic/exploratory questions about the codebase. grep/find for exact strings, symbols, or filenames.',
-		promptGuidelines: [
-			'codebase_search: Use for broad semantic questions only. For exact strings, symbols, or filenames use grep or find — they are faster and use no API budget.',
-		],
+		promptSnippet: 'codebase_search: semantic/exploratory code questions. grep/find for exact strings or filenames.',
 		parameters: CodebaseSearchParams,
 
 		renderCall(args, theme, context) {

@@ -37,7 +37,6 @@ const QuickEditParams = Type.Object({
 		description:
 			"Partial edit containing only the changed sections, wrapped with '// ... existing code ...' markers. Include enough unique surrounding context to anchor each change precisely and preserve exact indentation.",
 	}),
-	dryRun: Type.Optional(Type.Boolean({ description: 'Preview the Morph merge without writing the file.' })),
 });
 
 export function registerQuickEditTool(pi: ExtensionAPI): void {
@@ -45,13 +44,8 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		name: 'quick_edit',
 		label: 'Quick Edit',
 		description:
-			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes, large files (300+ lines), complex refactors, or reorganizing lines with huge/fragile values. Creates the file directly if it does not exist. Supports dryRun to preview without writing.",
-		promptSnippet:
-			"quick_edit: scattered edits, large files, or fragile refactors. Use '// ... existing code ...' for unchanged sections. Use edit for small exact replacements.",
-		promptGuidelines: [
-			"quick_edit instruction: first-person, specific — e.g. 'I am adding input validation to the login function.'",
-			"quick_edit codeEdit: include only changed sections; wrap everything else in '// ... existing code ...' markers. One marker per unchanged region, no limit.",
-		],
+			"Edit a workspace file using partial code snippets with '// ... existing code ...' markers. Prefer over edit when: multiple scattered changes, large files (300+ lines), complex refactors, or reorganizing lines with huge/fragile values. Creates the file directly if it does not exist.",
+		promptSnippet: 'quick_edit: scattered edits, large files, fragile refactors. edit for small exact replacements.',
 		parameters: QuickEditParams,
 
 		renderCall(args, theme, context) {
@@ -128,7 +122,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 			return text;
 		},
 
-		renderResult(result, { expanded, isPartial }, theme, context) {
+		renderResult(result, { isPartial }, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
 
 			if (isPartial) {
@@ -154,9 +148,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 			const details = result.details;
 			const changes = details.changes;
 			const filePath = details.path ?? '';
-			const dryRun = details.dryRun ?? false;
 
-			const modeLabel = dryRun ? 'dry run' : 'applied';
 			const latency = details.latencyMs != null ? `${details.latencyMs}ms` : null;
 			const changeSummary = changes
 				? theme.fg('success', `+${changes.linesAdded}`) + '/' + theme.fg('error', `-${changes.linesRemoved}`)
@@ -169,10 +161,8 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 				': ' +
 				theme.fg('accent', filePath);
 
-			// // Collapsed one-liner: "✔ quick_edit: path.ts +12/-4 (842ms) [dry run]"
 			const collapsedParts: (string | null)[] = [header, changeSummary];
 			if (latency != null) collapsedParts.push(theme.fg('dim', `(${latency})`));
-			if (dryRun) collapsedParts.push(theme.fg('dim', modeLabel));
 
 			const changeLine = changes
 				? theme.fg('success', `+${changes.linesAdded}`) +
@@ -182,7 +172,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 					theme.fg('muted', `~${changes.linesModified}`)
 				: '';
 
-			if (!expanded) {
+			if (!context.expanded) {
 				text.setText(collapsedParts.filter(Boolean).join(' '));
 				return text;
 			}
@@ -234,7 +224,6 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
 			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
 			const runtimeConfig = await getMorphRuntimeConfig();
-			const dryRun = Boolean(params.dryRun);
 			let absolutePath: string;
 
 			try {
@@ -258,17 +247,15 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 
 				// New file: write codeEdit directly — no API round-trip on empty original.
 				if (isNewFile) {
-					if (!dryRun) {
-						await mkdir(dirname(absolutePath), { recursive: true });
-						await writeFile(absolutePath, params.codeEdit, 'utf8');
-					}
+					await mkdir(dirname(absolutePath), { recursive: true });
+					await writeFile(absolutePath, params.codeEdit, 'utf8');
 					return {
 						content: [{ type: 'text' as const, text: `Created ${params.path}` }],
 						details: {
 							provider: 'direct',
 							path: params.path,
 							absolutePath,
-							dryRun,
+							dryRun: false,
 							instruction: params.instruction,
 							changes: { linesAdded: params.codeEdit.split('\n').length, linesRemoved: 0, linesModified: 0 },
 							udiff: undefined,
@@ -313,22 +300,20 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 				}
 
 				validateMergedOutput(originalCode, params.codeEdit, result.mergedCode);
-				if (!dryRun) {
-					await writeFile(absolutePath, result.mergedCode, 'utf8');
-				}
+				await writeFile(absolutePath, result.mergedCode, 'utf8');
 
 				return {
 					content: [
 						{
 							type: 'text',
-							text: summarizeResult(params.path, dryRun, result.changes, result.udiff),
+							text: summarizeResult(params.path, false, result.changes, result.udiff),
 						},
 					],
 					details: {
 						provider: 'sdk',
 						path: params.path,
 						absolutePath,
-						dryRun,
+						dryRun: false,
 						instruction: params.instruction,
 						changes: result.changes,
 						udiff: result.udiff,
