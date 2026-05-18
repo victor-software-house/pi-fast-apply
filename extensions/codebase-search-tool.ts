@@ -1,4 +1,4 @@
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, relative, resolve } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
@@ -72,12 +72,6 @@ export interface DisplaySearchContext {
 	lineRanges: string;
 	/** Structured line ranges from WarpGrep — use for rendering instead of parsing lineRanges string. */
 	ranges?: [number, number][];
-	/**
-	 * Source lines snapshotted directly from disk at execute time, one entry per range.
-	 * Use this for rendering — clean source, no WarpGrep markers, exact line numbers.
-	 * NOT sent to the model (lives in details only).
-	 */
-	sourceBlocks?: Array<{ startLine: number; lines: string[] }>;
 	content: string;
 	truncated: boolean;
 }
@@ -189,28 +183,11 @@ function displaySummary(repoRoot: string, summary: string | undefined): string |
 	return summary.split(`${repoRoot}/`).join('');
 }
 
-/** Read source lines for a set of ranges from an absolute file path. Returns null on any read error. */
-async function snapshotSourceBlocks(
-	absoluteFile: string,
-	ranges: [number, number][],
-): Promise<Array<{ startLine: number; lines: string[] }> | null> {
-	try {
-		const raw = await readFile(absoluteFile, 'utf-8');
-		const allLines = raw.split('\n');
-		return ranges.map(([start, end]) => ({
-			startLine: start,
-			lines: allLines.slice(start - 1, end), // 1-based → 0-based
-		}));
-	} catch {
-		return null;
-	}
-}
-
-export async function buildSearchDetails(
+export function buildSearchDetails(
 	searchTerm: string,
 	repoRoot: string,
 	result: WarpGrepResult,
-): Promise<CodebaseSearchDetails> {
+): CodebaseSearchDetails {
 	const sourceContexts = result.contexts ?? [];
 	const contexts: DisplaySearchContext[] = [];
 	let totalChars = 0;
@@ -235,13 +212,10 @@ export async function buildSearchDetails(
 
 		totalChars += content.length;
 		const structuredRanges = context.lines !== '*' && context.lines != null ? context.lines : undefined;
-		const absoluteFile = resolve(repoRoot, context.file);
-		const sourceBlocks = structuredRanges != null ? await snapshotSourceBlocks(absoluteFile, structuredRanges) : null;
 		contexts.push({
 			file: displayContextFile(repoRoot, context.file),
 			lineRanges: formatLineRanges(context.lines),
 			...(structuredRanges != null ? { ranges: structuredRanges } : {}),
-			...(sourceBlocks != null ? { sourceBlocks } : {}),
 			content,
 			truncated: contextTruncated,
 		});
@@ -366,12 +340,9 @@ function renderSubBlock(
 async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
 	const tw = termW();
 	const lg = lang(ctx.file);
-
-	// Prefer snapshotted source lines (clean, direct from disk) over parsing WarpGrep content
-	const subBlocks =
-		ctx.sourceBlocks != null && ctx.sourceBlocks.length > 0
-			? ctx.sourceBlocks
-			: splitIntoSubBlocks(ctx.content, ctx.lineRanges, ctx.ranges);
+	// ctx.content = real source lines (SDK reads from disk) + block markers between ranges.
+	// splitIntoSubBlocks uses structured ranges to skip markers and assign correct start lines.
+	const subBlocks = splitIntoSubBlocks(ctx.content, ctx.lineRanges, ctx.ranges);
 
 	// Compute max end line for gutter width
 	const lastBlock = subBlocks[subBlocks.length - 1];
@@ -598,9 +569,12 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			if (result == null) throw new Error('Codebase Search did not return a result.');
 			if (!result.success) throw new Error(`Codebase Search failed: ${result.error ?? 'unknown error'}`);
 
-			const details = await buildSearchDetails(params.searchTerm, absolutePath, result);
+			const details = buildSearchDetails(params.searchTerm, absolutePath, result);
+			// Use SDK's own model-optimized formatted string (summary + <file> XML blocks).
+			// Falls back to our formatSearchContent if the patch is somehow not applied.
+			const modelContent = result.formattedContent ?? formatSearchContent(details);
 			return {
-				content: [{ type: 'text', text: formatSearchContent(details) }],
+				content: [{ type: 'text', text: modelContent }],
 				details: { ...details, latencyMs, turnsUsed },
 			};
 		},
