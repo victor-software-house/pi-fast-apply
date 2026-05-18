@@ -284,7 +284,8 @@ function splitIntoSubBlocks(content: string, lineRanges: string, ranges?: [numbe
 	let currentLines: string[] = [];
 
 	const firstRange = lineRanges.split(',')[0]?.trim() ?? '1';
-	const fallbackStart = parseInt(firstRange.split('-')[0] ?? '1', 10);
+	const parsed = parseInt(firstRange.split('-')[0] ?? '1', 10);
+	const fallbackStart = Number.isFinite(parsed) ? parsed : 1;
 
 	for (const line of rawLines) {
 		const m = WARPGREP_BLOCK_MARKER.exec(line);
@@ -371,9 +372,16 @@ async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean):
 		const highlighted = await hlBlock(block.lines.join('\n'), lg);
 		const rows = renderSubBlock(highlighted, block.lines, block.startLine, nw, cw, expanded);
 		out.push(...rows);
-		// Separator between non-contiguous blocks (not after last)
+		// Gap separator between non-contiguous blocks — like pi-diff hunk separators
 		if (bi < subBlocks.length - 1) {
-			out.push(`${' '.repeat(nw + 1)} ${FG_RULE}┆${RST}`);
+			const next = subBlocks[bi + 1];
+			const skipped = next != null ? next.startLine - (block.startLine + block.lines.length) : 0;
+			const label = skipped > 0 ? ` ${skipped} skipped lines ` : ' ··· ';
+			const ruleW = Math.min(tw, 72);
+			const pad = Math.max(0, ruleW - label.length - 2);
+			const h1 = Math.floor(pad / 2);
+			const h2 = pad - h1;
+			out.push(`${FG_DIM}${'─'.repeat(h1)}${label}${'─'.repeat(h2)}${RST}`);
 		}
 	}
 
