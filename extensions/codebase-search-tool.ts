@@ -247,41 +247,74 @@ export function buildSearchDetails(
 // Rendering helpers
 // ---------------------------------------------------------------------------
 
-/** Parse the start line from a "N-M" or "N" range string. */
-function parseStartLine(lineRanges: string): number {
-	const first = lineRanges.split(',')[0]?.trim() ?? '';
-	const n = parseInt(first.split('-')[0] ?? '1', 10);
-	return Number.isFinite(n) && n > 0 ? n : 1;
+// WarpGrep injects "// ... existing code, block starting at line N ..." markers
+// at the start of each non-contiguous range. This regex matches them.
+const WARPGREP_BLOCK_MARKER = /^\/\/ \.\.\. existing code, block starting at line (\d+) \.\.\.$/;
+
+interface CodeSubBlock {
+	startLine: number;
+	lines: string[];
 }
 
-/** Render one context block: file header + rule + syntax-highlighted lines with gutter. */
-async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
-	const tw = termW();
-	const startLine = parseStartLine(ctx.lineRanges);
-	const code = ctx.content;
-	const lines = code.split('\n');
-	const lg = lang(ctx.file);
-	const highlighted = await hlBlock(code, lg);
+/**
+ * Split WarpGrep content into sub-blocks. Each "block starting at line N"
+ * marker starts a new sub-block with the correct line offset. A leading marker
+ * is consumed; if there is no leading marker the first range start is used.
+ */
+function splitIntoSubBlocks(content: string, lineRanges: string): CodeSubBlock[] {
+	const rawLines = content.split('\n');
+	const blocks: CodeSubBlock[] = [];
+	let currentStart: number | null = null;
+	let currentLines: string[] = [];
 
-	const endLine = startLine + lines.length - 1;
-	const nw = Math.max(3, String(endLine).length);
-	const gw = nw + 3; // num + " │ "
-	const cw = Math.max(20, tw - gw);
+	// Fallback start line from first range (e.g. "63-95,97-126" → 63)
+	const firstRange = lineRanges.split(',')[0]?.trim() ?? '1';
+	const fallbackStart = parseInt(firstRange.split('-')[0] ?? '1', 10);
 
-	const icon = fileIcon(ctx.file);
-	const truncNote = ctx.truncated ? ` ${FG_DIM}(truncated)${RST}` : '';
-	const header = `${icon} ${BOLD}${ctx.file}${RST}  ${FG_DIM}lines ${ctx.lineRanges}${RST}${truncNote}`;
+	for (const line of rawLines) {
+		const m = WARPGREP_BLOCK_MARKER.exec(line);
+		if (m != null) {
+			// Flush current block if any
+			if (currentStart != null && currentLines.length > 0) {
+				blocks.push({ startLine: currentStart, lines: currentLines });
+			}
+			currentStart = parseInt(m[1] ?? '1', 10);
+			currentLines = [];
+		} else {
+			if (currentStart == null) currentStart = fallbackStart;
+			currentLines.push(line);
+		}
+	}
 
-	const out: string[] = [header, rule(tw)];
+	// Flush final block
+	if (currentStart != null && currentLines.length > 0) {
+		blocks.push({ startLine: currentStart, lines: currentLines });
+	}
 
-	for (let i = 0; i < highlighted.length; i++) {
+	// If nothing was parsed, treat whole content as one block
+	if (blocks.length === 0) {
+		blocks.push({ startLine: fallbackStart, lines: rawLines });
+	}
+
+	return blocks;
+}
+
+/** Render highlighted lines for one sub-block with correct line numbers. */
+function renderSubBlock(
+	hlLines: string[],
+	srcLines: string[],
+	startLine: number,
+	nw: number,
+	cw: number,
+	expanded: boolean,
+): string[] {
+	const out: string[] = [];
+	for (let i = 0; i < hlLines.length; i++) {
 		const ln = startLine + i;
-		const hlLine = highlighted[i] ?? lines[i] ?? '';
+		const hlLine = hlLines[i] ?? srcLines[i] ?? '';
 		const plain = strip(hlLine);
-
 		let display = hlLine;
 		if (!expanded && plain.length > cw) {
-			// Truncate to terminal width without breaking ANSI
 			let vis = 0;
 			let j = 0;
 			while (j < hlLine.length && vis < cw - 1) {
@@ -299,8 +332,40 @@ async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean):
 		}
 		out.push(`${lnum(ln, nw)} ${FG_RULE}│${RST} ${display}${RST}`);
 	}
+	return out;
+}
+
+/** Render one context block: file header + rule + syntax-highlighted lines with gutter. */
+async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
+	const tw = termW();
+	const lg = lang(ctx.file);
+	const subBlocks = splitIntoSubBlocks(ctx.content, ctx.lineRanges);
+
+	// Compute max end line for gutter width
+	const lastBlock = subBlocks[subBlocks.length - 1];
+	const maxLine = lastBlock != null ? lastBlock.startLine + lastBlock.lines.length - 1 : 1;
+	const nw = Math.max(3, String(maxLine).length);
+	const gw = nw + 3;
+	const cw = Math.max(20, tw - gw);
+
+	const icon = fileIcon(ctx.file);
+	const header = `${icon} ${BOLD}${ctx.file}${RST}  ${FG_DIM}lines ${ctx.lineRanges}${RST}`;
+	const out: string[] = [header, rule(tw)];
+
+	for (let bi = 0; bi < subBlocks.length; bi++) {
+		const block = subBlocks[bi];
+		if (block == null) continue;
+		const highlighted = await hlBlock(block.lines.join('\n'), lg);
+		const rows = renderSubBlock(highlighted, block.lines, block.startLine, nw, cw, expanded);
+		out.push(...rows);
+		// Separator between non-contiguous blocks (not after last)
+		if (bi < subBlocks.length - 1) {
+			out.push(`${' '.repeat(nw + 1)} ${FG_RULE}┆${RST}`);
+		}
+	}
 
 	out.push(rule(tw));
+	if (ctx.truncated) out.push(`${FG_DIM}  … truncated — refine searchTerm for more${RST}`);
 	return out.join('\n');
 }
 

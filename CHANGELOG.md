@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 0.2.5 — 2026-05-18
+
+### Fixed
+
+- `codebase_search` render: line numbers now correct for multi-range contexts.
+  WarpGrep injects `// ... existing code, block starting at line N ...` markers
+  between non-contiguous ranges; renderer now splits on these markers and assigns
+  each sub-block its correct start line instead of numbering from the first range
+  start throughout.
+- `codebase_search` render: `(truncated)` removed from the file header. When
+  content was cut at `MAX_CONTEXT_LINES`, the note now appears as a dim
+  `… truncated — refine searchTerm for more` line at the bottom of the code
+  block instead of polluting the header.
+- Non-contiguous sub-blocks separated by a dim `┆` gutter character instead of
+  nothing.
+
 ## 0.2.4 — 2026-05-18
 
 ### Fixed
