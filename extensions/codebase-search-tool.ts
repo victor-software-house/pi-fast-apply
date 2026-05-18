@@ -71,6 +71,8 @@ export interface ResolvedWorkspaceDirectory {
 export interface DisplaySearchContext {
 	file: string;
 	lineRanges: string;
+	/** Structured line ranges from WarpGrep — use for rendering instead of parsing lineRanges string. */
+	ranges?: [number, number][];
 	content: string;
 	lineCount: number;
 	truncated: boolean;
@@ -222,9 +224,11 @@ export function buildSearchDetails(
 		}
 
 		totalChars += content.length;
+		const structuredRanges = context.lines !== '*' && context.lines != null ? context.lines : undefined;
 		contexts.push({
 			file: displayContextFile(repoRoot, context.file),
 			lineRanges: formatLineRanges(context.lines),
+			...(structuredRanges != null ? { ranges: structuredRanges } : {}),
 			content,
 			lineCount: bounded.lineCount,
 			truncated: contextTruncated,
@@ -248,7 +252,7 @@ export function buildSearchDetails(
 // ---------------------------------------------------------------------------
 
 // WarpGrep injects "// ... existing code, block starting at line N ..." markers
-// at the start of each non-contiguous range. This regex matches them.
+// between non-contiguous ranges. This regex matches them.
 const WARPGREP_BLOCK_MARKER = /^\/\/ \.\.\. existing code, block starting at line (\d+) \.\.\.$/;
 
 interface CodeSubBlock {
@@ -257,24 +261,42 @@ interface CodeSubBlock {
 }
 
 /**
- * Split WarpGrep content into sub-blocks. Each "block starting at line N"
- * marker starts a new sub-block with the correct line offset. A leading marker
- * is consumed; if there is no leading marker the first range start is used.
+ * Split WarpGrep content into sub-blocks using structured ranges when available,
+ * falling back to marker parsing. Each sub-block has its correct start line.
  */
-function splitIntoSubBlocks(content: string, lineRanges: string): CodeSubBlock[] {
+function splitIntoSubBlocks(content: string, lineRanges: string, ranges?: [number, number][]): CodeSubBlock[] {
 	const rawLines = content.split('\n');
+
+	// Preferred path: use structured ranges from WarpGrepContext.lines
+	if (ranges != null && ranges.length > 0) {
+		const blocks: CodeSubBlock[] = [];
+		let contentIdx = 0;
+
+		for (const [start, end] of ranges) {
+			const rangeLen = end - start + 1;
+			// Skip any WarpGrep marker lines that precede this block
+			while (contentIdx < rawLines.length && WARPGREP_BLOCK_MARKER.test(rawLines[contentIdx] ?? '')) {
+				contentIdx++;
+			}
+			const block = rawLines.slice(contentIdx, contentIdx + rangeLen);
+			if (block.length > 0) blocks.push({ startLine: start, lines: block });
+			contentIdx += rangeLen;
+		}
+
+		if (blocks.length > 0) return blocks;
+	}
+
+	// Fallback: parse marker lines in content
 	const blocks: CodeSubBlock[] = [];
 	let currentStart: number | null = null;
 	let currentLines: string[] = [];
 
-	// Fallback start line from first range (e.g. "63-95,97-126" → 63)
 	const firstRange = lineRanges.split(',')[0]?.trim() ?? '1';
 	const fallbackStart = parseInt(firstRange.split('-')[0] ?? '1', 10);
 
 	for (const line of rawLines) {
 		const m = WARPGREP_BLOCK_MARKER.exec(line);
 		if (m != null) {
-			// Flush current block if any
 			if (currentStart != null && currentLines.length > 0) {
 				blocks.push({ startLine: currentStart, lines: currentLines });
 			}
@@ -285,18 +307,11 @@ function splitIntoSubBlocks(content: string, lineRanges: string): CodeSubBlock[]
 			currentLines.push(line);
 		}
 	}
-
-	// Flush final block
 	if (currentStart != null && currentLines.length > 0) {
 		blocks.push({ startLine: currentStart, lines: currentLines });
 	}
 
-	// If nothing was parsed, treat whole content as one block
-	if (blocks.length === 0) {
-		blocks.push({ startLine: fallbackStart, lines: rawLines });
-	}
-
-	return blocks;
+	return blocks.length > 0 ? blocks : [{ startLine: fallbackStart, lines: rawLines }];
 }
 
 /** Render highlighted lines for one sub-block with correct line numbers. */
@@ -339,7 +354,7 @@ function renderSubBlock(
 async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
 	const tw = termW();
 	const lg = lang(ctx.file);
-	const subBlocks = splitIntoSubBlocks(ctx.content, ctx.lineRanges);
+	const subBlocks = splitIntoSubBlocks(ctx.content, ctx.lineRanges, ctx.ranges);
 
 	// Compute max end line for gutter width
 	const lastBlock = subBlocks[subBlocks.length - 1];
