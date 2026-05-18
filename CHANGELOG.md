@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.2.7 — 2026-05-18
+
+### Changed
+
+- Line count shown in collapsed file list (`34L`) and expanded file header.
+
+### Fixed
+
+- `diff` DoS vulnerability in `@morphllm/morphsdk` is a transitive dep with no fix available (low severity).
+
 ## 0.2.6 — 2026-05-18
 
 ### Fixed

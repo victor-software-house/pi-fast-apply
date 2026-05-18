@@ -1,6 +1,6 @@
 {
 	"name": "@victor-software-house/pi-fast-apply",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
 	"license": "MIT",
 	"author": "Victor Software House",
