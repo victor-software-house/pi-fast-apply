@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.2 — 2026-05-18
+
+### Changed
+
+- `codebase_search` expanded result now renders syntax-highlighted multi-section code blocks
+  instead of a plain text dump. Each context block shows a file icon, bold path, dim line
+  range, horizontal rule, and Shiki-highlighted lines with a line-number gutter. Highlighting
+  loads async; the file list is shown immediately as a fallback.
+- Collapsed result shows the file list as dim `path:lines` bullets instead of no detail.
+- Added `@victor-software-house/pi-render-core@0.2.0` dependency for rendering primitives.
+
 ## 0.2.0 — 2026-05-18
 
 ### Changed
