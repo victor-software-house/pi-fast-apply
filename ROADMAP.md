@@ -26,85 +26,32 @@ Morph research inputs:
 
 ## Current checkpoint
 
-Fast Apply runtime slice is complete and verified.
+Released as `0.2.0`. All runtime work complete.
 
 Completed work:
 
 - Package scaffold, release baseline, lint/build hooks.
-- Pi-native `fast_apply` tool using Morph semantic merge.
-- Pi-owned path resolution, mutation queueing, dry-run diff, marker leak validation.
-- `/morph-login`, `/morph-logout`, `/morph-status` auth/config commands.
-- SDK patch for `@morphllm/morphsdk@0.2.171` so omitted Apply model selection sends `auto`.
-- `/morph-probe` runtime diagnostics.
-- Runtime split into focused modules under `extensions/`.
-- Minimal workspace path guard, Secretlint-backed codebase search content redaction, and sensitive container content omission.
-- Vitest coverage for runtime config, workspace guards, and live Morph Apply matrix.
-- README docs for auth, probe, Fast Apply contract, and inline placeholder pattern.
+- Pi-native `quick_edit` tool (renamed from `fast_apply`) using Morph semantic merge. Default file editor; `edit` remains as fallback for trivial exact replacements.
+- Pi-owned path resolution, mutation queueing, marker leak validation.
+- New-file creation: writes `codeEdit` directly without API round-trip.
+- `dryRun` removed from model-facing schema.
+- `promptGuidelines` enforce marker-first usage.
+- `/morph login`, `/morph logout`, `/morph status`, `/morph probe` auth/config commands.
+- SDK patch for `@morphllm/morphsdk@0.2.171`: `auto` default, WarpGrep timings, model/temp/maxTokens/maxTurns/includes/useBuiltinTools.
+- `codebase_search` tool: WarpGrep-backed semantic local search with `includes`, `excludes`, `searchType` schema; Secretlint + TruffleHog-derived redaction.
+- `MORPH_EDIT` and `MORPH_WARPGREP` env feature flags for conditional tool registration.
+- Live test suite: 7 scenarios × 3 runs, `toMatchSnapshot()`, inline marker probing, verbatim edge case.
+- README and AGENTS.md current.
 
 Verification evidence:
 
 - Standard local gate passed: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build`.
-- Live Morph matrix passed through `mise run test:morph-matrix`: 10 scenarios × 10 API/SDK paths × 3 runs = 300/300 successful calls.
+- Live Morph matrix: 10 scenarios × 10 API/SDK paths × 3 runs = 300/300 successful calls.
 - Latest generated reports:
   - [Morph Apply behavior matrix](docs/morph-apply-behavior-matrix.md)
   - [Morph Apply scenarios](docs/morph-apply-scenarios.md)
 
-Known caveat:
-
-- Non-interactive Pi `-p` slash-command checks load the extension only with `--no-extensions`, because the globally installed package also registers `fast_apply`. `/morph-status` and `/morph-probe` produced no visible output in that print-mode path, likely because command output is notification/UI-backed. Live API behavior is covered by helper tests and matrix.
-
 ---
-
-## Current: local `codebase_search`
-
-Priority: highest.
-
-Local Morph WarpGrep is available as a Pi-native model-facing tool named `codebase_search`, label `Codebase Search`.
-
-Why next:
-
-- It improves context gathering before adding more advanced Morph runtime features.
-- It keeps search local-first: Pi executes filesystem reads/searches; Morph handles semantic search planning.
-- It matches the implementation plan’s Morph Search Tools workstream and ADR-0002’s straightforward tool declaration rule.
-
-Scope:
-
-- Local repo/workspace search only.
-- No GitHub search.
-- No remote/sandbox search.
-- No activator stub.
-- Minimal schema.
-- Bounded file:line/code contexts.
-- Streaming progress when SDK supports it.
-
-Expected model-facing shape:
-
-| Field        | Value                                                                 |
-| ------------ | --------------------------------------------------------------------- |
-| Tool name    | `codebase_search`                                                     |
-| Label        | `Codebase Search`                                                     |
-| Primary arg  | `searchTerm` — natural-language question about current codebase       |
-| Optional arg | `repoRoot` only if needed; default current workspace/repo root         |
-| Output       | Bounded relevant files with line ranges and code/context snippets      |
-| Non-goal     | Exact keyword/regex search; native `grep`/`find` remain better there   |
-
-Acceptance:
-
-- Tool registered from the extension with concise description and prompt guidance.
-- Uses existing Morph auth/config helpers.
-- Uses high-level SDK path first if it allows bounded output and progress rendering.
-- Falls back to direct WarpGrep protocol only if SDK blocks required Pi behavior.
-- Reads only local workspace/repo paths.
-- Rejects secret-like `searchTerm` values before Morph receives them with Secretlint plus TruffleHog-derived preflight detection.
-- Redacts detected secret values with Secretlint before WarpGrep context reaches Morph.
-- Omits content from high-risk secret container paths when `read`/`grep` touches them.
-- Keeps redaction enabled by default with `CODEBASE_SEARCH_REDACTION=0` opt-out for synthetic debugging.
-- Keeps WarpGrep default discovery behavior for list/glob output.
-- Returns compact structured output, not raw grep dumps.
-- Unit or harness tests cover argument validation, path bounds, redaction, and output bounds.
-- Manual search in this repo finds runtime/auth symbols with useful file:line context.
-- `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build` pass.
-- `pnpm run measure:codebase-search -- "<query>"` measures live WarpGrep wall time, SDK timing metrics, and provider operation timings against a chosen repo.
 
 ## WarpGrep SDK flexibility (PRD-002) status
 
@@ -134,19 +81,6 @@ Live recon (Morph `/v1/chat/completions`):
 Deferred (documented in [PRD-002](docs/prd/PRD-002-warpgrep-sdk-flexibility.md)):
 
 - Exposing the remaining `AGENT_CONFIG` limits (`maxContextChars`, `maxOutputLines`, `maxListResults`, `maxReadLines`, `maxListDepth`, `listTimeoutMs`) at SDK level. Only `maxTurns` is exposed now; deeper coverage requires threading config into helpers and the local provider.
-
----
-
-## Then: verification for `codebase_search`
-
-After implementation:
-
-- Manual/live search in this repo must find runtime/auth symbols with useful bounded file:line context.
-- `/morph-probe`: add skipped/implemented search health check only if low-cost and useful.
-- Tests: keep exact string search guidance pointed at native `grep`/`find`.
-- Standard local gate must pass: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build`.
-
-Docs must avoid prompt bloat. Tool metadata should explain routing in one or two direct sentences, not a mini-manual.
 
 ---
 
@@ -196,11 +130,11 @@ Scope:
 
 ### Router evaluation
 
-Evaluate Morph Router only if `fast_apply` needs extra model-routing visibility beyond SDK default `auto`.
+Evaluate Morph Router only if `quick_edit` needs extra model-routing visibility beyond SDK default `auto`.
 
 Current default:
 
-- Do not expose model/large controls on `fast_apply`.
+- Do not expose model/large controls on `quick_edit`.
 - Let patched SDK default send `auto`.
 
 ### Remote/sandbox search

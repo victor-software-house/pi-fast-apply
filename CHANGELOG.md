@@ -12,13 +12,30 @@
 - README and AGENTS.md rewritten to reflect current tool names, marker patterns, commands, and feature flags.
 - `instructions/morph-tools.md` removed — no Pi auto-load path at extension level; `promptGuidelines` is the correct mechanism.
 
+## 0.1.4 — 2026-05-18
+
+### Changed
+
+- Renamed tool `fast_apply` → `quick_edit` / `Quick Edit`. Same Morph semantic merge; no schema change beyond the name.
+- Tool descriptions made self-contained — no external file references.
+- Reverted accidental suppression of the built-in `edit` tool; `edit` remains active as a fallback.
+- Bumped `pi-diff` to 0.4.5 (termW floor fix).
+
+## 0.1.3 — 2026-05-18
+
+### Changed
+
+- `useBuiltinTools` defaulted to `true` in the WarpGrep SDK patch — omits redundant `TOOL_SPECS` upload (~2.6 KB/turn) with zero latency or token billing impact.
+- `codebase_search` schema expanded: `includes`, `excludes`, `searchType` args; WarpGrep SDK patch adds model/temp/maxTokens/maxTurns/includes options.
+- Quick wins from opencode-morph-plugin comparison applied to tool descriptions and prompt metadata.
+- CI fallback to `github.token` when `GH_PACKAGES_TOKEN` is unset.
+- Bumped `pi-diff` to 0.4.4 (bg-preserving reset).
+
 ## 0.1.2 — 2026-05-18
 
 ### Changed
 
 - Peer range for `@earendil-works/*` bumped from `>=0.74.0` to `>=0.75.0` to match Pi 0.75.x. No API surface changes were required; the imports used by this package are unchanged across the 0.74 → 0.75 upgrade.
-
-## Unreleased
 
 ## 0.1.1 — 2026-05-12
 
