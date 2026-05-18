@@ -35,7 +35,7 @@ const QuickEditParams = Type.Object({
 	}),
 	codeEdit: Type.String({
 		description:
-			"Partial edit containing only the changed sections, wrapped with '// ... existing code ...' markers. Include enough unique surrounding context to anchor each change precisely and preserve exact indentation.",
+			"Only the changed lines plus enough surrounding context to anchor each change. Everything else MUST be a '// ... existing code ...' marker — never repeat unchanged content. Use one marker per skipped region, no limit. Markers work inline too: 'KEY = // ... existing value ...' leaves the value untouched. For reordering rows or blocks, list the new order and use a marker for each row's unchanged content.",
 	}),
 });
 
