@@ -21,7 +21,7 @@
     "types": ["node"],
     "allowImportingTsExtensions": false,
     "paths": {
-      "pi-diff/render": ["../pi-diff/dist/render.d.ts"]
+      "pi-diff/render": ["./types/pi-diff-render.d.ts"]
     }
   },
   "include": ["extensions/**/*.ts"],

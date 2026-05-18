@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.4 — 2026-05-18
+
+### Fixed
+
+- Replace broken `paths` redirect for `pi-diff/render` with a local type stub
+  (`types/pi-diff-render.d.ts`). pi-diff ships only TypeScript source; the old
+  path pointed to a non-existent `dist/` that caused CI typecheck to fall back
+  to the raw source and fail under our strict `noUncheckedIndexedAccess` /
+  `exactOptionalPropertyTypes` settings. The stub provides precise types for the
+  symbols we actually consume without touching pi-diff's source.
+
 ## 0.2.3 — 2026-05-18
 
 ### Fixed
