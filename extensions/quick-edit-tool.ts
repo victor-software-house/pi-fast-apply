@@ -152,7 +152,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 
 			const latency = details.latencyMs != null ? `${details.latencyMs}ms` : null;
 			const changeSummary = changes
-				? theme.fg('success', `+${changes.linesAdded}`) + '/' + theme.fg('error', `-${changes.linesRemoved}`)
+				? `${theme.fg('success', `+${changes.linesAdded}`)}/${theme.fg('error', `-${changes.linesRemoved}`)}`
 				: null;
 
 			const header =
