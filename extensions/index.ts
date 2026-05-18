@@ -13,4 +13,9 @@ export default function fastApplyExtension(pi: ExtensionAPI): void {
 	if (envEnabled('MORPH_EDIT')) registerQuickEditTool(pi);
 	if (envEnabled('MORPH_WARPGREP')) registerCodebaseSearchTool(pi);
 	registerMorphCommands(pi);
+
+	// Expose package skills for on-demand loading by the model.
+	pi.on('resources_discover', () => ({
+		skillPaths: [new URL('../skills', import.meta.url).pathname],
+	}));
 }
