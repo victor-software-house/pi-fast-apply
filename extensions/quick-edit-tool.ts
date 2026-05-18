@@ -46,6 +46,12 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		description:
 			"Default file editor. Provide only changed sections wrapped in '// ... existing code ...' markers — Morph fills the rest. Handles scattered or large edits, table/block reorganisation, complex refactors, or anything where exact string matching would be fragile. Creates new files directly. Fall back to edit only for a simple exact local replacement.",
 		promptSnippet: 'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
+		promptGuidelines: [
+			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",
+			'quick_edit inline markers: skip unchanged fields on the same line — { a: new, b: // ... existing ..., c: other, d: // ... existing ... } — one marker per field, multiple per line.',
+			"quick_edit reorder: write the new order and mark each unchanged field value inline — never retype field values that didn't change.",
+			'quick_edit sparse: two block markers bracket the changed entry — everything between is skipped.',
+		],
 		parameters: QuickEditParams,
 
 		renderCall(args, theme, context) {
