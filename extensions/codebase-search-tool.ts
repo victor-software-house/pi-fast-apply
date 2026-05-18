@@ -33,6 +33,21 @@ const CodebaseSearchParams = Type.Object({
 	repoRoot: Type.Optional(
 		Type.String({ description: 'Local workspace directory to search. Defaults to the current workspace.' }),
 	),
+	includes: Type.Optional(
+		Type.Array(Type.String(), {
+			description: 'Optional ripgrep-style glob patterns to include (e.g. ["src/**/*.ts"]).',
+		}),
+	),
+	excludes: Type.Optional(
+		Type.Array(Type.String(), {
+			description: 'Optional ripgrep-style glob patterns to exclude. Replaces SDK default excludes when set.',
+		}),
+	),
+	searchType: Type.Optional(
+		Type.Union([Type.Literal('default'), Type.Literal('node_modules')], {
+			description: 'Search scope. Use node_modules to include dependency directories normally excluded by default.',
+		}),
+	),
 });
 
 export interface ResolvedWorkspaceDirectory {
@@ -74,11 +89,27 @@ function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void 
 	throw new Error('codebase_search only supports repo roots inside the current workspace.');
 }
 
+export interface SafeWarpGrepProviderOptions extends CodebaseSearchRedactionOptions {
+	includes?: string[];
+	excludes?: string[];
+	searchType?: 'default' | 'node_modules';
+}
+
 export function createSafeWarpGrepProvider(
 	repoRoot: string,
-	options: CodebaseSearchRedactionOptions = {},
+	options: SafeWarpGrepProviderOptions = {},
 ): WarpGrepProvider {
-	const inner = new LocalRipgrepProvider(repoRoot);
+	const providerOptions: { allowNames?: string[]; includes?: string[] } = {};
+	const autoDetectedNodeModules = repoRoot.split('/').includes('node_modules');
+	if (options.searchType === 'node_modules' || autoDetectedNodeModules) {
+		providerOptions.allowNames = ['node_modules'];
+	}
+	if (options.includes != null && options.includes.length > 0) providerOptions.includes = options.includes;
+	const inner = new LocalRipgrepProvider(
+		repoRoot,
+		options.excludes,
+		Object.keys(providerOptions).length > 0 ? providerOptions : undefined,
+	);
 	const redactionEnabled = options.enabled ?? true;
 	return {
 		async grep(params) {
@@ -301,11 +332,18 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			});
 
 			const client = new WarpGrepClient(buildWarpGrepConfig(apiKey, runtimeConfig));
+			const providerOptions: SafeWarpGrepProviderOptions = { enabled: redactionEnabled };
+			if (params.includes && params.includes.length > 0) providerOptions.includes = params.includes;
+			if (params.excludes && params.excludes.length > 0) providerOptions.excludes = params.excludes;
+			if (params.searchType != null) providerOptions.searchType = params.searchType;
 			const stream = client.execute({
 				searchTerm: params.searchTerm,
 				repoRoot: absolutePath,
-				provider: createSafeWarpGrepProvider(absolutePath, { enabled: redactionEnabled }),
+				provider: createSafeWarpGrepProvider(absolutePath, providerOptions),
 				streamSteps: true,
+				...(params.includes && params.includes.length > 0 ? { includes: params.includes } : {}),
+				...(params.excludes && params.excludes.length > 0 ? { excludes: params.excludes } : {}),
+				...(params.searchType != null ? { search_type: params.searchType } : {}),
 			});
 
 			let result: WarpGrepResult | undefined;

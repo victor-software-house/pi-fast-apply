@@ -151,6 +151,9 @@ Use native tools instead for exact lookups:
 |:----------|:------------|
 | `searchTerm` | Natural-language question about where code behavior lives in the local codebase |
 | `repoRoot` | Optional local directory inside the current workspace to search; defaults to current workspace |
+| `includes` | Optional ripgrep-style include globs (e.g. `["src/**/*.ts"]`); narrows local grep/glob to matching files |
+| `excludes` | Optional ripgrep-style exclude globs; replaces SDK default excludes when provided |
+| `searchType` | `default` (default) or `node_modules`; node_modules mode includes dependency directories normally skipped. Auto-enabled when `repoRoot` is inside a `node_modules` tree. |
 
 ### `codebase_search` output
 

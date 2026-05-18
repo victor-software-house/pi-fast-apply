@@ -6,6 +6,8 @@ Primary specdocs:
 
 - [PRD: Morph Runtime Integration](docs/prd/PRD-001-morph-runtime-integration.md)
 - [Plan: Morph Runtime Integration](docs/architecture/plan-morph-runtime-integration.md)
+- [PRD: WarpGrep SDK Flexibility](docs/prd/PRD-002-warpgrep-sdk-flexibility.md)
+- [Plan: WarpGrep SDK Flexibility](docs/architecture/plan-warpgrep-sdk-flexibility.md)
 - [ADR-0001: Pi-owned file mutation for Morph Apply](docs/adr/ADR-0001-pi-owned-file-mutation-for-morph-apply.md)
 - [ADR-0002: Straightforward Morph tool declarations](docs/adr/ADR-0002-straightforward-morph-tool-declarations.md)
 - [ADR-0003: Pi auth storage for Morph secrets](docs/adr/ADR-0003-pi-auth-storage-for-morph-secrets.md)
@@ -103,6 +105,35 @@ Acceptance:
 - Manual search in this repo finds runtime/auth symbols with useful file:line context.
 - `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build` pass.
 - `pnpm run measure:codebase-search -- "<query>"` measures live WarpGrep wall time, SDK timing metrics, and provider operation timings against a chosen repo.
+
+## WarpGrep SDK flexibility (PRD-002) status
+
+Implemented in `@morphllm/morphsdk@0.2.171` patch:
+
+- SDK now returns internal `WarpGrepTimings` (`initial_state_ms`, per-turn `morph_api_ms`/`local_tools_ms`, `finish_resolution_ms`, `total_ms`) in `WarpGrepResult.timings`.
+- `WarpGrepClientConfig` and `WarpGrepInput` accept optional `model`, `temperature`, `maxTokens`, `maxTurns`, and `useBuiltinTools` config (defaults: `morph-warp-grep-v2.1` / `0` / `2048` / `6` / `false`).
+- `LocalRipgrepProvider` accepts `includes` options (ripgrep `-g` patterns), wired through `getLocalProvider`, `executeToolCall`, and `executeToolCallStreaming`.
+- `useBuiltinTools: true` omits `tools: TOOL_SPECS` from the chat/completions request. Live recon shows `morph-warp-grep-v2.1` accepts both shapes; default keeps the existing `tools` array.
+- Pi `codebase_search` schema now exposes `includes`, `excludes`, and `searchType` only. Model selection, generation params, and limits stay in runtime/SDK config; no model-facing exposure.
+- Pi provider wrapper auto-enables `allowNames: ['node_modules']` when `searchType === 'node_modules'` or when `repoRoot` is inside a `node_modules` tree.
+
+Live evidence (matrix run on disposable fixture and `nodejs/node`):
+
+- `sdkTimings` returned non-null end-to-end through `pnpm run measure:codebase-search`.
+- Parent-root + `node_modules` mode returned `packageA/node_modules/cool-pkg/index.js`.
+- Direct `packageA/node_modules/cool-pkg` root returned the package file with both `default` (because `allowNames` is set) and `node_modules` modes.
+- Default mode excluded `node_modules` from parent root.
+
+Live recon (Morph `/v1/chat/completions`):
+
+- `morph-warp-grep-v2.1` works with and without a `tools` array; both produce `tool_calls`.
+- `morph-warp-grep-v1` still accepted; `morph-warp-grep` deprecated.
+- `auto` / `morph-warp-grep-auto` not accepted as WarpGrep models.
+
+Deferred (documented in [PRD-002](docs/prd/PRD-002-warpgrep-sdk-flexibility.md)):
+
+- Exposing the remaining `AGENT_CONFIG` limits (`maxContextChars`, `maxOutputLines`, `maxListResults`, `maxReadLines`, `maxListDepth`, `listTimeoutMs`) at SDK level. Only `maxTurns` is exposed now; deeper coverage requires threading config into helpers and the local provider.
+- Defaulting `useBuiltinTools` to `true`. Recon shows behavior parity; switching default needs broader regression evidence before flipping.
 
 ---
 

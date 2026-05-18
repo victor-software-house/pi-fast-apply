@@ -12,6 +12,12 @@ const args = process.argv.slice(2);
 const searchTerm =
 	(args[0] === '--' ? args.slice(1) : args).join(' ').trim() ||
 	'Find Node.js CommonJS module loading and resolution implementation';
+const includesEnv = process.env.CODEBASE_SEARCH_INCLUDES;
+const excludesEnv = process.env.CODEBASE_SEARCH_EXCLUDES;
+const searchTypeEnv = process.env.CODEBASE_SEARCH_TYPE;
+const includes = includesEnv ? includesEnv.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+const excludes = excludesEnv ? excludesEnv.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+const searchType = searchTypeEnv === 'node_modules' ? 'node_modules' : searchTypeEnv === 'default' ? 'default' : undefined;
 
 const runtimeConfig: MorphRuntimeConfig = {
 	apiBaseUrl: 'https://api.morphllm.com',
@@ -99,9 +105,21 @@ function instrumentProvider(provider: WarpGrepProvider): WarpGrepProvider {
 }
 
 const client = new WarpGrepClient(buildWarpGrepConfig(apiKey, runtimeConfig));
-const provider = instrumentProvider(createSafeWarpGrepProvider(repoRoot, { enabled: redactionEnabled }));
+const providerOptions: Parameters<typeof createSafeWarpGrepProvider>[1] = { enabled: redactionEnabled };
+if (includes) providerOptions.includes = includes;
+if (excludes) providerOptions.excludes = excludes;
+if (searchType) providerOptions.searchType = searchType;
+const provider = instrumentProvider(createSafeWarpGrepProvider(repoRoot, providerOptions));
 const startedAt = performance.now();
-const stream = client.execute({ searchTerm, repoRoot, provider, streamSteps: true });
+const stream = client.execute({
+	searchTerm,
+	repoRoot,
+	provider,
+	streamSteps: true,
+	...(includes ? { includes } : {}),
+	...(excludes ? { excludes } : {}),
+	...(searchType ? { search_type: searchType } : {}),
+});
 const steps: unknown[] = [];
 let result;
 
@@ -124,6 +142,9 @@ console.log(
 			searchTerm,
 			repoRoot,
 			redactionEnabled,
+			includes,
+			excludes,
+			searchType,
 			totalMs,
 			sdkTimings: (result as { timings?: unknown }).timings ?? null,
 			steps,
