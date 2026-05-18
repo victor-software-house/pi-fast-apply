@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.6 — 2026-05-18
+
+### Fixed
+
+- NaN line numbers for whole-file contexts (`lines: '*'`).
+
+
 ## 0.2.5 — 2026-05-18
 
 ### Fixed
