@@ -343,6 +343,17 @@ function renderSubBlock(
 	return out;
 }
 
+/** Total line count for a context — from sourceBlocks, ranges, or content fallback. */
+function contextLineCount(ctx: DisplaySearchContext): number {
+	if (ctx.sourceBlocks != null && ctx.sourceBlocks.length > 0) {
+		return ctx.sourceBlocks.reduce((sum, b) => sum + b.lines.length, 0);
+	}
+	if (ctx.ranges != null && ctx.ranges.length > 0) {
+		return ctx.ranges.reduce((sum, [s, e]) => sum + (e - s + 1), 0);
+	}
+	return ctx.content.split('\n').length;
+}
+
 /** Render one context block: file header + rule + syntax-highlighted lines with gutter. */
 async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
 	const tw = termW();
@@ -363,7 +374,8 @@ async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean):
 	const cw = Math.max(20, tw - gw);
 
 	const icon = fileIcon(ctx.file);
-	const header = `${icon} ${BOLD}${ctx.file}${RST}  ${FG_DIM}lines ${ctx.lineRanges}${RST}`;
+	const count = contextLineCount(ctx);
+	const header = `${icon} ${BOLD}${ctx.file}${RST}  ${FG_DIM}lines ${ctx.lineRanges}  ${count}L${RST}`;
 	const out: string[] = [header, rule(tw)];
 
 	for (let bi = 0; bi < subBlocks.length; bi++) {
@@ -432,7 +444,12 @@ export function formatSearchContent(details: CodebaseSearchDetails): string {
 
 /** Collapsed file list — no code, just dim path + line range bullets. */
 function renderFileList(details: CodebaseSearchDetails): string {
-	return details.contexts.map((ctx) => `  ${FG_DIM}${ctx.file}:${ctx.lineRanges}${RST}`).join('\n');
+	return details.contexts
+		.map((ctx) => {
+			const count = contextLineCount(ctx);
+			return `  ${FG_DIM}${ctx.file}:${ctx.lineRanges}  ${count}L${RST}`;
+		})
+		.join('\n');
 }
 
 function formatStep(step: WarpGrepStep): string {
