@@ -34,7 +34,6 @@
 	"files": [
 		"extensions",
 		"assets/**",
-		"instructions",
 		"README.md",
 		"LICENSE"
 	],
