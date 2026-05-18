@@ -581,11 +581,8 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			if (!result.success) throw new Error(`Codebase Search failed: ${result.error ?? 'unknown error'}`);
 
 			const details = buildSearchDetails(params.searchTerm, absolutePath, result);
-			// Use SDK's own model-optimized formatted string (summary + <file> XML blocks).
-			// Falls back to our formatSearchContent if the patch is somehow not applied.
-			const modelContent = result.formattedContent ?? formatSearchContent(details);
 			return {
-				content: [{ type: 'text', text: modelContent }],
+				content: [{ type: 'text', text: formatSearchContent(details) }],
 				details: { ...details, latencyMs, turnsUsed },
 			};
 		},
