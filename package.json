@@ -1,99 +1,99 @@
 {
-  "name": "@victor-software-house/pi-fast-apply",
-  "version": "0.1.1",
-  "description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
-  "license": "MIT",
-  "author": "Victor Software House",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/victor-software-house/pi-fast-apply.git"
-  },
-  "homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
-  "bugs": {
-    "url": "https://github.com/victor-software-house/pi-fast-apply/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
-  },
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "pi-coding-agent",
-    "morph",
-    "fast-apply",
-    "code-editing"
-  ],
-  "pi": {
-    "extensions": [
-      "./extensions"
-    ],
-    "image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
-  },
-  "type": "module",
-  "files": [
-    "extensions",
-    "assets/**",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "lint": "pnpm run lint:biome && pnpm run lint:oxlint",
-    "lint:biome": "biome check .",
-    "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
-    "test": "vitest run --passWithNoTests",
-    "test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
-    "measure:codebase-search": "tsx test/codebase-search-timing.ts",
-    "fix": "pnpm run fix:oxlint && pnpm run fix:biome",
-    "fix:biome": "biome check --write .",
-    "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
-    "format": "biome format --write .",
-    "prepare": "lefthook install",
-    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=0.74.0",
-    "@earendil-works/pi-tui": ">=0.74.0"
-  },
-  "peerDependenciesMeta": {
-    "@earendil-works/pi-coding-agent": {
-      "optional": true
-    },
-    "@earendil-works/pi-tui": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@morphllm/morphsdk": "^0.2.171",
-    "@sanity-labs/secret-scan": "1.1.0",
-    "@secretlint/core": "13.0.2",
-    "@secretlint/secretlint-rule-preset-recommend": "13.0.2",
-    "@sinclair/typebox": "^0.34.49",
-    "ai": "^6.0.183",
-    "pi-diff": "npm:@victor-software-house/pi-diff@^0.4.1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.0.1",
-    "@limegrass/eslint-plugin-import-alias": "^1.6.1",
-    "@types/node": "^25.8.0",
-    "eslint-plugin-zod": "^4.4.0",
-    "lefthook": "^2.1.6",
-    "oxlint": "^1.64.0",
-    "oxlint-tsgolint": "^0.22.1",
-    "tsx": "^4.22.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6"
-  },
-  "engines": {
-    "pnpm": ">=11 <12",
-    "node": ">=24.0.0"
-  },
-  "packageManager": "pnpm@11.1.2",
-  "pnpm": {
-    "autoInstallPeers": false
-  }
+	"name": "@victor-software-house/pi-fast-apply",
+	"version": "0.1.2",
+	"description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
+	"license": "MIT",
+	"author": "Victor Software House",
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/victor-software-house/pi-fast-apply.git"
+	},
+	"homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
+	"bugs": {
+		"url": "https://github.com/victor-software-house/pi-fast-apply/issues"
+	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com",
+		"access": "restricted"
+	},
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"pi-coding-agent",
+		"morph",
+		"fast-apply",
+		"code-editing"
+	],
+	"pi": {
+		"extensions": [
+			"./extensions"
+		],
+		"image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
+	},
+	"type": "module",
+	"files": [
+		"extensions",
+		"assets/**",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"lint": "pnpm run lint:biome && pnpm run lint:oxlint",
+		"lint:biome": "biome check .",
+		"lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+		"test": "vitest run --passWithNoTests",
+		"test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
+		"measure:codebase-search": "tsx test/codebase-search-timing.ts",
+		"fix": "pnpm run fix:oxlint && pnpm run fix:biome",
+		"fix:biome": "biome check --write .",
+		"fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+		"format": "biome format --write .",
+		"prepare": "lefthook install",
+		"prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": ">=0.75.0",
+		"@earendil-works/pi-tui": ">=0.75.0"
+	},
+	"peerDependenciesMeta": {
+		"@earendil-works/pi-coding-agent": {
+			"optional": true
+		},
+		"@earendil-works/pi-tui": {
+			"optional": true
+		}
+	},
+	"dependencies": {
+		"@morphllm/morphsdk": "^0.2.171",
+		"@sanity-labs/secret-scan": "1.1.0",
+		"@secretlint/core": "13.0.2",
+		"@secretlint/secretlint-rule-preset-recommend": "13.0.2",
+		"@sinclair/typebox": "^0.34.49",
+		"ai": "^6.0.183",
+		"pi-diff": "npm:@victor-software-house/pi-diff@^0.4.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.15",
+		"@commitlint/cli": "^21.0.1",
+		"@commitlint/config-conventional": "^21.0.1",
+		"@limegrass/eslint-plugin-import-alias": "^1.6.1",
+		"@types/node": "^25.8.0",
+		"eslint-plugin-zod": "^4.4.0",
+		"lefthook": "^2.1.6",
+		"oxlint": "^1.64.0",
+		"oxlint-tsgolint": "^0.22.1",
+		"tsx": "^4.22.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.6"
+	},
+	"engines": {
+		"pnpm": ">=11 <12",
+		"node": ">=24.0.0"
+	},
+	"packageManager": "pnpm@11.1.2",
+	"pnpm": {
+		"autoInstallPeers": false
+	}
 }
