@@ -33,7 +33,6 @@
 	"type": "module",
 	"files": [
 		"extensions",
-		"skills",
 		"assets/**",
 		"README.md",
 		"LICENSE"
