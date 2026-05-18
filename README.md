@@ -1,19 +1,17 @@
 # pi-fast-apply
 
-[Morph](https://www.morphllm.com/) tools for [Pi](https://github.com/earendil-works/pi). Native `fast_apply` edits existing files using partial code snippets and semantic merging — no exact `oldText` matching required. Native `codebase_search` uses Morph WarpGrep for semantic local code search.
+[Morph](https://www.morphllm.com/) tools for [Pi](https://github.com/earendil-works/pi). Registers `quick_edit` (Morph semantic merge), `codebase_search` (Morph WarpGrep), and Morph auth/config commands.
 
 ## Why
 
-- **Handles scattered changes** — multiple disjoint edits in one file, one call, no fragile string anchors
-- **Semantic merging** — Morph resolves partial snippets against the real file; the model provides only what changed
-- **Pi-native** — path resolution, mutation queueing, search bounds, and UX stay inside Pi; Morph handles semantic merge/search only
-- **Dry-run support** — preview the unified diff and change stats before writing
-- **Auth built in** — store your Morph key once with `/morph-login`; falls back to `MORPH_API_KEY` automatically
+- **`quick_edit` is the default editor** — supply only changed sections with `// ... existing code ...` markers; Morph fills the unchanged parts. Multiple markers per line, single marker for entire nested objects, no limit.
+- **`codebase_search`** — semantic local code search via WarpGrep. Finds implementations, traces flows, answers "where is X" questions in under 10 seconds.
+- **Pi-native** — path resolution, mutation queueing, workspace bounds, secret redaction, and rendering stay inside Pi. Morph handles semantic merge/search only.
 
 ## Prerequisites
 
-1. [Pi](https://github.com/earendil-works/pi) must be installed
-2. A [Morph API key](https://morphllm.com)
+1. [Pi](https://github.com/earendil-works/pi) installed
+2. A [Morph API key](https://morphllm.com/dashboard/api-keys)
 
 ## Installation
 
@@ -23,153 +21,111 @@ pi install npm:@victor-software-house/pi-fast-apply
 
 ## Quickstart
 
-Store your Morph API key inside Pi:
-
 ```
-/morph-login <your-api-key>
+/morph login <your-api-key>
 ```
 
-Then use `fast_apply` in any Pi session to edit an existing file:
+Then use `quick_edit` as your default file editor:
 
 ```
-path: src/utils/math.ts
-instruction: I am adding input validation to the add function.
+path: src/api/users.ts
+instruction: I am adding rate limiting to the createUser handler.
 codeEdit:
-  function add(a: number, b: number): number {
-    if (typeof a !== 'number' || typeof b !== 'number') {
-      throw new TypeError('Both arguments must be numbers.');
-    }
+  // ... existing code ...
+  export async function createUser(req, res) {
+    await rateLimiter.check(req.ip);
     // ... existing code ...
   }
 ```
 
-Morph merges the partial snippet into the real file. Pi writes the result with mutation-queue protection.
-
-Use `codebase_search` when you need semantic local code discovery before editing:
+Or search the codebase semantically before editing:
 
 ```
-searchTerm: Find where Morph auth and runtime config are resolved
+searchTerm: Find where authentication middleware is applied
 ```
 
-WarpGrep searches in its own Morph context and returns bounded file:line/code context to Pi.
+## Tools
+
+### `quick_edit` — default file editor
+
+Morph semantic merge. Provide only changed sections; mark everything else `// ... existing code ...`.
+
+**Always prefer over `edit`** unless the change is a single trivially unique string replacement.
+
+**Marker patterns — use aggressively:**
+
+```typescript
+// Block: skip unchanged regions
+function foo() {
+  // ... existing code ...
+  newLine();
+  // ... existing code ...
+}
+
+// Inline: skip unchanged fields on same line (multiple per line)
+{ host: 'new', port: // ... existing ..., ssl: // ... existing ..., pool: 20 }
+
+// Inline: skip entire nested value
+{ primary: { host: 'new', creds: // ... existing ... }, replica: // ... existing ... }
+
+// Reorder without retyping: list new order, mark unchanged field values
+const ROUTES = {
+  api:  { path: // ... existing ..., auth: // ... existing ..., cache: // ... existing ... },
+  docs: { path: // ... existing ..., auth: // ... existing ..., cache: 7200 },
+  home: { path: // ... existing ..., auth: // ... existing ..., cache: // ... existing ... },
+};
+```
+
+**Limit:** the marker string cannot appear as intended literal output — Morph treats any occurrence as an expansion instruction. Files that already contain it as real content are handled correctly.
+
+**Creates new files directly** when the path does not exist (no API call, codeEdit written as-is).
+
+| Parameter | Description |
+|:--|:--|
+| `path` | File path (relative or absolute) |
+| `instruction` | First-person change description |
+| `codeEdit` | Changed sections only + markers for everything else |
+
+### `codebase_search` — semantic code search
+
+WarpGrep multi-turn agentic search. Use for broad questions: "where is X implemented", "how does Y work", "what handles Z". Not for exact strings — use `grep`/`find` for those.
+
+| Parameter | Description |
+|:--|:--|
+| `searchTerm` | Natural-language question |
+| `repoRoot` | Workspace subdirectory to search (optional, defaults to workspace root) |
+| `includes` | Ripgrep include globs e.g. `["src/**/*.ts"]` |
+| `excludes` | Ripgrep exclude globs (replaces SDK defaults when set) |
+| `searchType` | `default` or `node_modules` — auto-enabled when `repoRoot` is inside a `node_modules` path |
 
 ## Auth
 
-Two configuration paths are supported:
-
 | Method | How |
-|:-------|:----|
-| Pi auth storage (recommended) | `/morph-login <api-key>` — stored in `~/.pi/agent/auth.json` |
-| Environment variable | `MORPH_API_KEY=<key>` — in your shell, `.env`, or a secret manager like fnox |
+|:--|:--|
+| Pi auth storage (recommended) | `/morph login <key>` — stored in Pi auth storage |
+| Environment variable | `MORPH_API_KEY=<key>` |
 
-Pi auth storage is checked first. `MORPH_API_KEY` is used as a fallback.
+Pi auth storage is checked first. `MORPH_API_KEY` is the fallback.
 
-`~/.pi/agent/auth.json` uses `0600` file permissions, consistent with how Pi stores keys for all providers. For stronger at-rest encryption, inject `MORPH_API_KEY` through fnox, age-encrypted secrets, or a system keychain instead.
-
-### Commands
+## Commands
 
 | Command | Description |
-|:--------|:------------|
-| `/morph-login <key>` | Store a Morph API key in Pi auth storage |
-| `/morph-logout` | Remove stored Morph credentials |
-| `/morph-status` | Show active auth source, API base URL, timeout, SDK version, and SDK auto-default patch status |
-| `/morph-probe` | Run Morph runtime diagnostics. Reports SDK auto-default patch status, checks config/auth locally, then performs live Compact and Fast Apply API calls when an API key is configured. Does not read or write project files. |
-
-## Tool Contract
-
-This package registers two Morph-backed tools: `fast_apply` and `codebase_search`.
-
-### `fast_apply`
-
-`fast_apply` uses Morph's semantic merge to apply partial edits to existing files.
-
-**When to use `fast_apply`:**
-- multiple scattered changes in one workspace file
-- complex refactors where `oldText` would be fragile or ambiguous
-- whitespace-sensitive edits that exact replacement handles poorly
-- reorganizing a file whose lines contain huge or fragile values — use `// ... existing code ...` markers to keep every value byte-identical without retyping it
-
-**When to use native tools instead:**
-- small exact replacement → use `edit`
-- sensitive files → use `edit`
-- creating a new file → use `write`
-- `fast_apply` unavailable (no API key) → fall back to `edit`
-
-### Placeholder pattern for huge values
-
-Morph honors `// ... existing code ...` markers **anywhere a unique anchor exists**, including inline within a single line between two literal anchors. This is the right tool for reorganizing config files or large data tables where every right-hand side is a value you must never mistype.
-
-Give every relocated line its own placeholder — one per row scales fine, there is no built-in limit:
-
-```toml
-[fixtures]
-
-# Bootstrap public fixtures.
-PUBLIC_FIXTURE_A = // ... existing inline table for PUBLIC_FIXTURE_A ...
-PUBLIC_FIXTURE_B = // ... existing inline table for PUBLIC_FIXTURE_B ...
-
-# Non-secret test data.
-SAMPLE_PAYLOAD_A = // ... existing inline table ...
-SAMPLE_PAYLOAD_B = // ... existing inline table ...
-# ...one marker per relocated line, no value ever retyped...
-```
-
-Morph fills each placeholder from the existing file by matching the unique key anchor on the left. The huge values never enter the `codeEdit` argument.
-
-Never paste a multi-KB value into `codeEdit` when a marker would work. Never fall back to a Python / Ruby / `sed` / `awk` rewrite script as a workaround for "too much to retype" — that is exactly the case the placeholder pattern was designed to cover.
-
-If a needed line does not yet exist in the file, append it once with a single shell command (`cat >> file`, `echo >> file`) before calling `fast_apply`. Then every line in the `codeEdit` can be a placeholder.
-
-Safety: Morph refuses to write output containing the literal marker syntax if the original file did not contain it. `fast_apply` also refuses workspace escapes, symlink escapes, and obvious secret filenames. When *documenting* the pattern in markdown, use the `edit` tool with verbatim `oldText` / `newText` instead of `fast_apply`.
-
-### `fast_apply` parameters
-
-| Parameter | Description |
-|:----------|:------------|
-| `path` | Relative or absolute path to an existing file |
-| `instruction` | First-person change description — e.g. `I am adding input validation to the add function.` |
-| `codeEdit` | Partial edit containing only the changed sections, wrapped with `// ... existing code ...` markers. Include enough unique surrounding context to anchor each change precisely and preserve exact indentation. |
-| `dryRun` | Preview the merge and diff without writing the file |
-
-### `fast_apply` output
-
-Each call returns a unified diff, the merged source, and a change summary (`+added -removed ~modified`). Fast Apply uses the patched SDK default `auto` route and does not expose model/large controls.
-
-### `codebase_search`
-
-`codebase_search` uses Morph WarpGrep to semantically search code inside the current Pi workspace. Use it for broad discovery questions, architecture exploration, and finding implementation context before edits.
-
-Use native tools instead for exact lookups:
-
-- exact string or regex search → `grep`
-- filename/path lookup → `find`
-- known sensitive files requiring exact inspection → local-only tools, not Morph-backed tools
-
-### `codebase_search` parameters
-
-| Parameter | Description |
-|:----------|:------------|
-| `searchTerm` | Natural-language question about where code behavior lives in the local codebase |
-| `repoRoot` | Optional local directory inside the current workspace to search; defaults to current workspace |
-| `includes` | Optional ripgrep-style include globs (e.g. `["src/**/*.ts"]`); narrows local grep/glob to matching files |
-| `excludes` | Optional ripgrep-style exclude globs; replaces SDK default excludes when provided |
-| `searchType` | `default` (default) or `node_modules`; node_modules mode includes dependency directories normally skipped. Auto-enabled when `repoRoot` is inside a `node_modules` tree. |
-
-### `codebase_search` output
-
-Each call returns bounded relevant file contexts with line ranges. Intermediate WarpGrep search steps stay inside Morph's search context and are shown to the operator as progress updates when Pi can render them.
-
-Data flow: Pi rejects secret-like search terms, executes local search/read operations under the selected workspace directory, redacts detected secrets with Secretlint, omits content from high-risk secret container paths, sends sanitized WarpGrep tool context to Morph, then returns selected file:line/code context. Search-term detection uses TruffleHog-derived `@sanity-labs/secret-scan` as a lightweight preflight. Redaction is enabled by default; set `CODEBASE_SEARCH_REDACTION=0` only for debugging synthetic fixtures. `codebase_search` keeps WarpGrep's default discovery behavior; path-only listing/glob output is not blocked.
+|:--|:--|
+| `/morph login <key>` | Store Morph API key in Pi auth storage |
+| `/morph logout` | Remove stored credentials |
+| `/morph status` | Show auth source, API URL, timeout, SDK patch status |
+| `/morph probe` | Live diagnostics — checks auth, config, Compact API, and Fast Apply API |
 
 ## Configuration
 
 | Variable | Default | Description |
-|:---------|:--------|:------------|
-| `MORPH_API_KEY` | — | Morph API key (fallback when Pi auth storage has no key) |
-| `MORPH_API_URL` | `https://api.morphllm.com` | Override the Morph base URL. Must use `https`, cannot include embedded credentials, query strings, or fragments, and custom hosts require `MORPH_ALLOW_CUSTOM_API_URL=1`. |
-| `MORPH_ALLOW_CUSTOM_API_URL` | — | Opt in to trusted non-default Morph API hosts for testing. |
-| `MORPH_EDIT_TIMEOUT_MS` | `60000` | Morph request timeout in milliseconds for Fast Apply and local Codebase Search |
-| `CODEBASE_SEARCH_REDACTION` | enabled | Set to `0`, `false`, `off`, or `no` to disable codebase search redaction for debugging synthetic fixtures. Do not disable for normal work. |
+|:--|:--|:--|
+| `MORPH_API_KEY` | — | Morph API key (fallback when Pi auth has no key) |
+| `MORPH_API_URL` | `https://api.morphllm.com` | Override API base URL (requires `MORPH_ALLOW_CUSTOM_API_URL=1` for non-default hosts) |
+| `MORPH_EDIT_TIMEOUT_MS` | `60000` | Request timeout in ms |
+| `MORPH_EDIT` | enabled | Set to `false` to disable `quick_edit` |
+| `MORPH_WARPGREP` | enabled | Set to `false` to disable `codebase_search` |
+| `CODEBASE_SEARCH_REDACTION` | enabled | Set to `0` to disable content redaction (for synthetic fixture debugging only) |
 
 ## Development
 
@@ -177,24 +133,39 @@ Data flow: Pi rejects secret-like search terms, executes local search/read opera
 pnpm install
 pnpm run typecheck
 pnpm run lint
+pnpm run test
+pnpm run build
 ```
 
-Autofix:
+Fix all auto-fixable issues:
 
 ```bash
 pnpm run fix
 ```
 
-Live Codebase Search timing harness:
+Live tests (require `MORPH_API_KEY`):
 
 ```bash
-CODEBASE_SEARCH_PUBLIC_REPO_ROOT=/tmp/pi-fast-apply-public-live/node \
+# WarpGrep timing harness against a large public repo
+CODEBASE_SEARCH_PUBLIC_REPO_ROOT=/path/to/repo \
 MORPH_API_KEY="$(fnox get MORPH_API_KEY)" \
-pnpm run measure:codebase-search -- \
-  "Find Node.js CommonJS module loading and resolution implementation"
+pnpm run measure:codebase-search -- "Find where authentication is implemented"
+
+# quick_edit marker behavior — 7 complex scenarios × 3 runs each
+MORPH_API_KEY="$(fnox get MORPH_API_KEY)" pnpm run test:quick-edit-live
+
+# Refresh live test snapshots after a Morph model update
+MORPH_API_KEY="$(fnox get MORPH_API_KEY)" pnpm run test:quick-edit-live -- --update-snapshots
 ```
 
-The harness prints total wall time, Morph SDK timing metrics when present, per-provider operation counts/timings (`listDirectory`, `glob`, `grep`, `read`), and a short formatted output preview. It never prints the Morph API key.
+## Specdocs
+
+- [PRD-001: Morph Runtime Integration](docs/prd/PRD-001-morph-runtime-integration.md)
+- [PRD-002: WarpGrep SDK Flexibility](docs/prd/PRD-002-warpgrep-sdk-flexibility.md)
+- [PRD-003: Morph Config Pane and Auth](docs/prd/PRD-003-morph-config-pane-and-auth.md)
+- [PRD-004: pi-components Public Package](docs/prd/PRD-004-pi-components-package.md)
+- [Plan: Morph Runtime Integration](docs/architecture/plan-morph-runtime-integration.md)
+- [Plan: WarpGrep SDK Flexibility](docs/architecture/plan-warpgrep-sdk-flexibility.md)
 
 ## License
 
