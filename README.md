@@ -6,7 +6,7 @@
 
 - **`quick_edit` is the default editor** — supply only changed sections with `// ... existing code ...` markers; Morph fills the unchanged parts. Multiple markers per line, single marker for entire nested objects, no limit.
 - **`codebase_search`** — semantic local code search via WarpGrep. Finds implementations, traces flows, answers "where is X" questions in under 10 seconds.
-- **Pi-native** — path resolution, mutation queueing, workspace bounds, secret redaction, and rendering stay inside Pi. Morph handles semantic merge/search only.
+- **Pi-native** — path resolution, mutation queueing, and rendering stay inside Pi. Morph handles semantic merge/search only.
 
 ## Prerequisites
 

@@ -1,7 +1,7 @@
 import { constants } from 'node:fs';
 import { access, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, isAbsolute, relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import type { ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
 import { applyEdit } from '@morphllm/morphsdk';
 import { EXISTING_CODE_MARKER, NON_TRIVIAL_FILE_LINE_COUNT } from './constants';
@@ -41,53 +41,12 @@ export interface ResolvedWorkspaceFile {
 	absolutePath: string;
 }
 
-function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void {
-	const relativePath = relative(workspaceRoot, targetPath);
-	if (relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))) return;
-
-	throw new Error(
-		'quick_edit only supports files inside the current workspace. Refusing to read or send files outside ctx.cwd.',
-	);
-}
-
-function assertNotSensitivePath(_workspaceRoot: string, targetPath: string): void {
-	const name = basename(targetPath).toLowerCase();
-	const blockedNames = new Set([
-		'.env',
-		'.npmrc',
-		'auth.json',
-		'credentials.json',
-		'id_rsa',
-		'id_dsa',
-		'id_ecdsa',
-		'id_ed25519',
-	]);
-	const blockedExtensions = ['.pem', '.key', '.p12', '.pfx', '.ppk', '.asc', '.gpg', '.agekey', '.log'];
-
-	if (
-		name.startsWith('.env.') ||
-		blockedNames.has(name) ||
-		name.startsWith('id_rsa') ||
-		name.startsWith('id_dsa') ||
-		name.startsWith('id_ecdsa') ||
-		name.startsWith('id_ed25519') ||
-		blockedExtensions.some((extension) => name.endsWith(extension))
-	) {
-		throw new Error('quick_edit refuses obvious secret files. Use edit for sensitive files.');
-	}
-}
-
 export async function resolveWorkspaceFilePath(
 	workspaceCwd: string,
 	inputPath: string,
 ): Promise<ResolvedWorkspaceFile> {
-	const targetPath = expandPath(inputPath);
-	const workspaceRoot = await realpath(workspaceCwd);
-	const requestedPath = resolve(workspaceRoot, targetPath);
-	const absolutePath = await realpath(requestedPath);
-	assertInsideWorkspace(workspaceRoot, absolutePath);
-	assertNotSensitivePath(workspaceRoot, absolutePath);
-	return { requestedPath, absolutePath };
+	const requestedPath = resolve(await realpath(workspaceCwd), expandPath(inputPath));
+	return { requestedPath, absolutePath: await realpath(requestedPath) };
 }
 
 export function expandPath(filePath: string): string {

@@ -45,7 +45,7 @@ docs/                Specdocs (PRDs, plans, ADRs)
 
 ## Working rules
 
-- Pi-native first. Pi owns path resolution, mutation queueing, workspace bounds, and operator-visible rendering. Morph owns semantic merge and search only.
+- Pi-native first. Pi owns path resolution, mutation queueing, and operator-visible rendering. Morph owns semantic merge and search only.
 - Keep implementation claims grounded in committed code. No aspirational docs.
 - `quick_edit` is the default editor. Preserve that framing in all descriptions and docs.
 - Marker patterns are the core value proposition — enforce them in descriptions, guidelines, instructions, and tests.
