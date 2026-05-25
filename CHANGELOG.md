@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.3.0 — 2026-05-25
+
+### Changed
+
+- Switched `quick_edit` diff rendering to `@victor-software-house/pi-render-core/diff`.
+- Removed direct `@victor-software-house/pi-diff` dependency; Morph package now owns Morph execution only.
+
 ## 0.2.12 — 2026-05-25
 
 ### Changed

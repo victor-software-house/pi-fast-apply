@@ -4,6 +4,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { highlightCode, withFileMutationQueue } from '@earendil-works/pi-coding-agent';
 import { Text } from '@earendil-works/pi-tui';
 import { Type } from '@sinclair/typebox';
+import { getWidthAwareText } from '@victor-software-house/pi-render-core';
 import {
 	cfg,
 	type DiffColors,
@@ -13,8 +14,7 @@ import {
 	renderSplit,
 	resolveDiffColors,
 	shortPath,
-} from '@victor-software-house/pi-diff/render';
-import { getWidthAwareText } from '@victor-software-house/pi-render-core';
+} from '@victor-software-house/pi-render-core/diff';
 import { ensureMorphApiKey } from './auth';
 import {
 	countLines,

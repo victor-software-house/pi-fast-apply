@@ -32,12 +32,9 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.49
         version: 0.34.49
-      '@victor-software-house/pi-diff':
-        specifier: ^0.6.10
-        version: 0.6.10(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)
       '@victor-software-house/pi-render-core':
-        specifier: ^0.3.0
-        version: 0.3.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
+        specifier: ^0.4.2
+        version: 0.4.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
       ai:
         specifier: ^6.0.183
         version: 6.0.183(zod@4.4.3)
@@ -1359,15 +1356,8 @@ packages:
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
 
-  '@victor-software-house/pi-diff@0.6.10':
-    resolution: {integrity: sha512-x6yBiI3kj7eVCkHjymr/Z5MPIvlTI9UH5NpJ07VB4ios//wPyjP7+h2r24hB7zvQ1/yQizqn26wNT7f2dsJlUg==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-diff/0.6.10/1c1434b8c335a587fe665147020625aef0f450d5}
-    engines: {node: '>=24.0.0'}
-    peerDependencies:
-      '@earendil-works/pi-coding-agent': '>=0.75.0'
-      '@earendil-works/pi-tui': '>=0.75.0'
-
-  '@victor-software-house/pi-render-core@0.3.0':
-    resolution: {integrity: sha512-aaAlgTx4GEFUQoigho8lCe2/jywaROk2HFDjSrolwXDbdh9+xz2PNzTnB//Die9YvlNVyzA+x2J4ObkXDWVqrg==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.3.0/9769bf2b7305524f0ec458d9d5a4963da54778e8}
+  '@victor-software-house/pi-render-core@0.4.2':
+    resolution: {integrity: sha512-1/oXBs7CddwltMpejx6Xa8cuVvZByYgS3vhucILl56y47AMSvZiYNGTa0tgjC/eBd4aMLeFHP0WIC8yr9nX9Gw==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.4.2/d6ccfb38e06b4d18ea185e43f4c2fa11fa060e35}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.75.0'
@@ -4392,19 +4382,12 @@ snapshots:
 
   '@vercel/oidc@3.2.0': {}
 
-  '@victor-software-house/pi-diff@0.6.10(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)':
-    dependencies:
-      '@earendil-works/pi-coding-agent': 0.75.0(ws@8.20.0)(zod@4.4.3)
-      '@earendil-works/pi-tui': 0.75.0
-      '@victor-software-house/pi-render-core': 0.3.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
-      diff: 9.0.0
-      shiki: 4.0.2
-
-  '@victor-software-house/pi-render-core@0.3.0(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
+  '@victor-software-house/pi-render-core@0.4.2(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.75.0(ws@8.20.0)(zod@4.4.3)
       '@earendil-works/pi-tui': 0.75.0
       '@shikijs/cli': 4.0.2
+      diff: 9.0.0
       shiki: 4.0.2
       unbash: 3.0.0
 
