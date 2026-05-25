@@ -1,10 +1,9 @@
 /**
- * Type stub for pi-diff/render.
+ * Type stub for @victor-software-house/pi-diff/render.
  *
- * pi-diff ships TypeScript source only (no compiled .d.ts). Under our strict
- * tsconfig the raw source triggers errors in noUncheckedIndexedAccess and
- * exactOptionalPropertyTypes. This stub provides the types we consume so tsc
- * never touches pi-diff's source. Keep in sync with node_modules/pi-diff/src/render.ts.
+ * Keep this stub narrow to the symbols pi-fast-apply consumes from the
+ * published render export. Runtime imports must use the scoped package export,
+ * not a local source path or package alias.
  */
 
 // Primitives re-exported from @victor-software-house/pi-render-core

@@ -14,7 +14,7 @@ import {
 	resolveDiffColors,
 	shortPath,
 	termW,
-} from 'pi-diff/render';
+} from '@victor-software-house/pi-diff/render';
 import { ensureMorphApiKey } from './auth';
 import {
 	countLines,

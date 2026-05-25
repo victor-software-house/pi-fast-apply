@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.2.9 — 2026-05-25
+
+### Fixed
+
+- Import `@victor-software-house/pi-diff/render` through the scoped package export instead of the `pi-diff` alias, preventing Pi's extension loader from resolving the removed `pi-diff/src/render.ts` source path.
+
 ## 0.2.8 — 2026-05-25
 
 ### Fixed

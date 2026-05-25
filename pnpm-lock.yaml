@@ -32,15 +32,15 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.49
         version: 0.34.49
+      '@victor-software-house/pi-diff':
+        specifier: ^0.6.6
+        version: 0.6.6(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)
       '@victor-software-house/pi-render-core':
         specifier: ^0.2.1
         version: 0.2.1(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)(shiki@4.0.2)
       ai:
         specifier: ^6.0.183
         version: 6.0.183(zod@4.4.3)
-      pi-diff:
-        specifier: npm:@victor-software-house/pi-diff@^0.6.6
-        version: '@victor-software-house/pi-diff@0.6.6(@earendil-works/pi-coding-agent@0.75.0(ws@8.20.0)(zod@4.4.3))(@earendil-works/pi-tui@0.75.0)'
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
