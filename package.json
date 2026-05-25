@@ -1,6 +1,6 @@
 {
 	"name": "@victor-software-house/pi-fast-apply",
-	"version": "0.2.9",
+	"version": "0.2.10",
 	"description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
 	"license": "MIT",
 	"author": "Victor Software House",
@@ -72,9 +72,9 @@
 		"@secretlint/core": "13.0.2",
 		"@secretlint/secretlint-rule-preset-recommend": "13.0.2",
 		"@sinclair/typebox": "^0.34.49",
+		"@victor-software-house/pi-diff": "^0.6.6",
 		"@victor-software-house/pi-render-core": "^0.2.1",
-		"ai": "^6.0.183",
-		"@victor-software-house/pi-diff": "^0.6.6"
+		"ai": "^6.0.183"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",

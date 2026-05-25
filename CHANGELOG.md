@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.2.10 — 2026-05-25
+
+### Fixed
+
+- Removed `quick_edit` path access guards so Pi can edit any resolved file path, including absolute paths, parent traversal targets, symlink targets, and sensitive-looking filenames.
+
 ## 0.2.9 — 2026-05-25
 
 ### Fixed
