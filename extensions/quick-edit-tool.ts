@@ -13,8 +13,8 @@ import {
 	renderSplit,
 	resolveDiffColors,
 	shortPath,
-	termW,
 } from '@victor-software-house/pi-diff/render';
+import { getWidthAwareText } from '@victor-software-house/pi-render-core';
 import { ensureMorphApiKey } from './auth';
 import {
 	countLines,
@@ -189,36 +189,39 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 			if (originalCode != null && mergedCode != null && originalCode !== mergedCode) {
 				// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Pi context.state is typed as any by design
 				const st = context.state as { _morphDiffKey?: string; _morphDiffText?: string };
-				const w = termW();
+				const component = getWidthAwareText(context);
 				const ex = context.expanded ? 1 : 0;
 				const language = diffLang(details.absolutePath ?? filePath);
 				const diff = parseDiff(originalCode, mergedCode);
-				const key = `morph:${w}:${diff.added}:${diff.removed}:${diff.lines.length}:${language ?? ''}:${ex}:${theme.name}`;
+				const dc: DiffColors = resolveDiffColors(theme);
+				const maxLines = context.expanded ? diff.lines.length : cfg.maxDiffLines;
+				const wr = context.expanded ? (cfg.maxWrapRows ?? 10) : undefined;
 
-				if (st._morphDiffKey !== key) {
-					st._morphDiffKey = key;
-					st._morphDiffText = [header, changeLine, '', theme.fg('muted', '  rendering diff...')]
-						.filter(Boolean)
-						.join('\n');
+				component.setRenderer((width: number) => {
+					const key = `morph:${width}:${diff.added}:${diff.removed}:${diff.lines.length}:${language ?? ''}:${ex}:${theme.name}`;
 
-					const dc: DiffColors = resolveDiffColors(theme);
-					const maxLines = context.expanded ? diff.lines.length : cfg.maxDiffLines;
-					const wr = context.expanded ? (cfg.maxWrapRows ?? 10) : undefined;
-					renderSplit(diff, language, maxLines, dc, wr)
-						.then((rendered: string) => {
-							if (st._morphDiffKey !== key) return;
-							st._morphDiffText = [header, changeLine, '', rendered].filter(Boolean).join('\n');
-							context.invalidate();
-						})
-						.catch(() => {
-							if (st._morphDiffKey !== key) return;
-							st._morphDiffText = [header, changeLine].filter(Boolean).join('  ');
-							context.invalidate();
-						});
-				}
+					if (st._morphDiffKey !== key) {
+						st._morphDiffKey = key;
+						st._morphDiffText = [header, changeLine, '', theme.fg('muted', '  rendering diff...')]
+							.filter(Boolean)
+							.join('\n');
 
-				text.setText(st._morphDiffText ?? [header, changeLine].filter(Boolean).join('  '));
-				return text;
+						renderSplit(diff, language, maxLines, dc, wr, width)
+							.then((rendered: string) => {
+								if (st._morphDiffKey !== key) return;
+								st._morphDiffText = [header, changeLine, '', rendered].filter(Boolean).join('\n');
+								context.invalidate();
+							})
+							.catch(() => {
+								if (st._morphDiffKey !== key) return;
+								st._morphDiffText = [header, changeLine].filter(Boolean).join('  ');
+								context.invalidate();
+							});
+					}
+
+					return st._morphDiffText ?? [header, changeLine].filter(Boolean).join('  ');
+				});
+				return component;
 			}
 
 			const udiff = details.udiff ?? '';

@@ -19,10 +19,7 @@
     "noEmit": true,
     "lib": ["ES2023"],
     "types": ["node"],
-    "allowImportingTsExtensions": false,
-    "paths": {
-      "@victor-software-house/pi-diff/render": ["./types/pi-diff-render.d.ts"]
-    }
+    "allowImportingTsExtensions": false
   },
   "include": ["extensions/**/*.ts"],
   "exclude": ["node_modules"]

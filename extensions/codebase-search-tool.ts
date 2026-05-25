@@ -17,13 +17,13 @@ import {
 	FG_DIM,
 	FG_RULE,
 	fileIcon,
+	getWidthAwareText,
 	hlBlock,
 	lang,
 	lnum,
 	RST,
 	rule,
 	strip,
-	termW,
 } from '@victor-software-house/pi-render-core';
 import { ensureMorphApiKey } from './auth';
 import { buildWarpGrepConfig, getMorphRuntimeConfig } from './runtime-config';
@@ -355,8 +355,8 @@ function contextLineCount(ctx: DisplaySearchContext): number {
 }
 
 /** Render one context block: file header + rule + syntax-highlighted lines with gutter. */
-async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean): Promise<string> {
-	const tw = termW();
+async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean, width: number): Promise<string> {
+	const tw = width;
 	const lg = lang(ctx.file);
 
 	// Prefer SDK-provided sourceBlocks (clean per-range lines, no markers).
@@ -403,8 +403,8 @@ async function renderContextBlock(ctx: DisplaySearchContext, expanded: boolean):
 }
 
 /** Async render all context blocks for the expanded result. */
-async function renderExpandedBody(details: CodebaseSearchDetails): Promise<string> {
-	const blocks = await Promise.all(details.contexts.map((ctx) => renderContextBlock(ctx, true)));
+async function renderExpandedBody(details: CodebaseSearchDetails, width: number): Promise<string> {
+	const blocks = await Promise.all(details.contexts.map((ctx) => renderContextBlock(ctx, true, width)));
 	const parts: string[] = [];
 
 	if (details.summary != null && details.summary.trim() !== '') {
@@ -530,31 +530,34 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			}
 
 			// Expanded: async syntax-highlighted blocks
-			const key = `search:${details.searchTerm}:${details.contextCount}:${details.shownContextCount}`;
-			if (context.state.key !== key) {
-				context.state.key = key;
-				context.state.body = null;
+			const component = getWidthAwareText(context);
+			component.setRenderer((width: number) => {
+				const key = `search:${details.searchTerm}:${details.contextCount}:${details.shownContextCount}:${width}`;
+				if (context.state.key !== key) {
+					context.state.key = key;
+					context.state.body = null;
 
-				if (fullDetails != null) {
-					renderExpandedBody(fullDetails)
-						.then((body) => {
-							if (context.state.key !== key) return;
-							context.state.body = body;
-							context.invalidate();
-						})
-						.catch(() => {
-							if (context.state.key !== key) return;
-							const first = result.content[0];
-							context.state.body = first?.type === 'text' ? first.text : '';
-							context.invalidate();
-						});
+					if (fullDetails != null) {
+						renderExpandedBody(fullDetails, width)
+							.then((body) => {
+								if (context.state.key !== key) return;
+								context.state.body = body;
+								context.invalidate();
+							})
+							.catch(() => {
+								if (context.state.key !== key) return;
+								const first = result.content[0];
+								context.state.body = first?.type === 'text' ? first.text : '';
+								context.invalidate();
+							});
+					}
 				}
-			}
 
-			const fallback = fullDetails != null ? renderFileList(fullDetails) : '';
-			const body: string = context.state.body ?? fallback;
-			text.setText(`${header}\n\n${body}`);
-			return text;
+				const fallback = fullDetails != null ? renderFileList(fullDetails) : '';
+				const body: string = context.state.body ?? fallback;
+				return `${header}\n\n${body}`;
+			});
+			return component;
 		},
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {

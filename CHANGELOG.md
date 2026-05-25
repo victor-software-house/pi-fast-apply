@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 0.2.12 — 2026-05-25
+
+### Changed
+
+- Bumped `@victor-software-house/pi-render-core` dependency floor to `^0.3.0`, the release that removes the legacy `termW()` public API.
+
+## 0.2.11 — 2026-05-25
+
+### Changed
+
+- Bumped render-stack dependency floors to `@victor-software-house/pi-diff@^0.6.10` and `@victor-software-house/pi-render-core@^0.3.0`.
+- Removed direct `termW()` use from `quick_edit` and `codebase_search` renderers; expanded render paths now use Pi's `Component.render(width)` through shared `getWidthAwareText()`.
+- Removed the obsolete local `@victor-software-house/pi-diff/render` type stub now that pi-diff ships compiled public types.
+
 ## 0.2.10 — 2026-05-25
 
 ### Fixed
