@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.2.8 — 2026-05-25
+
+### Fixed
+
+- Bumped render dependencies to `@victor-software-house/pi-render-core@^0.2.1` and `pi-diff@^0.6.6` so Pi installs the native-schema write/edit rendering fixes for `codebase_search` rendering helpers without retaining older nested pi-diff packages.
+
 ## 0.2.7 — 2026-05-18
 
 ### Changed
