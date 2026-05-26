@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.4.1 — 2026-05-26
+
+### Added
+
+- Re-exported `QuickEditDetails`, `CodebaseSearchDetails`, `DisplaySearchContext`, `buildSearchDetails`, and `formatSearchContent` so consumers can type render results without reaching into the package internals.
+
 ## 0.4.0 — 2026-05-26
 
 ### Changed

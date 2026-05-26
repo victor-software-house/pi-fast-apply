@@ -6,7 +6,9 @@ import { type RegisterQuickEditToolOptions, registerQuickEditTool } from './quic
 export type { MorphAuthResolution, MorphAuthSource } from './auth';
 export { ensureMorphApiKey, morphAuthSourceLabel, resolveMorphApiKey } from './auth';
 export type {
+	CodebaseSearchDetails,
 	CodebaseSearchInput,
+	DisplaySearchContext,
 	ExecuteCodebaseSearchContext,
 	ExecuteCodebaseSearchOptions,
 	ExecuteCodebaseSearchResult,
@@ -15,12 +17,15 @@ export type {
 	SafeWarpGrepProviderOptions,
 } from './codebase-search-tool';
 export {
+	buildSearchDetails,
 	createSafeRemoteWarpGrepProvider,
 	createSafeWarpGrepProvider,
 	executeCodebaseSearch,
+	formatSearchContent,
 	registerCodebaseSearchTool,
 	resolveWorkspaceDirectory,
 } from './codebase-search-tool';
+export type { QuickEditDetails } from './morph-apply';
 export type {
 	ExecuteQuickEditContext,
 	ExecuteQuickEditOptions,
