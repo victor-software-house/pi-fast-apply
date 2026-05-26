@@ -5,8 +5,13 @@ import { type RegisterQuickEditToolOptions, registerQuickEditTool } from './quic
 
 export type { MorphAuthResolution, MorphAuthSource } from './auth';
 export { ensureMorphApiKey, morphAuthSourceLabel, resolveMorphApiKey } from './auth';
-export type { RegisterCodebaseSearchToolOptions, SafeWarpGrepProviderOptions } from './codebase-search-tool';
+export type {
+	RegisterCodebaseSearchToolOptions,
+	SafeRemoteWarpGrepProviderOptions,
+	SafeWarpGrepProviderOptions,
+} from './codebase-search-tool';
 export {
+	createSafeRemoteWarpGrepProvider,
 	createSafeWarpGrepProvider,
 	registerCodebaseSearchTool,
 	resolveWorkspaceDirectory,

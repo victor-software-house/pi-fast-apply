@@ -11,6 +11,7 @@ import {
 	type WarpGrepResult,
 	type WarpGrepStep,
 } from '@morphllm/morphsdk';
+import { type RemoteCommands, RemoteCommandsProvider } from '@morphllm/morphsdk/tools/warp-grep';
 import { Type } from '@sinclair/typebox';
 import {
 	BOLD,
@@ -149,6 +150,41 @@ export function createSafeWarpGrepProvider(
 		options.excludes,
 		Object.keys(providerOptions).length > 0 ? providerOptions : undefined,
 	);
+	const redactionEnabled = options.enabled ?? true;
+	return {
+		async grep(params) {
+			const result = await inner.grep(params);
+			if (!redactionEnabled) return result;
+			return { ...result, lines: await redactGrepLines(result.lines, params.path, repoRoot) };
+		},
+		async read(params) {
+			const result = await inner.read(params);
+			if (!redactionEnabled) return result;
+			return { ...result, lines: await redactReadLines(result.lines, params.path, repoRoot) };
+		},
+		async listDirectory(params) {
+			return inner.listDirectory(params);
+		},
+		async glob(params) {
+			return inner.glob(params);
+		},
+	};
+}
+
+export interface SafeRemoteWarpGrepProviderOptions extends CodebaseSearchRedactionOptions {}
+
+/**
+ * Wrap Morph SDK RemoteCommandsProvider with the same redaction layer used
+ * for local search. Consumers (for example pi-ssh-tools) supply
+ * grep/read/listDir functions that return raw stdout from a remote host; the
+ * Morph SDK handles all parsing.
+ */
+export function createSafeRemoteWarpGrepProvider(
+	repoRoot: string,
+	commands: RemoteCommands,
+	options: SafeRemoteWarpGrepProviderOptions = {},
+): WarpGrepProvider {
+	const inner = new RemoteCommandsProvider(repoRoot, commands);
 	const redactionEnabled = options.enabled ?? true;
 	return {
 		async grep(params) {

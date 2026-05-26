@@ -8,7 +8,8 @@
 - Exported reusable registration helpers and types so other Pi extensions can register Morph tools with custom filesystem/provider backends while sharing `/morph` auth and runtime config.
 - `quick_edit` now accepts injectable file operations for host-aware path resolution, reads, writes, mkdir, and mutation queue keys.
 - `codebase_search` now accepts injectable repo-root resolution and WarpGrep provider creation for custom host/sandbox backends.
-- Bumped `@victor-software-house/pi-render-core` dependency floor to `>=0.4.8` and aligned Pi SDK peer floor with `@earendil-works/pi-coding-agent@>=0.75.5` plus latest published `ai`, `@types/node`, `eslint-plugin-zod`, `lefthook`, `oxlint`, `oxlint-tsgolint`, `tsx`, and `vitest`.
+- Bumped `@victor-software-house/pi-render-core` dependency floor to `>=0.4.9` and aligned Pi SDK peer floor with `@earendil-works/pi-coding-agent@>=0.75.5` plus latest published `ai`, `@types/node`, `eslint-plugin-zod`, `lefthook`, `oxlint`, `oxlint-tsgolint`, `tsx`, and `vitest`.
+- Exported `createSafeRemoteWarpGrepProvider()` plus `RemoteCommands` re-export so SSH or sandbox integrations can supply `grep`/`read`/`listDir` stdout backends and reuse Morph's `RemoteCommandsProvider` with the same redaction layer as local search.
 
 ## 0.3.0 — 2026-05-25
 
