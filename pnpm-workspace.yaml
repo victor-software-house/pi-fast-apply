@@ -27,5 +27,8 @@ minimumReleaseAgeExclude:
   - '@oxlint/binding-win32-ia32-msvc@1.67.0'
   - '@oxlint/binding-win32-x64-msvc@1.67.0'
   - oxlint@1.67.0
+  - '@victor-software-house/pi-render-core@0.5.0'
 patchedDependencies:
   '@morphllm/morphsdk@0.2.171': patches/@morphllm__morphsdk@0.2.171.patch
+
+minimumReleaseAge: 0

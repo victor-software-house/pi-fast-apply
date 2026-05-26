@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.4.2 — 2026-05-26
+
+### Changed
+
+- Bumped `@victor-software-house/pi-render-core` dependency floor to `>=0.5.0` so quick-edit and codebase-search renderers use the active Pi theme for diff gutters and syntax highlighting.
+
 ## 0.4.1 — 2026-05-26
 
 ### Added
