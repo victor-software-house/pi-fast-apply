@@ -31,4 +31,8 @@ minimumReleaseAgeExclude:
 patchedDependencies:
   '@morphllm/morphsdk@0.2.171': patches/@morphllm__morphsdk@0.2.171.patch
 
+# First-party @victor-software-house packages are published by us via
+# the CI release flow in each repo. No supply-chain delay needed —
+# disable the policy so cross-package patches don't need to wait 24h
+# or be manually whitelisted on every bump.
 minimumReleaseAge: 0
