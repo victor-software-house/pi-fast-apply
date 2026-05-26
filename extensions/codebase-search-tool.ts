@@ -12,7 +12,7 @@ import {
 	type WarpGrepStep,
 } from '@morphllm/morphsdk';
 import { type RemoteCommands, RemoteCommandsProvider } from '@morphllm/morphsdk/tools/warp-grep';
-import { Type } from '@sinclair/typebox';
+import { type TObject, Type } from '@sinclair/typebox';
 import {
 	BOLD,
 	FG_DIM,
@@ -101,18 +101,27 @@ export interface CodebaseSearchDetails {
 export interface CodebaseSearchExecutionContext {
 	cwd: string;
 	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+	params: unknown;
 }
 
 export interface RegisterCodebaseSearchToolOptions {
 	name?: string;
 	label?: string;
+	description?: string;
+	promptSnippet?: string;
+	promptGuidelines?: string[];
+	extendParameters?: TObject;
 	resolveApiKey?: (ctx: CodebaseSearchExecutionContext) => Promise<string>;
 	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
 	resolveRepoRoot?: (
 		ctx: CodebaseSearchExecutionContext,
 		repoRoot: string | undefined,
 	) => Promise<ResolvedWorkspaceDirectory>;
-	createProvider?: (repoRoot: string, options: SafeWarpGrepProviderOptions) => WarpGrepProvider;
+	createProvider?: (
+		repoRoot: string,
+		options: SafeWarpGrepProviderOptions,
+		ctx: CodebaseSearchExecutionContext,
+	) => WarpGrepProvider;
 }
 
 function expandDirectoryPath(directoryPath: string): string {
@@ -521,7 +530,14 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCo
 		options.resolveRepoRoot ??
 		((ctx: CodebaseSearchExecutionContext, repoRoot: string | undefined) =>
 			resolveWorkspaceDirectory(ctx.cwd, repoRoot));
-	const createProvider = options.createProvider ?? createSafeWarpGrepProvider;
+	const createProvider =
+		options.createProvider ??
+		((repoRoot: string, providerOptions: SafeWarpGrepProviderOptions) =>
+			createSafeWarpGrepProvider(repoRoot, providerOptions));
+	// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Type.Composite returns a TObject structurally compatible with CodebaseSearchParams; downstream code only relies on the base schema fields.
+	const parameters = (
+		options.extendParameters ? Type.Composite([CodebaseSearchParams, options.extendParameters]) : CodebaseSearchParams
+	) as typeof CodebaseSearchParams;
 	interface SearchRenderState {
 		key?: string;
 		body?: string | null;
@@ -530,14 +546,16 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCo
 	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>, SearchRenderState>({
 		name: toolName,
 		label: toolLabel,
-		// SDK's WARP_GREP_DESCRIPTION verbatim.
 		description:
+			options.description ??
 			'Very fast code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "Find where authentication requests are handled in the Express routes" or "How do callers of processOrder handle the error case?". Fill in extra context you can infer to make the query specific. Do not pass bare keywords or symbol names — use grep directly for exact symbol lookups. Use this tool first when exploring unfamiliar code. The results may be partial — follow up with classical search tools or direct file reads if needed.',
-		promptSnippet: 'codebase_search: semantic/exploratory code questions. grep/find for exact strings or filenames.',
-		promptGuidelines: [
+		promptSnippet:
+			options.promptSnippet ??
+			'codebase_search: semantic/exploratory code questions. grep/find for exact strings or filenames.',
+		promptGuidelines: options.promptGuidelines ?? [
 			'codebase_search: use for broad questions about where behavior lives, not for exact strings or filenames — grep/find are faster and use no API budget.',
 		],
-		parameters: CodebaseSearchParams,
+		parameters,
 
 		renderCall(args, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
@@ -625,7 +643,11 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCo
 		},
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const executionContext = { cwd: ctx.cwd, modelRegistry: ctx.modelRegistry };
+			const executionContext: CodebaseSearchExecutionContext = {
+				cwd: ctx.cwd,
+				modelRegistry: ctx.modelRegistry,
+				params,
+			};
 			const apiKey = await resolveApiKey(executionContext);
 			const runtimeConfig = await resolveRuntimeConfig();
 			const { absolutePath } = await resolveRepoRoot(executionContext, params.repoRoot);
@@ -648,7 +670,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCo
 			const stream = client.execute({
 				searchTerm: params.searchTerm,
 				repoRoot: absolutePath,
-				provider: createProvider(absolutePath, providerOptions),
+				provider: createProvider(absolutePath, providerOptions, executionContext),
 				streamSteps: true,
 				...(params.includes && params.includes.length > 0 ? { includes: params.includes } : {}),
 				...(params.excludes && params.excludes.length > 0 ? { excludes: params.excludes } : {}),

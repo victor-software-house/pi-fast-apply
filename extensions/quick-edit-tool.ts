@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { highlightCode, withFileMutationQueue } from '@earendil-works/pi-coding-agent';
 import { Text } from '@earendil-works/pi-tui';
-import { Type } from '@sinclair/typebox';
+import { type TObject, Type } from '@sinclair/typebox';
 import { getWidthAwareText } from '@victor-software-house/pi-render-core';
 import {
 	cfg,
@@ -42,10 +42,17 @@ const QuickEditParams = Type.Object({
 export interface QuickEditExecutionContext {
 	cwd: string;
 	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+	params: unknown;
+}
+
+export interface ResolveFileContext {
+	cwd: string;
+	inputPath: string;
+	params: unknown;
 }
 
 export interface QuickEditFileOps {
-	resolveFile(cwd: string, inputPath: string): Promise<{ absolutePath: string; displayPath?: string }>;
+	resolveFile(ctx: ResolveFileContext): Promise<{ absolutePath: string; displayPath?: string }>;
 	existsReadable(absolutePath: string): Promise<boolean>;
 	readFile(absolutePath: string): Promise<string>;
 	writeFile(absolutePath: string, content: string): Promise<void>;
@@ -56,7 +63,11 @@ export interface QuickEditFileOps {
 export interface RegisterQuickEditToolOptions {
 	name?: string;
 	label?: string;
-	pathBadge?: (args: { path?: string }) => string | undefined;
+	description?: string;
+	promptSnippet?: string;
+	promptGuidelines?: string[];
+	extendParameters?: TObject;
+	pathBadge?: (args: Record<string, unknown>) => string | undefined;
 	fileOps?: QuickEditFileOps;
 	resolveApiKey?: (ctx: QuickEditExecutionContext) => Promise<string>;
 	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
@@ -64,7 +75,7 @@ export interface RegisterQuickEditToolOptions {
 
 export function createLocalQuickEditFileOps(): QuickEditFileOps {
 	return {
-		async resolveFile(cwd, inputPath) {
+		async resolveFile({ cwd, inputPath }) {
 			try {
 				const { absolutePath } = await resolveWorkspaceFilePath(cwd, inputPath);
 				return { absolutePath };
@@ -95,19 +106,26 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 	const resolveApiKey =
 		options.resolveApiKey ?? ((ctx: QuickEditExecutionContext) => ensureMorphApiKey(ctx.modelRegistry.authStorage));
 	const resolveRuntimeConfig = options.resolveRuntimeConfig ?? getMorphRuntimeConfig;
+	// oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- Type.Composite returns a TObject structurally compatible with QuickEditParams; downstream code only relies on the base schema fields.
+	const parameters = (
+		options.extendParameters ? Type.Composite([QuickEditParams, options.extendParameters]) : QuickEditParams
+	) as typeof QuickEditParams;
 	pi.registerTool<typeof QuickEditParams, Partial<QuickEditDetails>>({
 		name: toolName,
 		label: toolLabel,
 		description:
+			options.description ??
 			"Default file editor; fall back to edit only for simple single-string replacements.\n\nUse this tool to make an edit to an existing file, or create a new file when the path does not exist.\n\nThis will be read by a less intelligent model, which will quickly apply the edit. You should make it clear what the edit is, while also minimizing the unchanged code you write.\n\nWhen writing the edit, specify each edit in sequence with the special comment // ... existing code ... to represent unchanged code in between. The marker also works inline for dense lines:\n\n// ... existing code ...\nCHANGED_BLOCK\n// ... existing code ...\n\nInline (multiple markers per line, one per field):\n{ host: 'new', port: // ... existing ..., ssl: // ... existing ..., pool: 20 }\n\nYou should bias towards repeating as few lines as possible to convey the change. But each edit should contain minimally sufficient context of unchanged lines to resolve ambiguity.\n\nDO NOT omit spans of pre-existing code (or comments) without using the // ... existing code ... comment to indicate its absence. If you omit it, the model may inadvertently delete those lines.\n\nMake all edits to a file in a single quick_edit call rather than multiple calls to the same file.",
-		promptSnippet: 'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
-		promptGuidelines: [
+		promptSnippet:
+			options.promptSnippet ??
+			'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
+		promptGuidelines: options.promptGuidelines ?? [
 			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",
 			'quick_edit inline markers: skip unchanged fields on the same line — { a: new, b: // ... existing ..., c: other, d: // ... existing ... } — one marker per field, multiple per line.',
 			"quick_edit reorder: write the new order and mark each unchanged field value inline — never retype field values that didn't change.",
 			'quick_edit sparse: two block markers bracket the changed entry — everything between is skipped.',
 		],
-		parameters: QuickEditParams,
+		parameters,
 
 		renderCall(args, theme, context) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text('', 0, 0);
@@ -286,13 +304,13 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 		},
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
-			const apiKey = await resolveApiKey({ cwd: ctx.cwd, modelRegistry: ctx.modelRegistry });
+			const apiKey = await resolveApiKey({ cwd: ctx.cwd, modelRegistry: ctx.modelRegistry, params });
 			const runtimeConfig = await resolveRuntimeConfig();
 			let absolutePath: string;
 			let displayPath = params.path;
 
 			try {
-				const resolvedFile = await fileOps.resolveFile(ctx.cwd, params.path);
+				const resolvedFile = await fileOps.resolveFile({ cwd: ctx.cwd, inputPath: params.path, params });
 				absolutePath = resolvedFile.absolutePath;
 				displayPath = resolvedFile.displayPath ?? params.path;
 			} catch (error) {
