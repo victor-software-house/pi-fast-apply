@@ -5,5 +5,7 @@ allowBuilds:
   koffi: true
   lefthook: true
   protobufjs: true
+minimumReleaseAgeExclude:
+  - '@victor-software-house/pi-render-core@0.4.6'
 patchedDependencies:
   '@morphllm/morphsdk@0.2.171': patches/@morphllm__morphsdk@0.2.171.patch

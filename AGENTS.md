@@ -52,6 +52,9 @@ docs/                Specdocs (PRDs, plans, ADRs)
 - SDK patches are fragile across upgrades. Every patch area must have test coverage. Document all patch areas in `ROADMAP.md`.
 - `instructions/morph-tools.md` ships with the package for non-Pi agents. It is not auto-loaded in Pi (Pi uses tool `promptGuidelines` instead).
 - Ask before changing release flow, package name, publishing shape, or repository visibility.
+- Package runtime loads from compiled `dist/index.mjs`; do not point Pi package metadata back at raw `extensions/` TypeScript.
+- Reusable consumers should call exported registration helpers (`registerMorphTools`, `registerQuickEditTool`, `registerCodebaseSearchTool`) and inject host-specific `fileOps`, `resolveRepoRoot`, or WarpGrep providers instead of copying Morph auth/API/config/tool logic.
+- Keep `/morph` auth/config as the shared source of truth. SSH or sandbox integrations should reuse default `resolveApiKey` / `resolveRuntimeConfig` unless they have an explicit separate credential boundary.
 
 ## Gate before committing
 

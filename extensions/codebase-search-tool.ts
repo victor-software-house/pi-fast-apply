@@ -97,6 +97,23 @@ export interface CodebaseSearchDetails {
 	turnsUsed?: number;
 }
 
+export interface CodebaseSearchExecutionContext {
+	cwd: string;
+	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+}
+
+export interface RegisterCodebaseSearchToolOptions {
+	name?: string;
+	label?: string;
+	resolveApiKey?: (ctx: CodebaseSearchExecutionContext) => Promise<string>;
+	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
+	resolveRepoRoot?: (
+		ctx: CodebaseSearchExecutionContext,
+		repoRoot: string | undefined,
+	) => Promise<ResolvedWorkspaceDirectory>;
+	createProvider?: (repoRoot: string, options: SafeWarpGrepProviderOptions) => WarpGrepProvider;
+}
+
 function expandDirectoryPath(directoryPath: string): string {
 	const normalized = directoryPath.startsWith('@') ? directoryPath.slice(1) : directoryPath;
 	if (normalized === '~') return homedir();
@@ -457,15 +474,26 @@ function formatStep(step: WarpGrepStep): string {
 	return `Codebase Search turn ${step.turn}: ${calls}`;
 }
 
-export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
+export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCodebaseSearchToolOptions = {}): void {
+	const toolName = options.name ?? 'codebase_search';
+	const toolLabel = options.label ?? 'Codebase Search';
+	const resolveApiKey =
+		options.resolveApiKey ??
+		((ctx: CodebaseSearchExecutionContext) => ensureMorphApiKey(ctx.modelRegistry.authStorage));
+	const resolveRuntimeConfig = options.resolveRuntimeConfig ?? getMorphRuntimeConfig;
+	const resolveRepoRoot =
+		options.resolveRepoRoot ??
+		((ctx: CodebaseSearchExecutionContext, repoRoot: string | undefined) =>
+			resolveWorkspaceDirectory(ctx.cwd, repoRoot));
+	const createProvider = options.createProvider ?? createSafeWarpGrepProvider;
 	interface SearchRenderState {
 		key?: string;
 		body?: string | null;
 	}
 
 	pi.registerTool<typeof CodebaseSearchParams, Partial<CodebaseSearchDetails>, SearchRenderState>({
-		name: 'codebase_search',
-		label: 'Codebase Search',
+		name: toolName,
+		label: toolLabel,
 		// SDK's WARP_GREP_DESCRIPTION verbatim.
 		description:
 			'Very fast code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "Find where authentication requests are handled in the Express routes" or "How do callers of processOrder handle the error case?". Fill in extra context you can infer to make the query specific. Do not pass bare keywords or symbol names — use grep directly for exact symbol lookups. Use this tool first when exploring unfamiliar code. The results may be partial — follow up with classical search tools or direct file reads if needed.',
@@ -561,9 +589,10 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 		},
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
-			const runtimeConfig = await getMorphRuntimeConfig();
-			const { absolutePath } = await resolveWorkspaceDirectory(ctx.cwd, params.repoRoot);
+			const executionContext = { cwd: ctx.cwd, modelRegistry: ctx.modelRegistry };
+			const apiKey = await resolveApiKey(executionContext);
+			const runtimeConfig = await resolveRuntimeConfig();
+			const { absolutePath } = await resolveRepoRoot(executionContext, params.repoRoot);
 
 			const redactionEnabled = isCodebaseSearchRedactionEnabled();
 			if (await containsDetectedSecret(params.searchTerm)) {
@@ -583,7 +612,7 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI): void {
 			const stream = client.execute({
 				searchTerm: params.searchTerm,
 				repoRoot: absolutePath,
-				provider: createSafeWarpGrepProvider(absolutePath, providerOptions),
+				provider: createProvider(absolutePath, providerOptions),
 				streamSteps: true,
 				...(params.includes && params.includes.length > 0 ? { includes: params.includes } : {}),
 				...(params.excludes && params.excludes.length > 0 ? { excludes: params.excludes } : {}),

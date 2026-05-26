@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased
+
+### Changed
+
+- Package runtime now ships compiled `dist/` output via `tsdown`; Pi loads `dist/index.mjs` instead of raw `extensions/` TypeScript.
+- Exported reusable registration helpers and types so other Pi extensions can register Morph tools with custom filesystem/provider backends while sharing `/morph` auth and runtime config.
+- `quick_edit` now accepts injectable file operations for host-aware path resolution, reads, writes, mkdir, and mutation queue keys.
+- `codebase_search` now accepts injectable repo-root resolution and WarpGrep provider creation for custom host/sandbox backends.
+- Bumped `@victor-software-house/pi-render-core` dependency floor to `>=0.4.6` and aligned package manager metadata with the VSH Pi package baseline.
+
 ## 0.3.0 — 2026-05-25
 
 ### Changed

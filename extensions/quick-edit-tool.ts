@@ -39,10 +39,65 @@ const QuickEditParams = Type.Object({
 	}),
 });
 
-export function registerQuickEditTool(pi: ExtensionAPI): void {
+export interface QuickEditExecutionContext {
+	cwd: string;
+	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+}
+
+export interface QuickEditFileOps {
+	resolveFile(cwd: string, inputPath: string): Promise<{ absolutePath: string; displayPath?: string }>;
+	existsReadable(absolutePath: string): Promise<boolean>;
+	readFile(absolutePath: string): Promise<string>;
+	writeFile(absolutePath: string, content: string): Promise<void>;
+	mkdirForFile(absolutePath: string): Promise<void>;
+	queueKey?(absolutePath: string): string;
+}
+
+export interface RegisterQuickEditToolOptions {
+	name?: string;
+	label?: string;
+	pathBadge?: (args: { path?: string }) => string | undefined;
+	fileOps?: QuickEditFileOps;
+	resolveApiKey?: (ctx: QuickEditExecutionContext) => Promise<string>;
+	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
+}
+
+export function createLocalQuickEditFileOps(): QuickEditFileOps {
+	return {
+		async resolveFile(cwd, inputPath) {
+			try {
+				const { absolutePath } = await resolveWorkspaceFilePath(cwd, inputPath);
+				return { absolutePath };
+			} catch (error) {
+				if (error instanceof Error && error.message.startsWith('quick_edit ')) throw error;
+				const targetPath = inputPath.startsWith('@') ? inputPath.slice(1) : inputPath;
+				return { absolutePath: resolve(cwd, targetPath) };
+			}
+		},
+		existsReadable: async (absolutePath) => {
+			try {
+				await ensureReadableFile(absolutePath);
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		readFile: (absolutePath) => readFile(absolutePath, 'utf8'),
+		writeFile: (absolutePath, content) => writeFile(absolutePath, content, 'utf8'),
+		mkdirForFile: (absolutePath) => mkdir(dirname(absolutePath), { recursive: true }).then(() => undefined),
+	};
+}
+
+export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEditToolOptions = {}): void {
+	const toolName = options.name ?? 'quick_edit';
+	const toolLabel = options.label ?? 'Quick Edit';
+	const fileOps = options.fileOps ?? createLocalQuickEditFileOps();
+	const resolveApiKey =
+		options.resolveApiKey ?? ((ctx: QuickEditExecutionContext) => ensureMorphApiKey(ctx.modelRegistry.authStorage));
+	const resolveRuntimeConfig = options.resolveRuntimeConfig ?? getMorphRuntimeConfig;
 	pi.registerTool<typeof QuickEditParams, Partial<QuickEditDetails>>({
-		name: 'quick_edit',
-		label: 'Quick Edit',
+		name: toolName,
+		label: toolLabel,
 		description:
 			"Default file editor; fall back to edit only for simple single-string replacements.\n\nUse this tool to make an edit to an existing file, or create a new file when the path does not exist.\n\nThis will be read by a less intelligent model, which will quickly apply the edit. You should make it clear what the edit is, while also minimizing the unchanged code you write.\n\nWhen writing the edit, specify each edit in sequence with the special comment // ... existing code ... to represent unchanged code in between. The marker also works inline for dense lines:\n\n// ... existing code ...\nCHANGED_BLOCK\n// ... existing code ...\n\nInline (multiple markers per line, one per field):\n{ host: 'new', port: // ... existing ..., ssl: // ... existing ..., pool: 20 }\n\nYou should bias towards repeating as few lines as possible to convey the change. But each edit should contain minimally sufficient context of unchanged lines to resolve ambiguity.\n\nDO NOT omit spans of pre-existing code (or comments) without using the // ... existing code ... comment to indicate its absence. If you omit it, the model may inadvertently delete those lines.\n\nMake all edits to a file in a single quick_edit call rather than multiple calls to the same file.",
 		promptSnippet: 'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
@@ -231,12 +286,15 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 		},
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
-			const apiKey = await ensureMorphApiKey(ctx.modelRegistry.authStorage);
-			const runtimeConfig = await getMorphRuntimeConfig();
+			const apiKey = await resolveApiKey({ cwd: ctx.cwd, modelRegistry: ctx.modelRegistry });
+			const runtimeConfig = await resolveRuntimeConfig();
 			let absolutePath: string;
+			let displayPath = params.path;
 
 			try {
-				({ absolutePath } = await resolveWorkspaceFilePath(ctx.cwd, params.path));
+				const resolvedFile = await fileOps.resolveFile(ctx.cwd, params.path);
+				absolutePath = resolvedFile.absolutePath;
+				displayPath = resolvedFile.displayPath ?? params.path;
 			} catch (error) {
 				if (error instanceof Error && error.message.startsWith('quick_edit ')) throw error;
 				const targetPath = params.path.startsWith('@') ? params.path.slice(1) : params.path;
@@ -244,20 +302,15 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 				throw new Error(`quick_edit: cannot resolve path ${params.path}\nResolved to: ${fallbackPath}`);
 			}
 
-			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${params.path}...` }], details: {} });
+			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${displayPath}...` }], details: {} });
 
-			return withFileMutationQueue(absolutePath, async () => {
-				let isNewFile = false;
-				try {
-					await ensureReadableFile(absolutePath);
-				} catch {
-					isNewFile = true;
-				}
+			return withFileMutationQueue(fileOps.queueKey?.(absolutePath) ?? absolutePath, async () => {
+				const isNewFile = !(await fileOps.existsReadable(absolutePath));
 
 				// New file: write codeEdit directly — no API round-trip on empty original.
 				if (isNewFile) {
-					await mkdir(dirname(absolutePath), { recursive: true });
-					await writeFile(absolutePath, params.codeEdit, 'utf8');
+					await fileOps.mkdirForFile(absolutePath);
+					await fileOps.writeFile(absolutePath, params.codeEdit);
 					return {
 						content: [{ type: 'text' as const, text: `Created ${params.path}` }],
 						details: {
@@ -284,7 +337,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 					};
 				}
 
-				const originalCode = await readFile(absolutePath, 'utf8');
+				const originalCode = await fileOps.readFile(absolutePath);
 				validateInputForExistingFile(params.codeEdit, originalCode);
 
 				onUpdate?.({ content: [{ type: 'text', text: `Running Morph merge for ${params.path}...` }], details: {} });
@@ -309,7 +362,7 @@ export function registerQuickEditTool(pi: ExtensionAPI): void {
 				}
 
 				validateMergedOutput(originalCode, params.codeEdit, result.mergedCode);
-				await writeFile(absolutePath, result.mergedCode, 'utf8');
+				await fileOps.writeFile(absolutePath, result.mergedCode);
 
 				return {
 					content: [

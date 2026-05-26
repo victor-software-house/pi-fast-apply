@@ -26,19 +26,28 @@
 	],
 	"pi": {
 		"extensions": [
-			"./extensions"
+			"./dist/index.mjs"
 		],
 		"image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
 	},
 	"type": "module",
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"default": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
 	"files": [
-		"extensions",
+		"dist",
 		"assets/**",
 		"README.md",
 		"LICENSE"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "tsdown",
 		"typecheck": "tsc --noEmit",
 		"lint": "pnpm run lint:biome && pnpm run lint:oxlint",
 		"lint:biome": "biome check .",
@@ -72,7 +81,7 @@
 		"@secretlint/core": "13.0.2",
 		"@secretlint/secretlint-rule-preset-recommend": "13.0.2",
 		"@sinclair/typebox": "^0.34.49",
-		"@victor-software-house/pi-render-core": "^0.4.2",
+		"@victor-software-house/pi-render-core": ">=0.4.6",
 		"ai": "^6.0.183"
 	},
 	"devDependencies": {
@@ -86,6 +95,7 @@
 		"oxlint": "^1.64.0",
 		"oxlint-tsgolint": "^0.22.1",
 		"tsx": "^4.22.0",
+		"tsdown": "^0.22.0",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.6"
 	},
@@ -93,7 +103,7 @@
 		"pnpm": ">=11 <12",
 		"node": ">=24.0.0"
 	},
-	"packageManager": "pnpm@11.1.2",
+	"packageManager": "pnpm@11.2.2",
 	"pnpm": {
 		"autoInstallPeers": false
 	}

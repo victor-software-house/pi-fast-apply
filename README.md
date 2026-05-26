@@ -127,6 +127,17 @@ Pi auth storage is checked first. `MORPH_API_KEY` is the fallback.
 | `MORPH_WARPGREP` | enabled | Set to `false` to disable `codebase_search` |
 | `CODEBASE_SEARCH_REDACTION` | enabled | Set to `0` to disable content redaction (for synthetic fixture debugging only) |
 
+## Reuse from other Pi extensions
+
+The package ships compiled `dist/` output and exports reusable registration helpers:
+
+- `registerMorphTools(pi, options)` — register both model-facing tools with default Pi auth/config.
+- `registerQuickEditTool(pi, { fileOps, resolveApiKey, resolveRuntimeConfig })` — reuse Morph Apply with custom filesystem operations.
+- `registerCodebaseSearchTool(pi, { resolveRepoRoot, createProvider, resolveApiKey, resolveRuntimeConfig })` — reuse WarpGrep with a custom provider/root resolver.
+- `ensureMorphApiKey()`, `getMorphRuntimeConfig()`, `buildApplyConfig()`, and `buildWarpGrepConfig()` — share the same Pi auth storage and Morph API configuration used by `/morph` commands.
+
+SSH integrations should pass host-aware `fileOps` / provider implementations and keep auth/config defaults so `/morph login`, `MORPH_API_KEY`, `MORPH_API_URL`, and timeout behavior stay identical across local and remote tools.
+
 ## Development
 
 ```bash
