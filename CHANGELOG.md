@@ -1,13 +1,13 @@
 # CHANGELOG
 
-## Unreleased
+## 0.4.0 — 2026-05-26
 
 ### Changed
 
 - Package runtime now ships compiled `dist/` output via `tsdown`; Pi loads `dist/index.mjs` instead of raw `extensions/` TypeScript.
 - Exported reusable registration helpers and types so other Pi extensions can register Morph tools with custom filesystem/provider backends while sharing `/morph` auth and runtime config.
-- `quick_edit` now accepts injectable file operations for host-aware path resolution, reads, writes, mkdir, and mutation queue keys.
-- `codebase_search` now accepts injectable repo-root resolution and WarpGrep provider creation for custom host/sandbox backends.
+- Added `executeQuickEdit()` and `executeCodebaseSearch()` low-level helpers so consumers on a different typebox version can register their own Pi tools with custom schemas while reusing Morph orchestration, validation, redaction, and detail shaping.
+- `quick_edit` and `codebase_search` factories now accept `extendParameters` and pass full params through `resolveFile`/`resolveApiKey`/`resolveRepoRoot`/`createProvider` hooks for multi-host scenarios.
 - Bumped `@victor-software-house/pi-render-core` dependency floor to `>=0.4.9` and aligned Pi SDK peer floor with `@earendil-works/pi-coding-agent@>=0.75.5` plus latest published `ai`, `@types/node`, `eslint-plugin-zod`, `lefthook`, `oxlint`, `oxlint-tsgolint`, `tsx`, and `vitest`.
 - Exported `createSafeRemoteWarpGrepProvider()` plus `RemoteCommands` re-export so SSH or sandbox integrations can supply `grep`/`read`/`listDir` stdout backends and reuse Morph's `RemoteCommandsProvider` with the same redaction layer as local search.
 
