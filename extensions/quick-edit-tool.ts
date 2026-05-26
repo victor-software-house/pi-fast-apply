@@ -73,6 +73,138 @@ export interface RegisterQuickEditToolOptions {
 	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
 }
 
+export interface QuickEditInput {
+	path: string;
+	instruction: string;
+	codeEdit: string;
+}
+
+export interface ExecuteQuickEditContext {
+	cwd: string;
+	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+	params: unknown;
+}
+
+export interface ExecuteQuickEditOptions {
+	input: QuickEditInput;
+	ctx: ExecuteQuickEditContext;
+	onUpdate?:
+		| ((chunk: { content: { type: 'text'; text: string }[]; details: Partial<QuickEditDetails> }) => void)
+		| undefined;
+	fileOps?: QuickEditFileOps;
+	resolveApiKey?: (ctx: QuickEditExecutionContext) => Promise<string>;
+	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
+}
+
+export interface ExecuteQuickEditResult {
+	content: { type: 'text'; text: string }[];
+	details: QuickEditDetails;
+}
+
+export async function executeQuickEdit(options: ExecuteQuickEditOptions): Promise<ExecuteQuickEditResult> {
+	const fileOps = options.fileOps ?? createLocalQuickEditFileOps();
+	const resolveApiKey =
+		options.resolveApiKey ?? ((ctx: QuickEditExecutionContext) => ensureMorphApiKey(ctx.modelRegistry.authStorage));
+	const resolveRuntimeConfig = options.resolveRuntimeConfig ?? getMorphRuntimeConfig;
+	const { input, ctx, onUpdate } = options;
+	const apiKey = await resolveApiKey({ cwd: ctx.cwd, modelRegistry: ctx.modelRegistry, params: ctx.params });
+	const runtimeConfig = await resolveRuntimeConfig();
+	let absolutePath: string;
+	let displayPath = input.path;
+	try {
+		const resolvedFile = await fileOps.resolveFile({ cwd: ctx.cwd, inputPath: input.path, params: ctx.params });
+		absolutePath = resolvedFile.absolutePath;
+		displayPath = resolvedFile.displayPath ?? input.path;
+	} catch (error) {
+		if (error instanceof Error && error.message.startsWith('quick_edit ')) throw error;
+		const targetPath = input.path.startsWith('@') ? input.path.slice(1) : input.path;
+		const fallbackPath = resolve(ctx.cwd, targetPath);
+		throw new Error(`quick_edit: cannot resolve path ${input.path}\nResolved to: ${fallbackPath}`);
+	}
+
+	onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${displayPath}...` }], details: {} });
+
+	return withFileMutationQueue(fileOps.queueKey?.(absolutePath) ?? absolutePath, async () => {
+		const isNewFile = !(await fileOps.existsReadable(absolutePath));
+		if (isNewFile) {
+			await fileOps.mkdirForFile(absolutePath);
+			await fileOps.writeFile(absolutePath, input.codeEdit);
+			return {
+				content: [{ type: 'text' as const, text: `Created ${input.path}` }],
+				details: {
+					provider: 'direct',
+					path: input.path,
+					absolutePath,
+					dryRun: false,
+					instruction: input.instruction,
+					changes: { linesAdded: input.codeEdit.split('\n').length, linesRemoved: 0, linesModified: 0 },
+					udiff: undefined,
+					mergedCode: input.codeEdit,
+					originalCode: '',
+					completionId: undefined,
+					originalLineCount: 0,
+					mergedLineCount: input.codeEdit.split('\n').length,
+					apiBaseUrl: runtimeConfig.displayApiBaseUrl,
+					apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
+					apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
+					timeoutMs: runtimeConfig.timeoutMs,
+					applyDefaultModel: runtimeConfig.applyDefaultModel,
+					sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
+					sdkVersion: runtimeConfig.sdkPatch.version,
+				} satisfies QuickEditDetails,
+			};
+		}
+
+		const originalCode = await fileOps.readFile(absolutePath);
+		validateInputForExistingFile(input.codeEdit, originalCode);
+
+		onUpdate?.({ content: [{ type: 'text', text: `Running Morph merge for ${input.path}...` }], details: {} });
+
+		const morphStart = Date.now();
+		const result = await runMorphApply(
+			{ originalCode, codeEdit: input.codeEdit, instruction: input.instruction },
+			apiKey,
+			runtimeConfig,
+		);
+		const latencyMs = Date.now() - morphStart;
+
+		if (!result.success || result.mergedCode == null || result.mergedCode === '') {
+			const errorMessage =
+				result.error == null || result.error === '' ? 'Morph did not produce merged output.' : result.error;
+			throw new Error(errorMessage);
+		}
+
+		validateMergedOutput(originalCode, input.codeEdit, result.mergedCode);
+		await fileOps.writeFile(absolutePath, result.mergedCode);
+
+		return {
+			content: [{ type: 'text' as const, text: summarizeResult(input.path, false, result.changes, result.udiff) }],
+			details: {
+				provider: 'sdk',
+				path: input.path,
+				absolutePath,
+				dryRun: false,
+				instruction: input.instruction,
+				changes: result.changes,
+				udiff: result.udiff,
+				mergedCode: result.mergedCode,
+				originalCode,
+				completionId: result.completionId,
+				originalLineCount: countLines(originalCode),
+				mergedLineCount: countLines(result.mergedCode),
+				apiBaseUrl: runtimeConfig.displayApiBaseUrl,
+				apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
+				apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
+				timeoutMs: runtimeConfig.timeoutMs,
+				applyDefaultModel: runtimeConfig.applyDefaultModel,
+				sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
+				sdkVersion: runtimeConfig.sdkPatch.version,
+				latencyMs,
+			} satisfies QuickEditDetails,
+		};
+	});
+}
+
 export function createLocalQuickEditFileOps(): QuickEditFileOps {
 	return {
 		async resolveFile({ cwd, inputPath }) {
@@ -304,114 +436,13 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 		},
 
 		async execute(_toolCallId, params, _signal, onUpdate, ctx) {
-			const apiKey = await resolveApiKey({ cwd: ctx.cwd, modelRegistry: ctx.modelRegistry, params });
-			const runtimeConfig = await resolveRuntimeConfig();
-			let absolutePath: string;
-			let displayPath = params.path;
-
-			try {
-				const resolvedFile = await fileOps.resolveFile({ cwd: ctx.cwd, inputPath: params.path, params });
-				absolutePath = resolvedFile.absolutePath;
-				displayPath = resolvedFile.displayPath ?? params.path;
-			} catch (error) {
-				if (error instanceof Error && error.message.startsWith('quick_edit ')) throw error;
-				const targetPath = params.path.startsWith('@') ? params.path.slice(1) : params.path;
-				const fallbackPath = resolve(ctx.cwd, targetPath);
-				throw new Error(`quick_edit: cannot resolve path ${params.path}\nResolved to: ${fallbackPath}`);
-			}
-
-			onUpdate?.({ content: [{ type: 'text', text: `Preparing Morph edit for ${displayPath}...` }], details: {} });
-
-			return withFileMutationQueue(fileOps.queueKey?.(absolutePath) ?? absolutePath, async () => {
-				const isNewFile = !(await fileOps.existsReadable(absolutePath));
-
-				// New file: write codeEdit directly — no API round-trip on empty original.
-				if (isNewFile) {
-					await fileOps.mkdirForFile(absolutePath);
-					await fileOps.writeFile(absolutePath, params.codeEdit);
-					return {
-						content: [{ type: 'text' as const, text: `Created ${params.path}` }],
-						details: {
-							provider: 'direct',
-							path: params.path,
-							absolutePath,
-							dryRun: false,
-							instruction: params.instruction,
-							changes: { linesAdded: params.codeEdit.split('\n').length, linesRemoved: 0, linesModified: 0 },
-							udiff: undefined,
-							mergedCode: params.codeEdit,
-							originalCode: '',
-							completionId: undefined,
-							originalLineCount: 0,
-							mergedLineCount: params.codeEdit.split('\n').length,
-							apiBaseUrl: runtimeConfig.displayApiBaseUrl,
-							apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
-							apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
-							timeoutMs: runtimeConfig.timeoutMs,
-							applyDefaultModel: runtimeConfig.applyDefaultModel,
-							sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
-							sdkVersion: runtimeConfig.sdkPatch.version,
-						} satisfies QuickEditDetails,
-					};
-				}
-
-				const originalCode = await fileOps.readFile(absolutePath);
-				validateInputForExistingFile(params.codeEdit, originalCode);
-
-				onUpdate?.({ content: [{ type: 'text', text: `Running Morph merge for ${params.path}...` }], details: {} });
-
-				const morphStart = Date.now();
-				const result = await runMorphApply(
-					{
-						originalCode,
-						codeEdit: params.codeEdit,
-						instruction: params.instruction,
-					},
-					apiKey,
-					runtimeConfig,
-				);
-
-				const latencyMs = Date.now() - morphStart;
-
-				if (!result.success || result.mergedCode == null || result.mergedCode === '') {
-					const errorMessage =
-						result.error == null || result.error === '' ? 'Morph did not produce merged output.' : result.error;
-					throw new Error(errorMessage);
-				}
-
-				validateMergedOutput(originalCode, params.codeEdit, result.mergedCode);
-				await fileOps.writeFile(absolutePath, result.mergedCode);
-
-				return {
-					content: [
-						{
-							type: 'text',
-							text: summarizeResult(params.path, false, result.changes, result.udiff),
-						},
-					],
-					details: {
-						provider: 'sdk',
-						path: params.path,
-						absolutePath,
-						dryRun: false,
-						instruction: params.instruction,
-						changes: result.changes,
-						udiff: result.udiff,
-						mergedCode: result.mergedCode,
-						originalCode,
-						completionId: result.completionId,
-						originalLineCount: countLines(originalCode),
-						mergedLineCount: countLines(result.mergedCode),
-						apiBaseUrl: runtimeConfig.displayApiBaseUrl,
-						apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
-						apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
-						timeoutMs: runtimeConfig.timeoutMs,
-						applyDefaultModel: runtimeConfig.applyDefaultModel,
-						sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
-						sdkVersion: runtimeConfig.sdkPatch.version,
-						latencyMs,
-					} satisfies QuickEditDetails,
-				};
+			return executeQuickEdit({
+				input: { path: params.path, instruction: params.instruction, codeEdit: params.codeEdit },
+				ctx: { cwd: ctx.cwd, modelRegistry: ctx.modelRegistry, params },
+				onUpdate,
+				fileOps,
+				resolveApiKey,
+				resolveRuntimeConfig,
 			});
 		},
 	});

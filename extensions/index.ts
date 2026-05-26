@@ -6,6 +6,10 @@ import { type RegisterQuickEditToolOptions, registerQuickEditTool } from './quic
 export type { MorphAuthResolution, MorphAuthSource } from './auth';
 export { ensureMorphApiKey, morphAuthSourceLabel, resolveMorphApiKey } from './auth';
 export type {
+	CodebaseSearchInput,
+	ExecuteCodebaseSearchContext,
+	ExecuteCodebaseSearchOptions,
+	ExecuteCodebaseSearchResult,
 	RegisterCodebaseSearchToolOptions,
 	SafeRemoteWarpGrepProviderOptions,
 	SafeWarpGrepProviderOptions,
@@ -13,11 +17,19 @@ export type {
 export {
 	createSafeRemoteWarpGrepProvider,
 	createSafeWarpGrepProvider,
+	executeCodebaseSearch,
 	registerCodebaseSearchTool,
 	resolveWorkspaceDirectory,
 } from './codebase-search-tool';
-export type { QuickEditFileOps, RegisterQuickEditToolOptions } from './quick-edit-tool';
-export { createLocalQuickEditFileOps, registerQuickEditTool } from './quick-edit-tool';
+export type {
+	ExecuteQuickEditContext,
+	ExecuteQuickEditOptions,
+	ExecuteQuickEditResult,
+	QuickEditFileOps,
+	QuickEditInput,
+	RegisterQuickEditToolOptions,
+} from './quick-edit-tool';
+export { createLocalQuickEditFileOps, executeQuickEdit, registerQuickEditTool } from './quick-edit-tool';
 export type { MorphRuntimeConfig } from './runtime-config';
 export { buildApplyConfig, buildWarpGrepConfig, getMorphRuntimeConfig } from './runtime-config';
 

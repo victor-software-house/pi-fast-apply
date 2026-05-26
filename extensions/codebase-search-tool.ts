@@ -124,6 +124,45 @@ export interface RegisterCodebaseSearchToolOptions {
 	) => WarpGrepProvider;
 }
 
+export interface CodebaseSearchInput {
+	searchTerm: string;
+	repoRoot?: string;
+	includes?: string[];
+	excludes?: string[];
+	searchType?: 'default' | 'node_modules';
+}
+
+export interface ExecuteCodebaseSearchContext {
+	cwd: string;
+	modelRegistry: { authStorage: Parameters<typeof ensureMorphApiKey>[0] };
+	params: unknown;
+}
+
+export interface ExecuteCodebaseSearchOptions {
+	input: CodebaseSearchInput;
+	ctx: ExecuteCodebaseSearchContext;
+	signal?: AbortSignal;
+	onUpdate?:
+		| ((chunk: { content: { type: 'text'; text: string }[]; details: Partial<CodebaseSearchDetails> }) => void)
+		| undefined;
+	resolveApiKey?: (ctx: CodebaseSearchExecutionContext) => Promise<string>;
+	resolveRuntimeConfig?: () => Promise<Awaited<ReturnType<typeof getMorphRuntimeConfig>>>;
+	resolveRepoRoot?: (
+		ctx: CodebaseSearchExecutionContext,
+		repoRoot: string | undefined,
+	) => Promise<ResolvedWorkspaceDirectory>;
+	createProvider?: (
+		repoRoot: string,
+		options: SafeWarpGrepProviderOptions,
+		ctx: CodebaseSearchExecutionContext,
+	) => WarpGrepProvider;
+}
+
+export interface ExecuteCodebaseSearchResult {
+	content: { type: 'text'; text: string }[];
+	details: CodebaseSearchDetails;
+}
+
 function expandDirectoryPath(directoryPath: string): string {
 	const normalized = directoryPath.startsWith('@') ? directoryPath.slice(1) : directoryPath;
 	if (normalized === '~') return homedir();
@@ -298,6 +337,82 @@ export function buildSearchDetails(
 		shownContextCount: contexts.length,
 		truncated,
 		contexts,
+	};
+}
+
+export async function executeCodebaseSearch(
+	options: ExecuteCodebaseSearchOptions,
+): Promise<ExecuteCodebaseSearchResult> {
+	const resolveApiKey =
+		options.resolveApiKey ??
+		((ctx: CodebaseSearchExecutionContext) => ensureMorphApiKey(ctx.modelRegistry.authStorage));
+	const resolveRuntimeConfig = options.resolveRuntimeConfig ?? getMorphRuntimeConfig;
+	const resolveRepoRoot =
+		options.resolveRepoRoot ??
+		((ctx: CodebaseSearchExecutionContext, repoRoot: string | undefined) =>
+			resolveWorkspaceDirectory(ctx.cwd, repoRoot));
+	const createProvider =
+		options.createProvider ??
+		((repoRoot: string, providerOptions: SafeWarpGrepProviderOptions) =>
+			createSafeWarpGrepProvider(repoRoot, providerOptions));
+	const { input, ctx, signal, onUpdate } = options;
+	const executionContext: CodebaseSearchExecutionContext = {
+		cwd: ctx.cwd,
+		modelRegistry: ctx.modelRegistry,
+		params: ctx.params,
+	};
+	const apiKey = await resolveApiKey(executionContext);
+	const runtimeConfig = await resolveRuntimeConfig();
+	const { absolutePath } = await resolveRepoRoot(executionContext, input.repoRoot);
+
+	const redactionEnabled = isCodebaseSearchRedactionEnabled();
+	if (await containsDetectedSecret(input.searchTerm)) {
+		throw new Error('codebase_search searchTerm appears to contain a secret; use local grep/find instead.');
+	}
+
+	onUpdate?.({
+		content: [{ type: 'text', text: `Starting Codebase Search for ${input.searchTerm}...` }],
+		details: {},
+	});
+
+	const client = new WarpGrepClient(buildWarpGrepConfig(apiKey, runtimeConfig));
+	const providerOptions: SafeWarpGrepProviderOptions = { enabled: redactionEnabled };
+	if (input.includes && input.includes.length > 0) providerOptions.includes = input.includes;
+	if (input.excludes && input.excludes.length > 0) providerOptions.excludes = input.excludes;
+	if (input.searchType != null) providerOptions.searchType = input.searchType;
+	const stream = client.execute({
+		searchTerm: input.searchTerm,
+		repoRoot: absolutePath,
+		provider: createProvider(absolutePath, providerOptions, executionContext),
+		streamSteps: true,
+		...(input.includes && input.includes.length > 0 ? { includes: input.includes } : {}),
+		...(input.excludes && input.excludes.length > 0 ? { excludes: input.excludes } : {}),
+		...(input.searchType != null ? { search_type: input.searchType } : {}),
+	});
+
+	const searchStart = Date.now();
+	let result: WarpGrepResult | undefined;
+	let turnsUsed = 0;
+	for (;;) {
+		if (signal?.aborted === true) throw new Error('codebase_search aborted.');
+		const next = await stream.next();
+		if (next.done === true) {
+			result = next.value;
+			break;
+		}
+		turnsUsed = next.value.turn;
+		onUpdate?.({ content: [{ type: 'text', text: formatStep(next.value) }], details: { lastStep: next.value } });
+	}
+	const latencyMs = Date.now() - searchStart;
+
+	if (result == null) throw new Error('Codebase Search did not return a result.');
+	if (!result.success) throw new Error(`Codebase Search failed: ${result.error ?? 'unknown error'}`);
+
+	const details = buildSearchDetails(input.searchTerm, absolutePath, result);
+	const modelContent = result.formattedContent ?? formatSearchContent(details);
+	return {
+		content: [{ type: 'text', text: modelContent }],
+		details: { ...details, latencyMs, turnsUsed },
 	};
 }
 
@@ -643,65 +758,22 @@ export function registerCodebaseSearchTool(pi: ExtensionAPI, options: RegisterCo
 		},
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const executionContext: CodebaseSearchExecutionContext = {
-				cwd: ctx.cwd,
-				modelRegistry: ctx.modelRegistry,
-				params,
-			};
-			const apiKey = await resolveApiKey(executionContext);
-			const runtimeConfig = await resolveRuntimeConfig();
-			const { absolutePath } = await resolveRepoRoot(executionContext, params.repoRoot);
-
-			const redactionEnabled = isCodebaseSearchRedactionEnabled();
-			if (await containsDetectedSecret(params.searchTerm)) {
-				throw new Error('codebase_search searchTerm appears to contain a secret; use local grep/find instead.');
-			}
-
-			onUpdate?.({
-				content: [{ type: 'text', text: `Starting Codebase Search for ${params.searchTerm}...` }],
-				details: {},
+			return executeCodebaseSearch({
+				input: {
+					searchTerm: params.searchTerm,
+					...(params.repoRoot != null ? { repoRoot: params.repoRoot } : {}),
+					...(params.includes != null ? { includes: params.includes } : {}),
+					...(params.excludes != null ? { excludes: params.excludes } : {}),
+					...(params.searchType != null ? { searchType: params.searchType } : {}),
+				},
+				ctx: { cwd: ctx.cwd, modelRegistry: ctx.modelRegistry, params },
+				...(signal != null ? { signal } : {}),
+				onUpdate,
+				resolveApiKey,
+				resolveRuntimeConfig,
+				resolveRepoRoot,
+				createProvider,
 			});
-
-			const client = new WarpGrepClient(buildWarpGrepConfig(apiKey, runtimeConfig));
-			const providerOptions: SafeWarpGrepProviderOptions = { enabled: redactionEnabled };
-			if (params.includes && params.includes.length > 0) providerOptions.includes = params.includes;
-			if (params.excludes && params.excludes.length > 0) providerOptions.excludes = params.excludes;
-			if (params.searchType != null) providerOptions.searchType = params.searchType;
-			const stream = client.execute({
-				searchTerm: params.searchTerm,
-				repoRoot: absolutePath,
-				provider: createProvider(absolutePath, providerOptions, executionContext),
-				streamSteps: true,
-				...(params.includes && params.includes.length > 0 ? { includes: params.includes } : {}),
-				...(params.excludes && params.excludes.length > 0 ? { excludes: params.excludes } : {}),
-				...(params.searchType != null ? { search_type: params.searchType } : {}),
-			});
-
-			const searchStart = Date.now();
-			let result: WarpGrepResult | undefined;
-			let turnsUsed = 0;
-			for (;;) {
-				if (signal?.aborted === true) throw new Error('codebase_search aborted.');
-				const next = await stream.next();
-				if (next.done === true) {
-					result = next.value;
-					break;
-				}
-				turnsUsed = next.value.turn;
-				onUpdate?.({ content: [{ type: 'text', text: formatStep(next.value) }], details: { lastStep: next.value } });
-			}
-			const latencyMs = Date.now() - searchStart;
-
-			if (result == null) throw new Error('Codebase Search did not return a result.');
-			if (!result.success) throw new Error(`Codebase Search failed: ${result.error ?? 'unknown error'}`);
-
-			const details = buildSearchDetails(params.searchTerm, absolutePath, result);
-			// Use SDK's own formatted string — absolute paths are fine, model uses them as context.
-			const modelContent = result.formattedContent ?? formatSearchContent(details);
-			return {
-				content: [{ type: 'text', text: modelContent }],
-				details: { ...details, latencyMs, turnsUsed },
-			};
 		},
 	});
 }
