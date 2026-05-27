@@ -35,7 +35,7 @@ const QuickEditParams = Type.Object({
 	}),
 	codeEdit: Type.String({
 		description:
-			"Only changed sections plus minimal unique context to anchor each change. Mark everything else '// ... existing code ...' — never repeat unchanged content. Works per-line too: { a: new, b: // ... existing ..., c: other }. One marker skips any region including nested objects.",
+			"Only changed sections plus minimal unique context. For existing files, use the exact delimiter line '// ... existing code ...' for every omitted span, including omitted file prefix and suffix. Do not use '#', '/* */', ellipses alone, or prose placeholders. Inline form is allowed for unchanged fields: { a: new, b: // ... existing ..., c: other }.",
 	}),
 });
 
@@ -247,15 +247,46 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 		label: toolLabel,
 		description:
 			options.description ??
-			"Default file editor; fall back to edit only for simple single-string replacements.\n\nUse this tool to make an edit to an existing file, or create a new file when the path does not exist.\n\nThis will be read by a less intelligent model, which will quickly apply the edit. You should make it clear what the edit is, while also minimizing the unchanged code you write.\n\nWhen writing the edit, specify each edit in sequence with the special comment // ... existing code ... to represent unchanged code in between. The marker also works inline for dense lines:\n\n// ... existing code ...\nCHANGED_BLOCK\n// ... existing code ...\n\nInline (multiple markers per line, one per field):\n{ host: 'new', port: // ... existing ..., ssl: // ... existing ..., pool: 20 }\n\nYou should bias towards repeating as few lines as possible to convey the change. But each edit should contain minimally sufficient context of unchanged lines to resolve ambiguity.\n\nDO NOT omit spans of pre-existing code (or comments) without using the // ... existing code ... comment to indicate its absence. If you omit it, the model may inadvertently delete those lines.\n\nMake all edits to a file in a single quick_edit call rather than multiple calls to the same file.",
+			[
+				'Default file editor; fall back to edit only for simple single-string replacements.',
+				'',
+				'Use this tool to make an edit to an existing file, or create a new file when the path does not exist.',
+				'',
+				'This will be read by a less intelligent model, which will quickly apply the edit. Be clear about the change while minimizing repeated unchanged code.',
+				'',
+				'For existing files, codeEdit is a sparse patch. The only valid delimiter for omitted existing code is the exact line:',
+				'',
+				'// ... existing code ...',
+				'',
+				"Use that delimiter for every omitted span. If you omit unchanged code before the first changed line, begin codeEdit with the delimiter. If you omit unchanged code after the last changed line, end codeEdit with the delimiter. Do not use '# ...', '/* ... */', plain '...', comments in another language, or prose placeholders as delimiters.",
+				'',
+				'Correct block shape:',
+				'',
+				'// ... existing code ...',
+				'UNCHANGED_ANCHOR_OR_CHANGED_BLOCK',
+				'// ... existing code ...',
+				'NEXT_CHANGED_BLOCK',
+				'// ... existing code ...',
+				'',
+				'Inline (multiple markers per line, one per field):',
+				"{ host: 'new', port: // ... existing ..., ssl: // ... existing ..., pool: 20 }",
+				'',
+				'Each changed region should include enough unchanged nearby context to resolve ambiguity, but never repeat large unchanged regions.',
+				'',
+				'DO NOT omit spans of pre-existing code (or comments) without using // ... existing code ... to indicate the omission. If you omit it, Morph may delete those lines.',
+				'',
+				'Make all edits to a file in a single quick_edit call rather than multiple calls to the same file.',
+			].join('\n'),
 		promptSnippet:
 			options.promptSnippet ??
-			'quick_edit: default editor. Changed sections + markers only. edit for tiny exact replacements.',
+			'quick_edit: default editor. Changed sections + exact // ... existing code ... delimiters only. edit for tiny exact replacements.',
 		promptGuidelines: options.promptGuidelines ?? [
+			"quick_edit: use exact delimiter '// ... existing code ...' for every omitted existing-code span; no '#', prose, plain ellipses, or language-specific comment variants.",
+			"quick_edit: if any unchanged file prefix/suffix is omitted, codeEdit must start/end with '// ... existing code ...' respectively.",
 			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",
 			'quick_edit inline markers: skip unchanged fields on the same line — { a: new, b: // ... existing ..., c: other, d: // ... existing ... } — one marker per field, multiple per line.',
 			"quick_edit reorder: write the new order and mark each unchanged field value inline — never retype field values that didn't change.",
-			'quick_edit sparse: two block markers bracket the changed entry — everything between is skipped.',
+			'quick_edit sparse: two block markers bracket each changed region when surrounding code is omitted.',
 		],
 		parameters,
 
