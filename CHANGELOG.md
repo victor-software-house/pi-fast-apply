@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.4.3 — 2026-05-27
+
+### Fixed
+
+- Clarified `quick_edit` model-facing instructions to require the exact `// ... existing code ...` delimiter for every omitted existing-code span, including file prefix and suffix omissions.
+
 ## 0.4.2 — 2026-05-26
 
 ### Changed
