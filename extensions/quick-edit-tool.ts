@@ -29,13 +29,15 @@ import {
 import { getMorphRuntimeConfig } from './runtime-config';
 
 const QuickEditParams = Type.Object({
-	path: Type.String({ description: 'Path to a workspace file to create or modify (relative or absolute).' }),
+	path: Type.String({
+		description: 'Path to an existing workspace file to modify (relative or absolute). Use write for new files.',
+	}),
 	instruction: Type.String({
 		description: "A first-person change description. Example: 'I am adding input validation to the add function.'",
 	}),
 	codeEdit: Type.String({
 		description:
-			"Only changed sections plus minimal unique context. For existing files, use the exact delimiter line '// ... existing code ...' for every omitted span, including omitted file prefix and suffix. Do not use '#', '/* */', ellipses alone, or prose placeholders. Inline form is allowed for unchanged fields: { a: new, b: // ... existing ..., c: other }.",
+			"Sparse edit for an existing file only. Do not use quick_edit for new files or full-file overwrites; use write instead. Include only changed sections plus minimal unique context. Use the exact delimiter line '// ... existing code ...' for every omitted span, including omitted file prefix and suffix. Do not use '#', '/* */', ellipses alone, or prose placeholders.",
 	}),
 });
 
@@ -127,32 +129,7 @@ export async function executeQuickEdit(options: ExecuteQuickEditOptions): Promis
 	return withFileMutationQueue(fileOps.queueKey?.(absolutePath) ?? absolutePath, async () => {
 		const isNewFile = !(await fileOps.existsReadable(absolutePath));
 		if (isNewFile) {
-			await fileOps.mkdirForFile(absolutePath);
-			await fileOps.writeFile(absolutePath, input.codeEdit);
-			return {
-				content: [{ type: 'text' as const, text: `Created ${input.path}` }],
-				details: {
-					provider: 'direct',
-					path: input.path,
-					absolutePath,
-					dryRun: false,
-					instruction: input.instruction,
-					changes: { linesAdded: input.codeEdit.split('\n').length, linesRemoved: 0, linesModified: 0 },
-					udiff: undefined,
-					mergedCode: input.codeEdit,
-					originalCode: '',
-					completionId: undefined,
-					originalLineCount: 0,
-					mergedLineCount: input.codeEdit.split('\n').length,
-					apiBaseUrl: runtimeConfig.displayApiBaseUrl,
-					apiBaseUrlHost: runtimeConfig.apiBaseUrlHost,
-					apiBaseUrlCustomHost: runtimeConfig.apiBaseUrlCustomHost,
-					timeoutMs: runtimeConfig.timeoutMs,
-					applyDefaultModel: runtimeConfig.applyDefaultModel,
-					sdkApplyPatchStatus: runtimeConfig.sdkPatch.status,
-					sdkVersion: runtimeConfig.sdkPatch.version,
-				} satisfies QuickEditDetails,
-			};
+			throw new Error(`quick_edit: target file does not exist: ${input.path}. Use write to create new files.`);
 		}
 
 		const originalCode = await fileOps.readFile(absolutePath);
@@ -248,9 +225,12 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 		description:
 			options.description ??
 			[
-				'Default file editor; fall back to edit only for simple single-string replacements.',
+				'Default editor for sparse edits to existing files; fall back to edit only for simple single-string replacements.',
 				'',
-				'Use this tool to make an edit to an existing file, or create a new file when the path does not exist.',
+				'Do not use quick_edit to create new files. Use write instead.',
+				'Do not use quick_edit to overwrite full file contents. Use write instead.',
+				'',
+				'Use this tool to modify an existing file with changed sections plus delimiter markers for omitted existing code.',
 				'',
 				'This will be read by a less intelligent model, which will quickly apply the edit. Be clear about the change while minimizing repeated unchanged code.',
 				'',
@@ -279,8 +259,9 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 			].join('\n'),
 		promptSnippet:
 			options.promptSnippet ??
-			'quick_edit: default editor. Changed sections + exact // ... existing code ... delimiters only. edit for tiny exact replacements.',
+			'quick_edit: existing-file sparse editor. Use exact // ... existing code ... delimiters. Use write for new files or full overwrites.',
 		promptGuidelines: options.promptGuidelines ?? [
+			'quick_edit: never use for creating new files or overwriting full file contents; use write instead.',
 			"quick_edit: use exact delimiter '// ... existing code ...' for every omitted existing-code span; no '#', prose, plain ellipses, or language-specific comment variants.",
 			"quick_edit: if any unchanged file prefix/suffix is omitted, codeEdit must start/end with '// ... existing code ...' respectively.",
 			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",

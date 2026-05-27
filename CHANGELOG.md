@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Unreleased
+
+### Changed
+
+- Restricted `quick_edit` guidance and validation to sparse edits on existing files; new-file creation and full-file replacement now point to Pi's `write` tool.
+
 ## 0.4.3 — 2026-05-27
 
 ### Fixed

@@ -31,9 +31,9 @@ Released as `0.2.0`. All runtime work complete.
 Completed work:
 
 - Package scaffold, release baseline, lint/build hooks.
-- Pi-native `quick_edit` tool (renamed from `fast_apply`) using Morph semantic merge. Default file editor; `edit` remains as fallback for trivial exact replacements.
+- Pi-native `quick_edit` tool (renamed from `fast_apply`) using Morph semantic merge. Existing-file sparse editor; `edit` remains as fallback for trivial exact replacements and `write` owns new files / full overwrites.
 - Pi-owned path resolution, mutation queueing, marker leak validation.
-- New-file creation: writes `codeEdit` directly without API round-trip.
+- New-file creation is intentionally out of `quick_edit` scope; use Pi's `write` tool for new files and full-file replacement.
 - `dryRun` removed from model-facing schema.
 - `promptGuidelines` enforce marker-first usage.
 - `/morph login`, `/morph logout`, `/morph status`, `/morph probe` auth/config commands.

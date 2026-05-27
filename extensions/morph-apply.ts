@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import type { ApplyEditInput, ApplyEditResult, EditChanges } from '@morphllm/morphsdk';
 import { applyEdit } from '@morphllm/morphsdk';
-import { EXISTING_CODE_MARKER, NON_TRIVIAL_FILE_LINE_COUNT } from './constants';
+import { EXISTING_CODE_MARKER } from './constants';
 import {
 	buildApplyConfig,
 	type MorphApplyDefaultModel,
@@ -65,10 +65,9 @@ export async function ensureReadableFile(absolutePath: string): Promise<void> {
 }
 
 export function validateInputForExistingFile(codeEdit: string, originalCode: string): void {
-	const originalLines = countLines(originalCode);
-	if (originalLines > NON_TRIVIAL_FILE_LINE_COUNT && !codeEdit.includes(EXISTING_CODE_MARKER)) {
+	if (!codeEdit.includes(EXISTING_CODE_MARKER)) {
 		throw new Error(
-			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${originalLines}-line file. Use quick_edit for partial edits with markers, or use write for full replacement.`,
+			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${countLines(originalCode)}-line file. Use quick_edit only for sparse edits with markers; use write for full-file replacement.`,
 		);
 	}
 }
