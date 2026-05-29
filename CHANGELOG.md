@@ -1,10 +1,11 @@
 # CHANGELOG
 
-## Unreleased
+## 0.5.0 — 2026-05-29
 
 ### Changed
 
-- Restricted `quick_edit` guidance and validation to sparse edits on existing files; new-file creation and full-file replacement now point to Pi's `write` tool.
+- `quick_edit` is the general default editor again: removed the existing-file-only restriction added in 0.4.4. It now creates new files (writes the snippet directly when the target does not exist) and no longer redirects new-file / full-file work to `write`.
+- `codebase_search` can target any directory: removed the `assertInsideWorkspace` guard that rejected repo roots outside the current workspace. `repoRoot` is still validated to exist and be a directory, and Secretlint-backed output redaction is unchanged.
 
 ## 0.4.4 — 2026-05-29
 

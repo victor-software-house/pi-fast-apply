@@ -47,10 +47,10 @@ describe('resolveWorkspaceDirectory', () => {
 		);
 	});
 
-	it('rejects directories outside the workspace', async () => {
-		await expect(resolveWorkspaceDirectory(root, outside)).rejects.toThrow(
-			'codebase_search only supports repo roots inside the current workspace',
-		);
+	it('resolves directories outside the workspace', async () => {
+		await expect(resolveWorkspaceDirectory(root, outside)).resolves.toMatchObject({
+			absolutePath: await realpath(outside),
+		});
 	});
 });
 

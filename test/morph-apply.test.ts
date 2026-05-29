@@ -4,10 +4,8 @@ import { validateInputForExistingFile } from '../extensions/morph-apply';
 const marker = '// ... existing code ...';
 
 describe('validateInputForExistingFile', () => {
-	it('requires marker-delimited sparse edits for existing files', () => {
-		expect(() => validateInputForExistingFile('export const value = 2;\n', 'export const value = 1;\n')).toThrow(
-			'use write for full-file replacement',
-		);
+	it('allows markerless snippets because guidance is non-blocking', () => {
+		expect(() => validateInputForExistingFile('export const value = 2;\n', 'export const value = 1;\n')).not.toThrow();
 	});
 
 	it('accepts sparse edits with existing-code markers', () => {

@@ -64,12 +64,9 @@ export async function ensureReadableFile(absolutePath: string): Promise<void> {
 	await access(absolutePath, constants.R_OK);
 }
 
-export function validateInputForExistingFile(codeEdit: string, originalCode: string): void {
-	if (!codeEdit.includes(EXISTING_CODE_MARKER)) {
-		throw new Error(
-			`Missing '${EXISTING_CODE_MARKER}' markers for an existing ${countLines(originalCode)}-line file. Use quick_edit only for sparse edits with markers; use write for full-file replacement.`,
-		);
-	}
+export function validateInputForExistingFile(_codeEdit: string, _originalCode: string): void {
+	// Non-blocking by design: tool metadata guides marker use, but runtime
+	// still allows full-file snippets and other fallback shapes.
 }
 
 export function validateMergedOutput(originalCode: string, codeEdit: string, mergedCode: string): void {

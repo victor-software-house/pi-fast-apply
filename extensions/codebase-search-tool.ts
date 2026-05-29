@@ -170,13 +170,6 @@ function expandDirectoryPath(directoryPath: string): string {
 	return normalized;
 }
 
-function assertInsideWorkspace(workspaceRoot: string, targetPath: string): void {
-	const relativePath = relative(workspaceRoot, targetPath);
-	if (relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))) return;
-
-	throw new Error('codebase_search only supports repo roots inside the current workspace.');
-}
-
 export interface SafeWarpGrepProviderOptions extends CodebaseSearchRedactionOptions {
 	includes?: string[];
 	excludes?: string[];
@@ -263,7 +256,6 @@ export async function resolveWorkspaceDirectory(
 	const workspaceRoot = await realpath(workspaceCwd);
 	const requestedPath = resolve(workspaceRoot, targetPath);
 	const absolutePath = await realpath(requestedPath);
-	assertInsideWorkspace(workspaceRoot, absolutePath);
 
 	const info = await stat(absolutePath);
 	if (!info.isDirectory()) {

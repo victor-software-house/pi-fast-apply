@@ -4,7 +4,7 @@
 
 ## Why
 
-- **`quick_edit` is the default editor for sparse edits to existing files** — supply only changed sections with `// ... existing code ...` markers; Morph fills the unchanged parts. Use `write` for new files and full-file overwrites. Multiple markers per line, single marker for entire nested objects, no limit.
+- **`quick_edit` is the default editor** — supply only changed sections with `// ... existing code ...` markers; Morph fills the unchanged parts. Prefer `write` for new files and full-file overwrites. Multiple markers per line, single marker for entire nested objects, no limit.
 - **`codebase_search`** — semantic local code search via WarpGrep. Finds implementations, traces flows, answers "where is X" questions in under 10 seconds.
 - **Pi-native** — path resolution, mutation queueing, and rendering stay inside Pi. Morph handles semantic merge/search only.
 
@@ -25,7 +25,7 @@ pi install npm:@victor-software-house/pi-fast-apply
 /morph login <your-api-key>
 ```
 
-Then use `quick_edit` for sparse edits to existing files:
+Then use `quick_edit` as your default file editor:
 
 ```
 path: src/api/users.ts
@@ -46,11 +46,11 @@ searchTerm: Find where authentication middleware is applied
 
 ## Tools
 
-### `quick_edit` — existing-file sparse editor
+### `quick_edit` — default file editor
 
-Morph semantic merge. Provide only changed sections; mark every omitted span with `// ... existing code ...`.
+Morph semantic merge. Provide only changed sections; mark omitted spans with `// ... existing code ...`.
 
-**Use `write` instead** for new files or full-file overwrites.
+**Prefer `write`** for new files or full-file overwrites.
 
 **Prefer over `edit`** unless the change is a single trivially unique string replacement.
 
@@ -80,15 +80,11 @@ const ROUTES = {
 
 **Limit:** the marker string cannot appear as intended literal output — Morph treats any occurrence as an expansion instruction. Files that already contain it as real content are handled correctly.
 
-**Does not create new files.** If the target file does not exist, use `write`.
-
-**Does not overwrite full file contents.** If replacing the whole file, use `write`.
-
 | Parameter | Description |
 |:--|:--|
-| `path` | Existing file path (relative or absolute) |
+| `path` | File path (relative or absolute) |
 | `instruction` | First-person change description |
-| `codeEdit` | Sparse changed sections + `// ... existing code ...` markers for omitted spans |
+| `codeEdit` | Changed sections + `// ... existing code ...` markers for omitted spans |
 
 ### `codebase_search` — semantic code search
 
