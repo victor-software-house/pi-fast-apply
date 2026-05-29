@@ -6,6 +6,12 @@
 
 - Restricted `quick_edit` guidance and validation to sparse edits on existing files; new-file creation and full-file replacement now point to Pi's `write` tool.
 
+## 0.4.4 — 2026-05-29
+
+### Changed
+
+- Bumped `@victor-software-house/pi-render-core` floor to `>=0.7.0` (and pi peer deps to `>=0.77.0`) — quick-edit and codebase-search renderers pick up unified new-file diffs, consistent expanded line wrapping, and native markdown reads.
+
 ## 0.4.3 — 2026-05-27
 
 ### Fixed
