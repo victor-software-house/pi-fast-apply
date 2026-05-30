@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.5.3 — 2026-05-30
+
+### Fixed
+
+- Bumped `@victor-software-house/pi-render-core` to `>=0.7.3` (fixes double-spacing gutter bug, unified wrapAnsi).
+
+## 0.5.2 — 2026-05-30
+
+### Fixed
+
+- Bumped `@victor-software-house/pi-render-core` to `>=0.7.2` (fixes double-spacing gutter bug).
+
 ## 0.5.1 — 2026-05-30
 
 ### Changed
