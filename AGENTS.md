@@ -96,24 +96,50 @@ MORPH_API_KEY="$(fnox get MORPH_API_KEY)" pnpm run test:quick-edit-live -- --upd
 - Conventional Commits.
 - Small, reviewable commits.
 - Keep `lefthook` hooks working.
-- Releases: tag-driven GitHub Packages CI. Keep version, tag, and CHANGELOG aligned.
+
+## Release pipeline
+
+This repo uses **Changesets** for versioning and publishing to GitHub Packages.
+
+### Workflow
+
+1. PRs that affect the published package must include a changeset file (`pnpm exec changeset`).
+2. The `changesets/action` GitHub Action (`.github/workflows/release.yml`) maintains a "Version Packages" PR on `main`.
+3. Merging the "Version Packages" PR bumps `package.json`, updates `CHANGELOG.md`, and publishes to GitHub Packages.
+4. CI checks changeset status on PRs (`changeset status --since=origin/main`).
+
+### Bump rules
+
+| Changeset type | When to use | Example |
+|:---|:---|:---|
+| `patch` | **Default.** Bug fixes, improvements, behavioral adjustments | Fix marker expansion, update guidelines |
+| `minor` | Net-new user-facing tool or command | New `/morph` subcommand |
+| `major` | **Rarely.** Removed/renamed tool, breaking Pi user workflow | Never without explicit justification |
+
+**DO:** default to `patch` for almost everything.
+**DO NOT:** use `minor` for changes to an existing feature. Adding a parameter to an existing tool is `patch`.
+**DO NOT:** use `major` without explicit justification — npm versions are permanent.
+
+### Pre-push checklist
+
+If the push includes `fix:` or `feat:` commits and no `.changeset/*.md` file exists:
+1. Run `pnpm exec changeset` — select `patch` and write a consumer-facing summary.
+2. `git add .changeset/ && git commit -m "chore: add changeset"`
+
+If the push intentionally should not release, run `pnpm exec changeset --empty`.
 
 ## Version bump discipline
 
 npm versions are permanent. Under-bump is recoverable; over-bump is not.
 
-| Commit type | Bump | When |
+| Changeset type | Bump | When |
 |:--|:--|:--|
-| `feat:` | minor | New tool, new command, new auth path |
-| `fix:` | patch | Bug fix or behavioral correction |
-| `refactor:` | none | Internal restructure, no user-visible change |
-| `docs:` | none | README, ROADMAP, AGENTS.md, comments |
-| `chore:` | none | Config, CI, deps, lint |
-| `test:` | none | Tests only |
-| `feat!:` / `BREAKING CHANGE:` | **major** | Removing a tool, renaming a parameter, breaking existing Pi user workflow |
+| `patch` | patch | Bug fix or behavioral correction |
+| `minor` | minor | New tool, new command, new auth path |
+| `major` | **major** | Removing a tool, renaming a parameter, breaking existing Pi user workflow |
 
 Rules:
-- `feat:` is for new capabilities only. Description/prompt/guideline changes → `refactor:` or `fix:`.
-- `BREAKING CHANGE:` means a Pi user's workflow breaks. Internal renames are not breaking.
-- Default to `fix:` when unsure between `fix:` and `feat:`.
-- Default to `refactor:` or `docs:` when no runtime behavior changes.
+- `patch` is the default. Use for fixes, improvements, guideline/description changes.
+- `minor` is for net-new user-facing capabilities only.
+- `major` means a Pi user's workflow breaks. Internal renames are not breaking.
+- Default to `patch` when unsure. No changeset needed for `chore:`/`docs:`/`test:`/`refactor:` commits.

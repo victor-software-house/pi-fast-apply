@@ -47,3 +47,7 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Changeset status
+        if: github.event_name == 'pull_request'
+        run: pnpm exec changeset status --since=origin/main

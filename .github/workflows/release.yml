@@ -2,19 +2,24 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   release:
-    name: Build, verify, publish
+    name: Create release PR or publish
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || github.token }}
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -32,57 +37,27 @@ jobs:
           cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@victor-software-house'
-          always-auth: true
-
-      - name: Verify tag matches package version
-        run: |
-          PKG_VERSION="$(jq -r '.version' package.json)"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
-            exit 1
-          fi
-          echo "Releasing $PKG_VERSION"
 
       - name: Install
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || github.token }}
 
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Test
-        run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Publish to GitHub Packages
-        run: pnpm publish --no-git-checks --access restricted
-
-      - name: Extract changelog body for this version
-        id: changelog
+      - name: Pre-publish gates
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          BODY="$(awk -v v="$VERSION" '
-            $0 ~ "^## " v "( |$)" { in_section=1; next }
-            in_section && $0 ~ "^## " { in_section=0 }
-            in_section { print }
-          ' CHANGELOG.md)"
-          if [ -z "${BODY// }" ]; then
-            BODY="See CHANGELOG.md for details."
-          fi
-          {
-            echo "body<<__CHANGELOG_EOF__"
-            echo "$BODY"
-            echo "__CHANGELOG_EOF__"
-          } >> "$GITHUB_OUTPUT"
+          pnpm run lint
+          pnpm run typecheck
+          pnpm test
+          pnpm run build
+          pnpm pack --dry-run
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - name: Create release PR or publish
+        uses: changesets/action@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.body }}
+          version: pnpm run version
+          publish: pnpm run release
+          commit: 'chore(release): version packages'
+          title: 'chore(release): version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || github.token }}
