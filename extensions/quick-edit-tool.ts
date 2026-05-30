@@ -281,6 +281,7 @@ export function registerQuickEditTool(pi: ExtensionAPI, options: RegisterQuickEd
 			options.promptSnippet ??
 			'quick_edit: default editor. Changed sections + exact // ... existing code ... delimiters. edit for tiny exact replacements.',
 		promptGuidelines: options.promptGuidelines ?? [
+			'quick_edit: default editor for ALL file modifications. Prefer over edit unless the change is a single exact-string replacement. Prefer over write unless creating a new file or replacing entire content.',
 			"quick_edit: use exact delimiter '// ... existing code ...' for every omitted existing-code span; no '#', prose, plain ellipses, or language-specific comment variants.",
 			"quick_edit: if any unchanged file prefix/suffix is omitted, codeEdit must start/end with '// ... existing code ...' respectively.",
 			"quick_edit: never repeat unchanged lines — every skipped region is a '// ... existing code ...' marker, no exceptions.",
