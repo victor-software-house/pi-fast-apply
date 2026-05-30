@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.1 — 2026-05-30
+
+### Changed
+
+- Bumped `@victor-software-house/pi-render-core` dependency to `>=0.7.1` (YAML frontmatter rendering fix + bash elapsed timer).
+
 ## 0.5.0 — 2026-05-29
 
 ### Changed
