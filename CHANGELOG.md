@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.5
+
+### Patch Changes
+
+- [`7bcb67b`](https://github.com/victor-software-house/pi-fast-apply/commit/7bcb67b45d70088fdde309eefa3a61d36b386be9) Thanks [@any-victor](https://github.com/any-victor)! - Set up changesets for automated release pipeline
+
 ## 0.5.4 — 2026-05-30
 
 ### Fixed
@@ -120,7 +126,6 @@
 ### Fixed
 
 - NaN line numbers for whole-file contexts (`lines: '*'`).
-
 
 ## 0.2.5 — 2026-05-18
 
