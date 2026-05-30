@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.4 — 2026-05-30
+
+### Fixed
+
+- Added routing guideline to `promptGuidelines`: prefer `quick_edit` as default editor for all file modifications over `edit` (single exact-string replacements only) and `write` (new files / full replacement only).
+
 ## 0.5.3 — 2026-05-30
 
 ### Fixed
