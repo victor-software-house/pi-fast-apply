@@ -1,3 +1,9 @@
+## 0.5.6
+
+### Patch Changes
+
+- Bump pi-render-core pin to >=0.7.9 (github-dark colorReplacements)
+
 # CHANGELOG
 
 ## 0.5.5

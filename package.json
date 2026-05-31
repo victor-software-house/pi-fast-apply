@@ -1,115 +1,115 @@
 {
-  "name": "@victor-software-house/pi-fast-apply",
-  "version": "0.5.5",
-  "description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
-  "license": "MIT",
-  "author": "Victor Software House",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/victor-software-house/pi-fast-apply.git"
-  },
-  "homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
-  "bugs": {
-    "url": "https://github.com/victor-software-house/pi-fast-apply/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
-  },
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "pi-coding-agent",
-    "morph",
-    "fast-apply",
-    "code-editing"
-  ],
-  "pi": {
-    "extensions": [
-      "./dist/index.mjs"
-    ],
-    "image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
-  },
-  "type": "module",
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist",
-    "assets/**",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsdown",
-    "typecheck": "tsc --noEmit",
-    "lint": "pnpm run lint:biome && pnpm run lint:oxlint",
-    "lint:biome": "biome check .",
-    "lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
-    "test": "vitest run --passWithNoTests",
-    "test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
-    "test:quick-edit-live": "vitest run test/quick-edit-live.test.ts --testTimeout 900000",
-    "measure:codebase-search": "tsx test/codebase-search-timing.ts",
-    "fix": "pnpm run fix:oxlint && pnpm run fix:biome",
-    "fix:biome": "biome check --write .",
-    "fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
-    "format": "biome format --write .",
-    "prepare": "lefthook install",
-    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "changeset publish"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=0.77.0",
-    "@earendil-works/pi-tui": ">=0.77.0"
-  },
-  "peerDependenciesMeta": {
-    "@earendil-works/pi-coding-agent": {
-      "optional": true
-    },
-    "@earendil-works/pi-tui": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@morphllm/morphsdk": "^0.2.171",
-    "@sanity-labs/secret-scan": "1.1.0",
-    "@secretlint/core": "13.0.2",
-    "@secretlint/secretlint-rule-preset-recommend": "13.0.2",
-    "@sinclair/typebox": "^0.34.49",
-    "@victor-software-house/pi-render-core": ">=0.7.4",
-    "ai": "^6.0.191"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.0",
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.0.1",
-    "@limegrass/eslint-plugin-import-alias": "^1.6.1",
-    "@types/node": "^25.9.1",
-    "eslint-plugin-zod": "^4.5.2",
-    "lefthook": "^2.1.8",
-    "oxlint": "^1.67.0",
-    "oxlint-tsgolint": "^0.23.0",
-    "tsdown": "^0.22.0",
-    "tsx": "^4.22.3",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
-  },
-  "engines": {
-    "pnpm": ">=11 <12",
-    "node": ">=24.0.0"
-  },
-  "packageManager": "pnpm@11.2.2",
-  "pnpm": {
-    "autoInstallPeers": false
-  }
+	"name": "@victor-software-house/pi-fast-apply",
+	"version": "0.5.6",
+	"description": "Morph Fast Apply for Pi — semantic file editing with partial code snippets, no exact string matching required.",
+	"license": "MIT",
+	"author": "Victor Software House",
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/victor-software-house/pi-fast-apply.git"
+	},
+	"homepage": "https://github.com/victor-software-house/pi-fast-apply#readme",
+	"bugs": {
+		"url": "https://github.com/victor-software-house/pi-fast-apply/issues"
+	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com",
+		"access": "restricted"
+	},
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"pi-coding-agent",
+		"morph",
+		"fast-apply",
+		"code-editing"
+	],
+	"pi": {
+		"extensions": [
+			"./dist/index.mjs"
+		],
+		"image": "https://raw.githubusercontent.com/victor-software-house/pi-fast-apply/main/assets/preview.png"
+	},
+	"type": "module",
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"default": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"assets/**",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"typecheck": "tsc --noEmit",
+		"lint": "pnpm run lint:biome && pnpm run lint:oxlint",
+		"lint:biome": "biome check .",
+		"lint:oxlint": "oxlint --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+		"test": "vitest run --passWithNoTests",
+		"test:morph-matrix": "vitest run test/morph-apply-matrix.test.ts --testTimeout 900000",
+		"test:quick-edit-live": "vitest run test/quick-edit-live.test.ts --testTimeout 900000",
+		"measure:codebase-search": "tsx test/codebase-search-timing.ts",
+		"fix": "pnpm run fix:oxlint && pnpm run fix:biome",
+		"fix:biome": "biome check --write .",
+		"fix:oxlint": "oxlint --fix --import-plugin --type-aware --tsconfig=./tsconfig.json .",
+		"format": "biome format --write .",
+		"prepare": "lefthook install",
+		"prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+		"changeset": "changeset",
+		"version": "changeset version",
+		"release": "changeset publish"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": ">=0.77.0",
+		"@earendil-works/pi-tui": ">=0.77.0"
+	},
+	"peerDependenciesMeta": {
+		"@earendil-works/pi-coding-agent": {
+			"optional": true
+		},
+		"@earendil-works/pi-tui": {
+			"optional": true
+		}
+	},
+	"dependencies": {
+		"@morphllm/morphsdk": "^0.2.171",
+		"@sanity-labs/secret-scan": "1.1.0",
+		"@secretlint/core": "13.0.2",
+		"@secretlint/secretlint-rule-preset-recommend": "13.0.2",
+		"@sinclair/typebox": "^0.34.49",
+		"@victor-software-house/pi-render-core": ">=0.7.9",
+		"ai": "^6.0.191"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.15",
+		"@changesets/changelog-github": "^0.7.0",
+		"@changesets/cli": "^2.31.0",
+		"@commitlint/cli": "^21.0.1",
+		"@commitlint/config-conventional": "^21.0.1",
+		"@limegrass/eslint-plugin-import-alias": "^1.6.1",
+		"@types/node": "^25.9.1",
+		"eslint-plugin-zod": "^4.5.2",
+		"lefthook": "^2.1.8",
+		"oxlint": "^1.67.0",
+		"oxlint-tsgolint": "^0.23.0",
+		"tsdown": "^0.22.0",
+		"tsx": "^4.22.3",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.7"
+	},
+	"engines": {
+		"pnpm": ">=11 <12",
+		"node": ">=24.0.0"
+	},
+	"packageManager": "pnpm@11.2.2",
+	"pnpm": {
+		"autoInstallPeers": false
+	}
 }
