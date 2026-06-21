@@ -51,5 +51,5 @@ jobs:
         run: pnpm run build
 
       - name: Changeset status
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
         run: pnpm exec changeset status --since=origin/main
