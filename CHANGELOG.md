@@ -1,3 +1,11 @@
+## 0.5.7
+
+### Patch Changes
+
+- [`2f55196`](https://github.com/victor-software-house/pi-fast-apply/commit/2f55196b9c65b9106731d2e75e738fa661259229) Thanks [@any-victor](https://github.com/any-victor)! - Bump pi-render-core dependency floor to >=0.7.4
+
+- [`09d8b6c`](https://github.com/victor-software-house/pi-fast-apply/commit/09d8b6ccd6aaa0cec87c7ff62a0b73c1df713685) Thanks [@any-victor](https://github.com/any-victor)! - Bump pi-render-core to 0.7.14 for WidthAwareText render cache fix.
+
 ## 0.5.6
 
 ### Patch Changes
