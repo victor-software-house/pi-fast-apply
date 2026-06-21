@@ -33,8 +33,8 @@ importers:
         specifier: ^0.34.49
         version: 0.34.49
       '@victor-software-house/pi-render-core':
-        specifier: '>=0.7.4'
-        version: 0.7.4(@earendil-works/pi-coding-agent@0.77.0(ws@8.21.0)(zod@4.4.3))(@earendil-works/pi-tui@0.77.0)(shiki@4.1.0)
+        specifier: '>=0.7.14'
+        version: 0.7.14(@earendil-works/pi-coding-agent@0.77.0(ws@8.21.0)(zod@4.4.3))(@earendil-works/pi-tui@0.77.0)(shiki@4.1.0)
       ai:
         specifier: ^6.0.191
         version: 6.0.191(zod@4.4.3)
@@ -1151,11 +1151,6 @@ packages:
     resolution: {integrity: sha512-cAZjr6ZTKgSuJMLyTGDrUEtK3XEZa+JStIkD+DmdkT32VGAN+dQJiYr1So3XJopsKSrqhP5kjZKT8WWtftZIpQ==}
     engines: {node: '>=22.0.0'}
 
-  '@shikijs/cli@4.1.0':
-    resolution: {integrity: sha512-3CadYWw/qpjMeAlAFpbjqq454NfPVC/ROuxXkTRAXNaYHSeWmLzW4tRRafA8MYM7kG4tSrbUuHTWhMINofbZVQ==}
-    engines: {node: '>=20'}
-    hasBin: true
-
   '@shikijs/core@4.1.0':
     resolution: {integrity: sha512-jLJtSJeuFffqX6/inRE1zqU5aFv2hrszvYgq3OjbAgFRZiWv7abKMDdQzYxuSDfmUPQozZvI/kuy6VMTvnvqTQ==}
     engines: {node: '>=20'}
@@ -1329,8 +1324,8 @@ packages:
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
 
-  '@victor-software-house/pi-render-core@0.7.4':
-    resolution: {integrity: sha512-0AclYsjXaMStOhJ4Sj/yLTfV6X9tJrr6EvsXv75qXkyO58RnfJ9PZLvnMx46ChVLh89Q6K1swoj4UsPPcXmLHw==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.7.4/7bc0cd7c81e8e035c3e7d4dd8816f7b49e1ac9e4}
+  '@victor-software-house/pi-render-core@0.7.14':
+    resolution: {integrity: sha512-Vg+NJ0JtaLalLdP4w69Rd0e4ZqOXe+i2ED3PDzy/cXsmmiB77PRX9d5fInT+dRWMS2EYO0gP+zh4Dm5YfBCrzA==, tarball: https://npm.pkg.github.com/download/@victor-software-house/pi-render-core/0.7.14/635f4e4781e011aef31d1ea8c29a4704485dd60f}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.77.0'
@@ -4328,13 +4323,6 @@ snapshots:
 
   '@secretlint/types@13.0.2': {}
 
-  '@shikijs/cli@4.1.0':
-    dependencies:
-      '@shikijs/vscode-textmate': 10.0.2
-      ansis: 4.3.0
-      cac: 7.0.0
-      shiki: 4.1.0
-
   '@shikijs/core@4.1.0':
     dependencies:
       '@shikijs/primitive': 4.1.0
@@ -4537,11 +4525,11 @@ snapshots:
 
   '@vercel/oidc@3.2.0': {}
 
-  '@victor-software-house/pi-render-core@0.7.4(@earendil-works/pi-coding-agent@0.77.0(ws@8.21.0)(zod@4.4.3))(@earendil-works/pi-tui@0.77.0)(shiki@4.1.0)':
+  '@victor-software-house/pi-render-core@0.7.14(@earendil-works/pi-coding-agent@0.77.0(ws@8.21.0)(zod@4.4.3))(@earendil-works/pi-tui@0.77.0)(shiki@4.1.0)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.77.0(ws@8.21.0)(zod@4.4.3)
       '@earendil-works/pi-tui': 0.77.0
-      '@shikijs/cli': 4.1.0
+      ansis: 4.3.0
       diff: 9.0.0
       shiki: 4.1.0
       unbash: 3.0.0

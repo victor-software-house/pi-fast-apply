@@ -84,7 +84,7 @@
 		"@secretlint/core": "13.0.2",
 		"@secretlint/secretlint-rule-preset-recommend": "13.0.2",
 		"@sinclair/typebox": "^0.34.49",
-		"@victor-software-house/pi-render-core": ">=0.7.9",
+		"@victor-software-house/pi-render-core": ">=0.7.14",
 		"ai": "^6.0.191"
 	},
 	"devDependencies": {
