@@ -33,7 +33,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.16.0
           cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@victor-software-house'
